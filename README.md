@@ -28,3 +28,5 @@ To support this project you can make a donation via PayPal or buy a Floppy Ant C
 
 ![Logo](https://camo.githubusercontent.com/2242e76f771bd95c9bc8889541ca2c485dc244c0db349b7c886ae264c53f971a/68747470733a2f2f666c6f7070796c61622e616c74657276697374612e6f72672f77702d636f6e74656e742f75706c6f6164732f323032332f30322f63726f707065642d5374656d6d612d736372697474612d746f6e64612e706e67)
 
+## License
+[CERN Open Hardware Licence Version 2 - Strongly Reciprocal](https://choosealicense.com/licenses/cern-ohl-s-2.0/#)
