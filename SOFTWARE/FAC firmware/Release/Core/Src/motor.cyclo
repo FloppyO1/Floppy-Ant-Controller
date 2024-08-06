@@ -1,0 +1,6 @@
+../Core/Src/motor.c:14:6:initMotors	1
+../Core/Src/motor.c:60:6:setMotorSpeedBidirectional	4
+../Core/Src/motor.c:21:6:setTankMotor	1
+../Core/Src/motor.c:85:6:setMotorSpeedUnidirectional	4
+../Core/Src/motor.c:104:6:disableMotor	4
+../Core/Src/motor.c:118:6:enableMotor	4

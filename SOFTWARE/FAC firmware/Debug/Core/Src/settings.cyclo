@@ -1,0 +1,9 @@
+../Core/Src/settings.c:184:9:decodeCommand	1
+../Core/Src/settings.c:197:6:serialPrintString	1
+../Core/Src/settings.c:271:9:read_byte_eeprom	1
+../Core/Src/settings.c:235:6:readSettingsFromEeprom	2
+../Core/Src/settings.c:267:6:loadSettingsFromEeprom	1
+../Core/Src/settings.c:277:6:write_byte_eeprom	1
+../Core/Src/settings.c:201:6:storeSettingsToEeprom	2
+../Core/Src/settings.c:283:6:serialPrintSettings	2
+../Core/Src/settings.c:50:5:modifySettingsWithCommand	32
