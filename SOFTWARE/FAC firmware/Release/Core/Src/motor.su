@@ -1,6 +1,0 @@
-../Core/Src/motor.c:14:6:initMotors	8	static
-../Core/Src/motor.c:60:6:setMotorSpeedBidirectional	8	static
-../Core/Src/motor.c:21:6:setTankMotor	16	static
-../Core/Src/motor.c:85:6:setMotorSpeedUnidirectional	8	static
-../Core/Src/motor.c:104:6:disableMotor	8	static
-../Core/Src/motor.c:118:6:enableMotor	8	static

@@ -1,3 +1,0 @@
-../Core/Src/settings.c:24:9:decodeCommand	1
-../Core/Src/settings.c:12:5:modifySettingsWithCommand	1
-../Core/Src/settings.c:37:6:serialPrintString	1

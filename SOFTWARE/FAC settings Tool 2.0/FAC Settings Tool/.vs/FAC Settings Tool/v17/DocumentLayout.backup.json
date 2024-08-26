@@ -1,0 +1,88 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\antweight\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{25551DDB-A634-40E6-B43B-0C63983F9FDC}|FAC Settings Tool\\FAC Settings Tool.csproj|c:\\users\\filippo castellan\\google drive\\progetti\\2024\\antweight\\software\\fac settings tool 2.0\\fac settings tool\\fac settings tool\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{25551DDB-A634-40E6-B43B-0C63983F9FDC}|FAC Settings Tool\\FAC Settings Tool.csproj|solutionrelative:fac settings tool\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{00000000-0000-0000-0000-000000000000}|\u003CSolution\u003E|FAC Settings Tool||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{25551DDB-A634-40E6-B43B-0C63983F9FDC}|FAC Settings Tool\\FAC Settings Tool.csproj|C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\antweight\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\fac settings tool\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{25551DDB-A634-40E6-B43B-0C63983F9FDC}|FAC Settings Tool\\FAC Settings Tool.csproj|solutionrelative:fac settings tool\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{25551DDB-A634-40E6-B43B-0C63983F9FDC}|FAC Settings Tool\\FAC Settings Tool.csproj|C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\antweight\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\fac settings tool\\myserial.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{25551DDB-A634-40E6-B43B-0C63983F9FDC}|FAC Settings Tool\\FAC Settings Tool.csproj|solutionrelative:fac settings tool\\myserial.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{25551DDB-A634-40E6-B43B-0C63983F9FDC}|FAC Settings Tool\\FAC Settings Tool.csproj|c:\\users\\filippo castellan\\google drive\\progetti\\2024\\antweight\\software\\fac settings tool 2.0\\fac settings tool\\fac settings tool\\||{B270807C-D8C6-49EB-8EBE-8E8D566637A1}|5e9a8ac2-4f34-4521-858f-4c248ba31532"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Form1.cs [Design]",
+              "DocumentMoniker": "C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\antweight\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\FAC Settings Tool\\Form1.cs",
+              "RelativeDocumentMoniker": "FAC Settings Tool\\Form1.cs",
+              "ToolTip": "C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\antweight\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\FAC Settings Tool\\Form1.cs [Design]",
+              "RelativeToolTip": "FAC Settings Tool\\Form1.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-08-25T12:45:16.571Z",
+              "IsPinned": true,
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "FAC Settings Tool",
+              "DocumentMoniker": "C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\antweight\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\FAC Settings Tool\\FAC Settings Tool.csproj",
+              "RelativeDocumentMoniker": "FAC Settings Tool\\FAC Settings Tool.csproj",
+              "ToolTip": "C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\antweight\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\FAC Settings Tool\\FAC Settings Tool.csproj",
+              "RelativeToolTip": "FAC Settings Tool\\FAC Settings Tool.csproj",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2024-08-26T18:44:22.774Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Form1.cs",
+              "DocumentMoniker": "C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\antweight\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\FAC Settings Tool\\Form1.cs",
+              "RelativeDocumentMoniker": "FAC Settings Tool\\Form1.cs",
+              "ToolTip": "C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\antweight\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\FAC Settings Tool\\Form1.cs",
+              "RelativeToolTip": "FAC Settings Tool\\Form1.cs",
+              "ViewState": "AgIAABoAAAAAAAAAAAAkwCUAAAAjAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-08-26T10:02:21.475Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "MySerial.cs",
+              "DocumentMoniker": "C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\antweight\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\FAC Settings Tool\\MySerial.cs",
+              "RelativeDocumentMoniker": "FAC Settings Tool\\MySerial.cs",
+              "ToolTip": "C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\antweight\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\FAC Settings Tool\\MySerial.cs",
+              "RelativeToolTip": "FAC Settings Tool\\MySerial.cs",
+              "ViewState": "AgIAAJEAAAAAAAAAAAAkwJYAAAA7AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-08-25T15:10:38.12Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
