@@ -715,7 +715,7 @@
             // 
             this.labelM1.AutoSize = true;
             this.labelM1.Font = new System.Drawing.Font("Eras Bold ITC", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.labelM1.Location = new System.Drawing.Point(116, 362);
+            this.labelM1.Location = new System.Drawing.Point(102, 362);
             this.labelM1.Name = "labelM1";
             this.labelM1.Size = new System.Drawing.Size(49, 16);
             this.labelM1.TabIndex = 26;
@@ -792,7 +792,7 @@
             // 
             this.labelM2.AutoSize = true;
             this.labelM2.Font = new System.Drawing.Font("Eras Bold ITC", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.labelM2.Location = new System.Drawing.Point(116, 308);
+            this.labelM2.Location = new System.Drawing.Point(102, 308);
             this.labelM2.Name = "labelM2";
             this.labelM2.Size = new System.Drawing.Size(49, 16);
             this.labelM2.TabIndex = 22;
@@ -803,7 +803,7 @@
             // 
             this.labelM3.AutoSize = true;
             this.labelM3.Font = new System.Drawing.Font("Eras Bold ITC", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.labelM3.Location = new System.Drawing.Point(116, 255);
+            this.labelM3.Location = new System.Drawing.Point(102, 255);
             this.labelM3.Name = "labelM3";
             this.labelM3.Size = new System.Drawing.Size(49, 16);
             this.labelM3.TabIndex = 21;
@@ -850,6 +850,7 @@
             this.checkBoxRXPWM.TabIndex = 10;
             this.checkBoxRXPWM.Text = "RX is PWM (Unchk PPM)";
             this.checkBoxRXPWM.UseVisualStyleBackColor = true;
+            this.checkBoxRXPWM.CheckedChanged += new System.EventHandler(this.checkBoxRXPWM_CheckedChanged);
             // 
             // label12
             // 

@@ -127,7 +127,7 @@ namespace FAC_Settings_Tool {
                     labelM1.Text = "MOTOR RIGHT";
                     break;
                 case 2:
-                    labelM1.Text = "MOTOR WEAP";
+                    labelM1.Text = "MOTOR WEAP.";
                     break;
                 default:
                     labelM1.Text = "NONE";
@@ -141,7 +141,7 @@ namespace FAC_Settings_Tool {
                     labelM2.Text = "MOTOR RIGHT";
                     break;
                 case 2:
-                    labelM2.Text = "MOTOR WEAP";
+                    labelM2.Text = "MOTOR WEAP.";
                     break;
                 default:
                     labelM2.Text = "NONE";
@@ -155,11 +155,17 @@ namespace FAC_Settings_Tool {
                     labelM3.Text = "MOTOR RIGHT";
                     break;
                 case 2:
-                    labelM3.Text = "MOTOR WEAP";
+                    labelM3.Text = "MOTOR WEAP.";
                     break;
                 default:
                     labelM3.Text = "NONE";
                     break;
+            }
+            if(checkBoxRXPWM.Checked) {
+                labelRX.Text = "RECIEVER PWM";
+            }
+            else {
+                labelRX.Text = "RECIEVER PPM";
             }
         }
 
@@ -376,6 +382,10 @@ namespace FAC_Settings_Tool {
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
             Process.Start("https://linktr.ee/FloppyLab");
+        }
+
+        private void checkBoxRXPWM_CheckedChanged(object sender, EventArgs e) {
+            updateLabels();
         }
     }
 }
