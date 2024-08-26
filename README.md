@@ -26,7 +26,7 @@ To support this project you can make a donation via PayPal or buy a Floppy Ant C
 - https://ko-fi.com/floppylab
 
 
-![Logo]([https://floppylab.altervista.org/wp-content/uploads/2023/02/cropped-Stemma-scritta-tonda.png])
+<img src="https://floppylab.altervista.org/wp-content/uploads/2023/02/cropped-Stemma-scritta-tonda.png" width="300">
 
 ## License
 [CERN Open Hardware Licence Version 2 - Strongly Reciprocal](https://choosealicense.com/licenses/cern-ohl-s-2.0/#)
