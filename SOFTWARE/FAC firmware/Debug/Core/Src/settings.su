@@ -1,0 +1,10 @@
+../Core/Src/settings.c:194:9:decodeCommand	48	dynamic
+../Core/Src/settings.c:210:6:remove_all_chars	8	static
+../Core/Src/settings.c:219:6:serialPrintString	8	static
+../Core/Src/settings.c:223:6:storeSettingsToEeprom	72	static
+../Core/Src/settings.c:288:6:readSettingsFromEeprom	72	static
+../Core/Src/settings.c:350:6:loadSettingsFromEeprom	8	static
+../Core/Src/settings.c:354:9:read_byte_eeprom	40	static
+../Core/Src/settings.c:360:6:write_byte_eeprom	32	static
+../Core/Src/settings.c:366:6:serialPrintSettings	168	static
+../Core/Src/settings.c:53:5:modifySettingsWithCommand	40	static
