@@ -1,0 +1,6 @@
+../Core/Src/main.c:343:6:SystemClock_Config	4
+../Core/Src/main.c:131:5:main	47
+../Core/Src/main.c:757:9:map	1
+../Core/Src/main.c:761:9:checkChannelOnCenter	1
+../Core/Src/main.c:770:9:checkChannelAtZero	1
+../Core/Src/main.c:784:6:Error_Handler	1
