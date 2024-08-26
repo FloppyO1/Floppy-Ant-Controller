@@ -1,0 +1,13 @@
+C:\Users\Filippo Castellan\Google Drive\PROGETTI\2024\antweight\SOFTWARE\FAC settings Tool 2.0\FAC Settings Tool\FAC Settings Tool\obj\Release\FAC Settings Tool.csproj.AssemblyReference.cache
+C:\Users\Filippo Castellan\Google Drive\PROGETTI\2024\antweight\SOFTWARE\FAC settings Tool 2.0\FAC Settings Tool\FAC Settings Tool\obj\Release\FAC_Settings_Tool.FacSettingsTool.resources
+C:\Users\Filippo Castellan\Google Drive\PROGETTI\2024\antweight\SOFTWARE\FAC settings Tool 2.0\FAC Settings Tool\FAC Settings Tool\obj\Release\FAC_Settings_Tool.Properties.Resources.resources
+C:\Users\Filippo Castellan\Google Drive\PROGETTI\2024\antweight\SOFTWARE\FAC settings Tool 2.0\FAC Settings Tool\FAC Settings Tool\obj\Release\FAC Settings Tool.csproj.GenerateResource.cache
+C:\Users\Filippo Castellan\Google Drive\PROGETTI\2024\antweight\SOFTWARE\FAC settings Tool 2.0\FAC Settings Tool\FAC Settings Tool\obj\Release\FAC Settings Tool.csproj.CoreCompileInputs.cache
+C:\Users\Filippo Castellan\Google Drive\PROGETTI\2024\antweight\SOFTWARE\FAC settings Tool 2.0\FAC Settings Tool\FAC Settings Tool\bin\Release\FAC Settings Tool.exe
+C:\Users\Filippo Castellan\Google Drive\PROGETTI\2024\antweight\SOFTWARE\FAC settings Tool 2.0\FAC Settings Tool\FAC Settings Tool\bin\Release\FAC Settings Tool.pdb
+C:\Users\Filippo Castellan\Google Drive\PROGETTI\2024\antweight\SOFTWARE\FAC settings Tool 2.0\FAC Settings Tool\FAC Settings Tool\obj\Release\FAC Settings Tool.exe
+C:\Users\Filippo Castellan\Google Drive\PROGETTI\2024\antweight\SOFTWARE\FAC settings Tool 2.0\FAC Settings Tool\FAC Settings Tool\obj\Release\FAC Settings Tool.pdb
+C:\Users\Filippo Castellan\Google Drive\PROGETTI\2024\antweight\SOFTWARE\FAC settings Tool 2.0\FAC Settings Tool\FAC Settings Tool\obj\Release\FAC Settings Tool.exe.manifest
+C:\Users\Filippo Castellan\Google Drive\PROGETTI\2024\antweight\SOFTWARE\FAC settings Tool 2.0\FAC Settings Tool\FAC Settings Tool\bin\Release\FAC Settings Tool.exe.manifest
+C:\Users\Filippo Castellan\Google Drive\PROGETTI\2024\antweight\SOFTWARE\FAC settings Tool 2.0\FAC Settings Tool\FAC Settings Tool\bin\Release\FAC Settings Tool.application
+C:\Users\Filippo Castellan\Google Drive\PROGETTI\2024\antweight\SOFTWARE\FAC settings Tool 2.0\FAC Settings Tool\FAC Settings Tool\obj\Release\FAC Settings Tool.application
