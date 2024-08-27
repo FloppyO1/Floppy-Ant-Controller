@@ -4,7 +4,7 @@ The Floppy Ant Controller is a control board for Antweight (150g) fighting robot
 
 Taking inspiration from the now well-known Malenki nano (https://github.com/MarkR42/malenki-nano.git), other features have been added, maintaining a small size and an affordable price.
 
-![foto](https://github.com/FloppyO1/Floppy-Ant-Controller/blob/main/images/render%201.png)
+<img src= "https://github.com/FloppyO1/Floppy-Ant-Controller/blob/main/images/render%201.png" width="500">
 ## Features
 
 - 3x DC motors driver (200 speed steps);
@@ -16,7 +16,8 @@ Taking inspiration from the now well-known Malenki nano (https://github.com/Mark
 - Batter voltage readout, with settable weapon speed limitation threshold & cutoff threshold (indipendent);
 - Settings can be set via USB with dedicated software or serial terminal;
 - 4 channels PWM, and 8 channels PPM compatibility;
-- Dimensions of 23mm*33mm for a weight of 9g.
+- Dimensions of 23mm*33mm for a weight of 2.9g.
+<img src="https://github.com/FloppyO1/Floppy-Ant-Controller/blob/main/images/FAC1.3%20weight%20(no%20reciever).jpg" width="500">
 ## Support this project with a donation
 
 To support this project you can make a donation via PayPal or buy a Floppy Ant Controller:
