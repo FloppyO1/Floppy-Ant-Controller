@@ -4,7 +4,7 @@ The Floppy Ant Controller is a control board for Antweight (150g) fighting robot
 
 Taking inspiration from the now well-known Malenki nano (https://github.com/MarkR42/malenki-nano.git), other features have been added, maintaining a small size and an affordable price.
 
-![foto](https://github.com/FloppyO1/Floppy-Ant-Controller/blob/main/HARDWARE/images/render%201.png?raw=true)
+![foto](https://github.com/FloppyO1/Floppy-Ant-Controller/blob/main/images/render%201.png)
 ## Features
 
 - 3x DC motors driver (200 speed steps);
