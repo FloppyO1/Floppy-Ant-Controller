@@ -27,9 +27,10 @@ Compared to version 1.2, the battery and switch connections have been moved, bec
 
 ## Software notes:
 
-The FAC settings tool has been completely rewritten, this time not using phython and pysimplegui (which I discovered ask for a monthly fee to be distributed).
+The FAC settings tool has been completely rewritten, this time not using phython and pysimplegui (which I discovered ask for a monthly fee to be distributed 😑).
 
 This new version, signed with the 2.0 signature, is much more stable and looks better in my opinion. Like the previous version, it allows you to export and import all your settings in a .csv file for easy sharing.
+<img src="https://github.com/FloppyO1/Floppy-Ant-Controller/blob/main/images/FAC%20Settings%20Tool%202.0%20(preview).jpg" width="1000">
 
 ## Support this project with a donation
 
