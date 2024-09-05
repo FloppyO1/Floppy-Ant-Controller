@@ -1,6 +1,6 @@
-../Core/Src/main.c:368:6:SystemClock_Config	96	static,ignoring_inline_asm
+../Core/Src/main.c:370:6:SystemClock_Config	96	static,ignoring_inline_asm
 ../Core/Src/main.c:131:5:main	232	static,ignoring_inline_asm
-../Core/Src/main.c:782:9:map	16	static
-../Core/Src/main.c:786:9:checkChannelOnCenter	8	static
-../Core/Src/main.c:795:9:checkChannelAtZero	8	static
-../Core/Src/main.c:809:6:Error_Handler	0	static,ignoring_inline_asm
+../Core/Src/main.c:784:9:map	16	static
+../Core/Src/main.c:788:9:checkChannelOnCenter	8	static
+../Core/Src/main.c:797:9:checkChannelAtZero	8	static
+../Core/Src/main.c:811:6:Error_Handler	0	static,ignoring_inline_asm

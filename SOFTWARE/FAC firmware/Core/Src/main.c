@@ -208,17 +208,19 @@ int main(void) {
 
 		if (!cutoff) {	// if the robot is not in cutoff
 			// arm/disarm robot
+			if (!noDisarm) {
+				if (getChannelValuePercentage(armChannel) > 75)
+					armed = TRUE;
+				else
+					armed = FALSE;
+			}
+
 			if (!armed) {	// if the robot is not already armed
 				makeSound(mLeft, 50);
 				HAL_Delay(50);
 				if (noDisarm) {	// if the throttle steering and weapon channels are at zero/center arm the robot
 					if (checkChannelOnCenter(thChannel) && checkChannelOnCenter(stChannel)
 							&& checkChannelAtZero(wpChannel)) armed = TRUE;
-				} else {	// if there is a channel to arm/disarm the robot
-					if (getChannelValuePercentage(armChannel) > 75)
-						armed = TRUE;
-					else
-						armed = FALSE;
 				}
 			}
 
