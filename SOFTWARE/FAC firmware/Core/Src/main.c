@@ -193,6 +193,7 @@ int main(void) {
 
 	uint32_t time1 = 0;
 	uint32_t time2 = 0;
+	uint32_t time3 = 0;
 	uint32_t timeLimitBattery = 0;
 	uint32_t timeLowBattery = 0;
 
@@ -242,12 +243,18 @@ int main(void) {
 					setMotorSpeedBidirectional(mWeapon, getChannelValuePercentage(wpChannel));
 				} else {
 					uint8_t wp = getChannelValuePercentage(wpChannel);
-					if (limit) wp = wp / 2;	// valid only in the unidirectional mode
+					if (limit == TRUE) wp = wp / 2;	// valid only in the unidirectional mode  !!FOR DC MOTOR ONLY!!
 					setMotorSpeedUnidirectional(mWeapon, wp);
 				}
 
 				// set the position of servos
-				setServoAngle(S1, getChannelValuePercentage(s1Channel));	// servo 1 attached to channel s1Channel
+				if (limit == TRUE) { // !!ASUME THAT S1 ES CONNECTED TO THE WEAPON ESC
+					uint8_t s1 = getChannelValuePercentage(s1Channel);
+					if (limit == TRUE) s1 = s1 / 2;
+					setServoAngle(S1, s1); // servo 1 attached to channel s1Channel
+				} else {
+					setServoAngle(S1, getChannelValuePercentage(s1Channel));	// servo 1 attached to channel s1Channel
+				}
 				setServoAngle(S2, getChannelValuePercentage(s2Channel));
 			} else {	// if disarmed do...
 				//disable DC motors
@@ -262,6 +269,10 @@ int main(void) {
 			// battery control every 200ms for cutoff & limit
 			if (HAL_GetTick() - time2 >= 200) {
 				batteryVoltage = getBattVoltage();
+				// send battery voltage
+//				uint8_t s[20];
+//				sprintf(s, "%dS Vbatt = %d mV\n", batteryConfiguration, batteryVoltage);
+//				serialPrintString(s);
 				// limit weapon speed if low battery
 				if (HAL_GetTick() - timeLimitBattery >= CUTOFF_BATTERY_TIMEOUT * 1000) {
 					limit = TRUE;	// activate limit state (weapon speed limited)
@@ -280,14 +291,28 @@ int main(void) {
 				time2 = HAL_GetTick();
 			}
 
-			// led blinking with a period of 2s (normal operation)
-			if (HAL_GetTick() - time1 >= 1000) {
+			// led blinking with a period of 4s (normal operation)
+			if (HAL_GetTick() - time1 >= 2000 && limit == FALSE) {
 				// led indicator
 				HAL_GPIO_TogglePin(U_LED_GPIO_Port, U_LED_Pin);
 				// reset the time
 				time1 = HAL_GetTick();
 			}
+			// led blinking with a period of 750ms (limit active)
+			if (HAL_GetTick() - time3 >= 350 && limit == TRUE) {
+				// led indicator
+				HAL_GPIO_TogglePin(U_LED_GPIO_Port, U_LED_Pin);
+				// reset the time
+				time3 = HAL_GetTick();
+			}
 		} else {	// if robot in cutoff mode
+			//disable DC motors
+			disableMotor(M1);
+			disableMotor(M2);
+			disableMotor(M3);
+			// turn of the servos signals
+			setServoAngle(S1, 0);	// servo 1 attached to channel s1Channel
+			setServoAngle(S2, 0);
 			if (HAL_GetTick() - time1 >= 100) {
 				// led indicator
 				HAL_GPIO_TogglePin(U_LED_GPIO_Port, U_LED_Pin);
