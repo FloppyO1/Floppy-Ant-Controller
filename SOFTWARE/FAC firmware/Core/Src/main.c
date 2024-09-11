@@ -164,9 +164,6 @@ int main(void) {
 	/* ------------- ROBOT CONTROL CODE --------------- */
 	// HAL_Delay(3000);
 	initReciever(&htim6);
-
-	initServos(&htim16);	// init servo 1 hv
-	initServos(&htim17);	// init servo 2
 	initMotors(&htim1);
 	initBattery(&hadc);
 	batteryConfiguration = getBatteryConfiguration();
@@ -218,9 +215,8 @@ int main(void) {
 			if (!armed) {	// if the robot is not already armed
 				makeSound(mLeft, 50);
 				HAL_Delay(50);
-				if (noDisarm) {	// if the throttle steering and weapon channels are at zero/center arm the robot
-					if (checkChannelOnCenter(thChannel) && checkChannelOnCenter(stChannel)
-							&& checkChannelAtZero(wpChannel)) armed = TRUE;
+				if (noDisarm) {	// if the throttle steering channels are at center, arm the robot
+					if (checkChannelOnCenter(thChannel) && checkChannelOnCenter(stChannel)) armed = TRUE;
 				}
 			}
 
@@ -229,6 +225,9 @@ int main(void) {
 				enableMotor(M1);
 				enableMotor(M2);
 				enableMotor(M3);
+				// enable servos
+				setServoIsEnable(TRUE, &htim17); // start servo 1 HV
+				setServoIsEnable(TRUE, &htim16); // start servo 2
 
 				// tank mix and movements
 				if (tankMixIsON) {	// calculate and use the tank mix only if it's enabled
@@ -250,7 +249,7 @@ int main(void) {
 				}
 
 				// set the position of servos
-				if (limit == TRUE) { // !!ASUME THAT S1 ES CONNECTED TO THE WEAPON ESC
+				if (limit == TRUE) { // !!ASUME THAT S1 IS CONNECTED TO THE WEAPON ESC
 					uint8_t s1 = getChannelValuePercentage(s1Channel);
 					if (limit == TRUE) s1 = s1 / 2;
 					setServoAngle(S1, s1); // servo 1 attached to channel s1Channel
@@ -264,8 +263,8 @@ int main(void) {
 				disableMotor(M2);
 				disableMotor(M3);
 				// turn of the servos signals
-				setServoAngle(S1, 0);	// servo 1 attached to channel s1Channel
-				setServoAngle(S2, 0);
+				setServoIsEnable(FALSE, &htim17); // stop servo 1 HV
+				setServoIsEnable(FALSE, &htim16); // stop servo 2
 			} // end if disarmed
 
 			// battery control every 200ms for cutoff & limit

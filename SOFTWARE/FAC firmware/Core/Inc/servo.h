@@ -10,7 +10,7 @@
 
 #include "main.h"
 
-void initServos(TIM_HandleTypeDef *htim);
+void setServoIsEnable(uint8_t state, TIM_HandleTypeDef *htim);
 void setServoAngle(uint8_t servoN, uint8_t percentage);
 
 enum SERVO{ S1, S2};

@@ -45,6 +45,7 @@ uint8_t getMotorRev(uint8_t motorN) {	// return 1 if the motorN is reversed, els
 }
 
 void setMotorSpeedBidirectional(uint8_t motorN, int8_t speed) {
+	speed = calculateSpeedWithDeadZoneDouble(speed);
 	speed = (speed - 50) * 2;
 	uint8_t sp = abs(speed);
 	uint8_t dir;
@@ -72,7 +73,7 @@ void setMotorSpeedBidirectional(uint8_t motorN, int8_t speed) {
 }
 
 void setMotorSpeedUnidirectional(uint8_t motorN, int8_t speed) {
-	uint8_t sp = speed;
+	uint8_t sp = calculateSpeedWithDeadZoneSingle(speed);
 	uint8_t dir = m1Rev;
 
 	if (getMotorRev(motorN)) dir = !dir;	//check if the motor is reversed, if it is reverse the direction
@@ -91,6 +92,29 @@ void setMotorSpeedUnidirectional(uint8_t motorN, int8_t speed) {
 			TIM1->CCR3 = sp;
 			break;
 	}
+}
+
+/*	Calculate the speed with dead-zone for single direction DC motor and servos
+ *  Center +-3, max -3, min +3
+ *	change the deadzone value according your needs
+ */
+#define DEADZONE 10
+uint8_t calculateSpeedWithDeadZoneSingle(uint8_t speed) {
+	uint8_t returnValue = speed;
+	if (speed > (50 - DEADZONE) && speed < (50 + DEADZONE)) returnValue = 50;	// central deadzone
+	if (speed < DEADZONE) returnValue = 0;	// lower deadzone
+	if (speed > 100 - DEADZONE) returnValue = 100;	// upper deadzone
+	return returnValue;
+}
+/*	Calculate the speed with dead-zone for double direction DC motors
+ *  max -3, min +3
+ *	change the deadzone value according your needs
+ */
+uint8_t calculateSpeedWithDeadZoneDouble(uint8_t speed) {
+	uint8_t returnValue = speed;
+	if (speed < DEADZONE) returnValue = 0;	// lower deadzone
+	if (speed > 100 - DEADZONE) returnValue = 100;	// upper deadzone
+	return returnValue;
 }
 
 /*	This is a blocking function that causes the motors to beep,
