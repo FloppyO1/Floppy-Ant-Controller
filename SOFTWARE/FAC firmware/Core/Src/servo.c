@@ -10,12 +10,6 @@
 extern uint8_t s1Rev;
 extern uint8_t s2Rev;
 
-void initServos(TIM_HandleTypeDef *htim) {
-	TIM16->CCR1 = S1_MIN_TIME_PWM;
-	TIM17->CCR1 = S2_MIN_TIME_PWM;
-	HAL_TIMEx_PWMN_Start(htim, TIM_CHANNEL_1);
-}
-
 uint8_t getServoRev(uint8_t servoN) {	// return 1 if the motorN is reversed, else 0
 	uint8_t isRev = 0;
 	switch (servoN) {
@@ -40,7 +34,7 @@ uint8_t getServoRev(uint8_t servoN) {	// return 1 if the motorN is reversed, els
  */
 void setServoAngle(uint8_t servoN, uint8_t percentage) {
 	const uint8_t factor = 2;
-	uint16_t temp = percentage;
+	uint16_t temp = calculateSpeedWithDeadZoneDouble(percentage);
 	if (temp > 100) temp = 100;
 	if (temp < 0) temp = 0;
 
@@ -55,5 +49,13 @@ void setServoAngle(uint8_t servoN, uint8_t percentage) {
 			temp = map(temp, 0, 100, S2_MIN_TIME_PWM, S2_MAX_TIME_PWM);
 			TIM17->CCR1 = temp * factor;
 			break;
+	}
+}
+
+void setServoIsEnable(uint8_t state, TIM_HandleTypeDef *htim){
+	if(state == TRUE){	// turn of the pwm generation
+		HAL_TIMEx_PWMN_Start(htim,TIM_CHANNEL_1);	// can be TIM16 or TIM17, channel 1 used on all of them
+	}else{
+		HAL_TIMEx_PWMN_Stop(htim,TIM_CHANNEL_1);	// can be TIM16 or TIM17, channel 1 used on all of them
 	}
 }
