@@ -7,6 +7,8 @@
 
 #include "settings.h"
 #include "usbd_cdc_if.h"
+#include "reciever.h"
+#include "battery.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,6 +45,8 @@ extern uint8_t limitVoltage;
 extern uint8_t cutOffVoltage;
 
 extern uint8_t recieverIsPWM;
+
+extern uint8_t armed;
 
 // debug and tests
 extern uint8_t recievedString[20];
@@ -184,6 +188,11 @@ int modifySettingsWithCommand() {
 
 	if (strcmp(c.type, COMMAND_CONNECTED) == 0) {
 		// do nothing, only to check if the device is a FAC (for FAC Settings Tool)
+		isOK = TRUE;
+	}
+
+	if (strcmp(c.type, COMMAND_STATUS) == 0) {
+		serialPrintStatus();
 		isOK = TRUE;
 	}
 
@@ -361,6 +370,42 @@ void write_byte_eeprom(uint8_t address, uint8_t value) {
 	uint8_t data = value;
 	HAL_I2C_Mem_Write(&hi2c1, EEPROM_ADDRESS, address, 1, &data, 1, 1000);
 	HAL_Delay(10);
+}
+
+void serialPrintStatus() {
+	uint8_t string[30];
+	// print voltage
+	sprintf(string, "VBATT > %d\n", getBattVoltage());
+	serialPrintString(string);
+	HAL_Delay(1);
+	// which battery detected
+	sprintf(string, "BATT > %d\n", getBatteryConfiguration());
+	serialPrintString(string);
+	HAL_Delay(1);
+	// print RX channels
+	if (recieverIsPWM) {	// print only four channel
+		for (int i = 1; i < 5; i++) {
+			sprintf(string, "CH%d > %d\n", i, getChannelValuePercentage(i));
+			serialPrintString(string);
+			HAL_Delay(2);
+		}
+	} else {		// print 8
+		for (int i = 1; i < 9; i++) {
+			sprintf(string, "CH%d > %d\n", i, getChannelValuePercentage(i));
+			serialPrintString(string);
+			HAL_Delay(2);
+		}
+	}
+	// print armed
+	if (armed) {
+		sprintf(string, "ARMED > TRUE\n");
+		serialPrintString(string);
+		HAL_Delay(1);
+	} else {
+		sprintf(string, "ARMED > FALSE\n");
+		serialPrintString(string);
+		HAL_Delay(1);
+	}
 }
 
 void serialPrintSettings() {

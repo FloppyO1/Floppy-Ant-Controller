@@ -43,14 +43,14 @@
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="FAC Settings Tool.exe" size="350720">
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="FAC Settings Tool.exe" size="358912">
       <assemblyIdentity name="FAC Settings Tool" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>q5hOXlwxWcJbMcXXg811h4tgeDWEgJX6aYFbTR2BrsQ=</dsig:DigestValue>
+        <dsig:DigestValue>oIlclGPtVITrvJk9jLC6HJxgIaBexJs80ma5vpAxxfw=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>

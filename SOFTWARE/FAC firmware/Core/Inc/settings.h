@@ -56,6 +56,8 @@
 #define COMMAND_SAVE "SAVE"
 #define COMMAND_READ "READ"
 #define COMMAND_CONNECTED "CON"
+// DEBUG
+#define COMMAND_STATUS "STATUS"
 
 typedef struct Command {
 	char type[10];
@@ -71,6 +73,7 @@ void storeSettingsToEeprom();
 void readSettingsFromEeprom();
 uint8_t read_byte_eeprom(uint8_t address);
 void write_byte_eeprom(uint8_t address, uint8_t value);
+void serialPrintStatus();
 void serialPrintSettings();
 
 #endif /* INC_SETTINGS_H_ */
