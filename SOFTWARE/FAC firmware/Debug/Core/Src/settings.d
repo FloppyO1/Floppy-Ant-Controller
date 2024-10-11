@@ -40,7 +40,8 @@ Core/Src/settings.o: ../Core/Src/settings.c ../Core/Inc/settings.h \
  ../Core/Inc/servo.h ../Core/Inc/settings.h ../Core/Inc/battery.h \
  ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_core.h \
  ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_ioreq.h \
- ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_ctlreq.h
+ ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_ctlreq.h \
+ ../Core/Inc/reciever.h ../Core/Inc/battery.h
 ../Core/Inc/settings.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h:
 ../Core/Inc/stm32f0xx_hal_conf.h:
@@ -89,3 +90,5 @@ Core/Src/settings.o: ../Core/Src/settings.c ../Core/Inc/settings.h \
 ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_core.h:
 ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_ioreq.h:
 ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_ctlreq.h:
+../Core/Inc/reciever.h:
+../Core/Inc/battery.h:

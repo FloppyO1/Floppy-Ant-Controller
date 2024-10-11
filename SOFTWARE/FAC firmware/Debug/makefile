@@ -64,8 +64,8 @@ all: main-build
 main-build: FAC\ firmware.elf secondary-outputs
 
 # Tool invocations
-FAC\ firmware.elf FAC\ firmware.map: $(OBJS) $(USER_OBJS) C:\Users\Filippo\ Castellan\STM32CubeIDE\workspace_1.9.0\FAC\ firmware\STM32F070CBTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "FAC firmware.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"C:\Users\Filippo Castellan\STM32CubeIDE\workspace_1.9.0\FAC firmware\STM32F070CBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="FAC firmware.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+FAC\ firmware.elf FAC\ firmware.map: $(OBJS) $(USER_OBJS) C:\Users\Filippo\ Castellan\Google\ Drive\PROGETTI\2024\FAC\SOFTWARE\FAC\ firmware\STM32F070CBTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "FAC firmware.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"C:\Users\Filippo Castellan\Google Drive\PROGETTI\2024\FAC\SOFTWARE\FAC firmware\STM32F070CBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="FAC firmware.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

@@ -15,11 +15,19 @@ namespace FAC_Settings_Tool {
     public partial class FacSettingsTool : Form {
         MySerial mySerial;
 
+        private Timer timer;
+
+
         public FacSettingsTool() {
             InitializeComponent();
             // my code
             mySerial = new MySerial();
+            timer = new Timer();
+            timer.Interval = 200;
+            timer.Tick += updateStats;
+            timer.Start();
         }
+
         private void ApplyDarkTheme() { // to be made correctly
             this.BackColor = Color.FromArgb(30, 30, 30);
             this.ForeColor = Color.White;
@@ -166,6 +174,60 @@ namespace FAC_Settings_Tool {
             }
             else {
                 labelRX.Text = "RECIEVER PPM";
+            }
+        }
+
+
+
+
+        private void updateStats(object sender, EventArgs e) {
+                if (mySerial.serialPort.IsOpen) {
+                    Console.WriteLine("evento dentro ifserOpen");
+                    mySerial.readStatus();
+                    Console.WriteLine("read stats");
+                    int value;
+                    value = int.Parse(mySerial.getStatsValue("VBATT"));
+                    VBatt.Text = value + "mV";
+
+                    value = int.Parse(mySerial.getStatsValue("BATT"));
+                    if (value == 0) {
+                        Batt_Configuration.Text = "USB";
+                    }
+                    else {
+                        Batt_Configuration.Text = value + "S";
+                    }            
+
+                value = int.Parse(mySerial.getStatsValue("CH1"));
+                progressBar_CH1.Value = value;
+                label_CH1.Text = value + "%";
+                value = int.Parse(mySerial.getStatsValue("CH2"));
+                progressBar_CH2.Value = value;
+                label_CH2.Text = value + "%";
+                value = int.Parse(mySerial.getStatsValue("CH3"));
+                progressBar_CH3.Value = value;
+                label_CH3.Text = value + "%";
+                value = int.Parse(mySerial.getStatsValue("CH4"));
+                progressBar_CH4.Value = value;
+                label_CH4.Text = value + "%";
+                value = int.Parse(mySerial.getStatsValue("CH5"));
+                progressBar_CH5.Value = value;
+                label_CH5.Text = value + "%";
+                value = int.Parse(mySerial.getStatsValue("CH6"));
+                progressBar_CH6.Value = value;
+                label_CH6.Text = value + "%";
+                value = int.Parse(mySerial.getStatsValue("CH7"));
+                progressBar_CH7.Value = value;
+                label_CH7.Text = value + "%";
+                value = int.Parse(mySerial.getStatsValue("CH8"));
+                progressBar_CH8.Value = value;
+                label_CH8.Text = value + "%";
+
+                if (mySerial.getStatsValue("ARMED") == "TRUE") {
+                    label_ARMED.Text = "Armed";
+                }
+                else {
+                    label_ARMED.Text = "Disarmed";
+                }
             }
         }
 

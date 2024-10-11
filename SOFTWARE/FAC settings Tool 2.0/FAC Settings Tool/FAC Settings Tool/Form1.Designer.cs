@@ -93,6 +93,37 @@
             this.aboutToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.buttonImport = new System.Windows.Forms.Button();
             this.buttonExport = new System.Windows.Forms.Button();
+            this.progressBar_CH1 = new System.Windows.Forms.ProgressBar();
+            this.groupBox7 = new System.Windows.Forms.GroupBox();
+            this.label_CH8 = new System.Windows.Forms.Label();
+            this.label_CH7 = new System.Windows.Forms.Label();
+            this.label_CH6 = new System.Windows.Forms.Label();
+            this.label_CH5 = new System.Windows.Forms.Label();
+            this.label_CH4 = new System.Windows.Forms.Label();
+            this.label_CH3 = new System.Windows.Forms.Label();
+            this.label_CH2 = new System.Windows.Forms.Label();
+            this.label_CH1 = new System.Windows.Forms.Label();
+            this.label_ARMED = new System.Windows.Forms.Label();
+            this.label27 = new System.Windows.Forms.Label();
+            this.Batt_Configuration = new System.Windows.Forms.Label();
+            this.label28 = new System.Windows.Forms.Label();
+            this.VBatt = new System.Windows.Forms.Label();
+            this.label26 = new System.Windows.Forms.Label();
+            this.label25 = new System.Windows.Forms.Label();
+            this.progressBar_CH8 = new System.Windows.Forms.ProgressBar();
+            this.label24 = new System.Windows.Forms.Label();
+            this.progressBar_CH7 = new System.Windows.Forms.ProgressBar();
+            this.label23 = new System.Windows.Forms.Label();
+            this.progressBar_CH6 = new System.Windows.Forms.ProgressBar();
+            this.label22 = new System.Windows.Forms.Label();
+            this.progressBar_CH5 = new System.Windows.Forms.ProgressBar();
+            this.label21 = new System.Windows.Forms.Label();
+            this.progressBar_CH4 = new System.Windows.Forms.ProgressBar();
+            this.label20 = new System.Windows.Forms.Label();
+            this.progressBar_CH3 = new System.Windows.Forms.ProgressBar();
+            this.label19 = new System.Windows.Forms.Label();
+            this.progressBar_CH2 = new System.Windows.Forms.ProgressBar();
+            this.label11 = new System.Windows.Forms.Label();
             this.gBoxMovements.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -105,6 +136,7 @@
             this.imagePanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.groupBox6.SuspendLayout();
+            this.groupBox7.SuspendLayout();
             this.SuspendLayout();
             // 
             // buttonConnect
@@ -376,7 +408,7 @@
             this.groupBox3.Controls.Add(this.checkBoxRevM3);
             this.groupBox3.Controls.Add(this.checkBoxRevM2);
             this.groupBox3.Controls.Add(this.checkBoxRevM1);
-            this.groupBox3.Location = new System.Drawing.Point(813, 36);
+            this.groupBox3.Location = new System.Drawing.Point(822, 36);
             this.groupBox3.Name = "groupBox3";
             this.groupBox3.Size = new System.Drawing.Size(198, 133);
             this.groupBox3.TabIndex = 8;
@@ -442,7 +474,7 @@
             this.groupBox4.Controls.Add(this.label7);
             this.groupBox4.Controls.Add(this.label6);
             this.groupBox4.Controls.Add(this.label5);
-            this.groupBox4.Location = new System.Drawing.Point(813, 175);
+            this.groupBox4.Location = new System.Drawing.Point(822, 175);
             this.groupBox4.Name = "groupBox4";
             this.groupBox4.Size = new System.Drawing.Size(198, 103);
             this.groupBox4.TabIndex = 9;
@@ -613,7 +645,7 @@
             // progressBarSave
             // 
             this.progressBarSave.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.progressBarSave.Location = new System.Drawing.Point(918, 484);
+            this.progressBarSave.Location = new System.Drawing.Point(929, 486);
             this.progressBarSave.Name = "progressBarSave";
             this.progressBarSave.Size = new System.Drawing.Size(85, 23);
             this.progressBarSave.TabIndex = 14;
@@ -623,7 +655,7 @@
             // 
             this.buttonSave.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.buttonSave.Enabled = false;
-            this.buttonSave.Location = new System.Drawing.Point(918, 513);
+            this.buttonSave.Location = new System.Drawing.Point(929, 515);
             this.buttonSave.Name = "buttonSave";
             this.buttonSave.Size = new System.Drawing.Size(85, 23);
             this.buttonSave.TabIndex = 15;
@@ -635,7 +667,7 @@
             // 
             this.buttonRead.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.buttonRead.Enabled = false;
-            this.buttonRead.Location = new System.Drawing.Point(817, 513);
+            this.buttonRead.Location = new System.Drawing.Point(828, 515);
             this.buttonRead.Name = "buttonRead";
             this.buttonRead.Size = new System.Drawing.Size(95, 23);
             this.buttonRead.TabIndex = 16;
@@ -686,14 +718,14 @@
             this.imagePanel.Controls.Add(this.label10);
             this.imagePanel.Location = new System.Drawing.Point(177, 36);
             this.imagePanel.Name = "imagePanel";
-            this.imagePanel.Size = new System.Drawing.Size(630, 504);
+            this.imagePanel.Size = new System.Drawing.Size(639, 502);
             this.imagePanel.TabIndex = 11;
             // 
             // linkLabel1
             // 
             this.linkLabel1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.linkLabel1.AutoSize = true;
-            this.linkLabel1.Location = new System.Drawing.Point(439, 3);
+            this.linkLabel1.Location = new System.Drawing.Point(439, 1);
             this.linkLabel1.Name = "linkLabel1";
             this.linkLabel1.Size = new System.Drawing.Size(107, 13);
             this.linkLabel1.TabIndex = 22;
@@ -914,11 +946,314 @@
             this.buttonExport.UseVisualStyleBackColor = true;
             this.buttonExport.Click += new System.EventHandler(this.buttonExport_Click);
             // 
+            // progressBar_CH1
+            // 
+            this.progressBar_CH1.Location = new System.Drawing.Point(64, 24);
+            this.progressBar_CH1.Name = "progressBar_CH1";
+            this.progressBar_CH1.Size = new System.Drawing.Size(125, 10);
+            this.progressBar_CH1.Step = 1;
+            this.progressBar_CH1.TabIndex = 22;
+            // 
+            // groupBox7
+            // 
+            this.groupBox7.Controls.Add(this.label_CH8);
+            this.groupBox7.Controls.Add(this.label_CH7);
+            this.groupBox7.Controls.Add(this.label_CH6);
+            this.groupBox7.Controls.Add(this.label_CH5);
+            this.groupBox7.Controls.Add(this.label_CH4);
+            this.groupBox7.Controls.Add(this.label_CH3);
+            this.groupBox7.Controls.Add(this.label_CH2);
+            this.groupBox7.Controls.Add(this.label_CH1);
+            this.groupBox7.Controls.Add(this.label_ARMED);
+            this.groupBox7.Controls.Add(this.label27);
+            this.groupBox7.Controls.Add(this.Batt_Configuration);
+            this.groupBox7.Controls.Add(this.label28);
+            this.groupBox7.Controls.Add(this.VBatt);
+            this.groupBox7.Controls.Add(this.label26);
+            this.groupBox7.Controls.Add(this.label25);
+            this.groupBox7.Controls.Add(this.progressBar_CH8);
+            this.groupBox7.Controls.Add(this.label24);
+            this.groupBox7.Controls.Add(this.progressBar_CH7);
+            this.groupBox7.Controls.Add(this.label23);
+            this.groupBox7.Controls.Add(this.progressBar_CH6);
+            this.groupBox7.Controls.Add(this.label22);
+            this.groupBox7.Controls.Add(this.progressBar_CH5);
+            this.groupBox7.Controls.Add(this.label21);
+            this.groupBox7.Controls.Add(this.progressBar_CH4);
+            this.groupBox7.Controls.Add(this.label20);
+            this.groupBox7.Controls.Add(this.progressBar_CH3);
+            this.groupBox7.Controls.Add(this.label19);
+            this.groupBox7.Controls.Add(this.progressBar_CH2);
+            this.groupBox7.Controls.Add(this.label11);
+            this.groupBox7.Controls.Add(this.progressBar_CH1);
+            this.groupBox7.Location = new System.Drawing.Point(822, 284);
+            this.groupBox7.Name = "groupBox7";
+            this.groupBox7.Size = new System.Drawing.Size(200, 196);
+            this.groupBox7.TabIndex = 23;
+            this.groupBox7.TabStop = false;
+            this.groupBox7.Text = "Live FAC Status";
+            // 
+            // label_CH8
+            // 
+            this.label_CH8.AutoSize = true;
+            this.label_CH8.BackColor = System.Drawing.Color.Transparent;
+            this.label_CH8.Location = new System.Drawing.Point(32, 133);
+            this.label_CH8.Name = "label_CH8";
+            this.label_CH8.Size = new System.Drawing.Size(21, 13);
+            this.label_CH8.TabIndex = 51;
+            this.label_CH8.Text = "0%";
+            // 
+            // label_CH7
+            // 
+            this.label_CH7.AutoSize = true;
+            this.label_CH7.BackColor = System.Drawing.Color.Transparent;
+            this.label_CH7.Location = new System.Drawing.Point(32, 117);
+            this.label_CH7.Name = "label_CH7";
+            this.label_CH7.Size = new System.Drawing.Size(21, 13);
+            this.label_CH7.TabIndex = 50;
+            this.label_CH7.Text = "0%";
+            // 
+            // label_CH6
+            // 
+            this.label_CH6.AutoSize = true;
+            this.label_CH6.BackColor = System.Drawing.Color.Transparent;
+            this.label_CH6.Location = new System.Drawing.Point(31, 101);
+            this.label_CH6.Name = "label_CH6";
+            this.label_CH6.Size = new System.Drawing.Size(21, 13);
+            this.label_CH6.TabIndex = 49;
+            this.label_CH6.Text = "0%";
+            // 
+            // label_CH5
+            // 
+            this.label_CH5.AutoSize = true;
+            this.label_CH5.BackColor = System.Drawing.Color.Transparent;
+            this.label_CH5.Location = new System.Drawing.Point(31, 85);
+            this.label_CH5.Name = "label_CH5";
+            this.label_CH5.Size = new System.Drawing.Size(21, 13);
+            this.label_CH5.TabIndex = 48;
+            this.label_CH5.Text = "0%";
+            // 
+            // label_CH4
+            // 
+            this.label_CH4.AutoSize = true;
+            this.label_CH4.BackColor = System.Drawing.Color.Transparent;
+            this.label_CH4.Location = new System.Drawing.Point(31, 69);
+            this.label_CH4.Name = "label_CH4";
+            this.label_CH4.Size = new System.Drawing.Size(21, 13);
+            this.label_CH4.TabIndex = 47;
+            this.label_CH4.Text = "0%";
+            // 
+            // label_CH3
+            // 
+            this.label_CH3.AutoSize = true;
+            this.label_CH3.BackColor = System.Drawing.Color.Transparent;
+            this.label_CH3.Location = new System.Drawing.Point(31, 53);
+            this.label_CH3.Name = "label_CH3";
+            this.label_CH3.Size = new System.Drawing.Size(21, 13);
+            this.label_CH3.TabIndex = 46;
+            this.label_CH3.Text = "0%";
+            // 
+            // label_CH2
+            // 
+            this.label_CH2.AutoSize = true;
+            this.label_CH2.BackColor = System.Drawing.Color.Transparent;
+            this.label_CH2.Location = new System.Drawing.Point(31, 37);
+            this.label_CH2.Name = "label_CH2";
+            this.label_CH2.Size = new System.Drawing.Size(21, 13);
+            this.label_CH2.TabIndex = 45;
+            this.label_CH2.Text = "0%";
+            // 
+            // label_CH1
+            // 
+            this.label_CH1.AutoSize = true;
+            this.label_CH1.BackColor = System.Drawing.Color.Transparent;
+            this.label_CH1.Location = new System.Drawing.Point(30, 21);
+            this.label_CH1.Name = "label_CH1";
+            this.label_CH1.Size = new System.Drawing.Size(21, 13);
+            this.label_CH1.TabIndex = 44;
+            this.label_CH1.Text = "0%";
+            // 
+            // label_ARMED
+            // 
+            this.label_ARMED.AutoSize = true;
+            this.label_ARMED.Location = new System.Drawing.Point(42, 175);
+            this.label_ARMED.Name = "label_ARMED";
+            this.label_ARMED.Size = new System.Drawing.Size(46, 13);
+            this.label_ARMED.TabIndex = 43;
+            this.label_ARMED.Text = "ARMED";
+            // 
+            // label27
+            // 
+            this.label27.AutoSize = true;
+            this.label27.Location = new System.Drawing.Point(6, 175);
+            this.label27.Name = "label27";
+            this.label27.Size = new System.Drawing.Size(35, 13);
+            this.label27.TabIndex = 42;
+            this.label27.Text = "State:";
+            // 
+            // Batt_Configuration
+            // 
+            this.Batt_Configuration.AutoSize = true;
+            this.Batt_Configuration.Location = new System.Drawing.Point(110, 162);
+            this.Batt_Configuration.Name = "Batt_Configuration";
+            this.Batt_Configuration.Size = new System.Drawing.Size(29, 13);
+            this.Batt_Configuration.TabIndex = 41;
+            this.Batt_Configuration.Text = "USB";
+            // 
+            // label28
+            // 
+            this.label28.AutoSize = true;
+            this.label28.Location = new System.Drawing.Point(6, 162);
+            this.label28.Name = "label28";
+            this.label28.Size = new System.Drawing.Size(106, 13);
+            this.label28.TabIndex = 40;
+            this.label28.Text = "Battery Confguration:";
+            // 
+            // VBatt
+            // 
+            this.VBatt.AutoSize = true;
+            this.VBatt.Location = new System.Drawing.Point(88, 149);
+            this.VBatt.Name = "VBatt";
+            this.VBatt.Size = new System.Drawing.Size(20, 13);
+            this.VBatt.TabIndex = 39;
+            this.VBatt.Text = "0V";
+            // 
+            // label26
+            // 
+            this.label26.AutoSize = true;
+            this.label26.Location = new System.Drawing.Point(6, 149);
+            this.label26.Name = "label26";
+            this.label26.Size = new System.Drawing.Size(82, 13);
+            this.label26.TabIndex = 38;
+            this.label26.Text = "Battery Voltage:";
+            // 
+            // label25
+            // 
+            this.label25.AutoSize = true;
+            this.label25.Location = new System.Drawing.Point(6, 133);
+            this.label25.Name = "label25";
+            this.label25.Size = new System.Drawing.Size(28, 13);
+            this.label25.TabIndex = 37;
+            this.label25.Text = "CH8";
+            // 
+            // progressBar_CH8
+            // 
+            this.progressBar_CH8.Location = new System.Drawing.Point(64, 136);
+            this.progressBar_CH8.Name = "progressBar_CH8";
+            this.progressBar_CH8.Size = new System.Drawing.Size(125, 10);
+            this.progressBar_CH8.TabIndex = 36;
+            // 
+            // label24
+            // 
+            this.label24.AutoSize = true;
+            this.label24.Location = new System.Drawing.Point(6, 117);
+            this.label24.Name = "label24";
+            this.label24.Size = new System.Drawing.Size(28, 13);
+            this.label24.TabIndex = 35;
+            this.label24.Text = "CH7";
+            // 
+            // progressBar_CH7
+            // 
+            this.progressBar_CH7.Location = new System.Drawing.Point(64, 120);
+            this.progressBar_CH7.Name = "progressBar_CH7";
+            this.progressBar_CH7.Size = new System.Drawing.Size(125, 10);
+            this.progressBar_CH7.TabIndex = 34;
+            // 
+            // label23
+            // 
+            this.label23.AutoSize = true;
+            this.label23.Location = new System.Drawing.Point(6, 101);
+            this.label23.Name = "label23";
+            this.label23.Size = new System.Drawing.Size(28, 13);
+            this.label23.TabIndex = 33;
+            this.label23.Text = "CH6";
+            // 
+            // progressBar_CH6
+            // 
+            this.progressBar_CH6.Location = new System.Drawing.Point(64, 104);
+            this.progressBar_CH6.Name = "progressBar_CH6";
+            this.progressBar_CH6.Size = new System.Drawing.Size(125, 10);
+            this.progressBar_CH6.TabIndex = 32;
+            // 
+            // label22
+            // 
+            this.label22.AutoSize = true;
+            this.label22.Location = new System.Drawing.Point(6, 85);
+            this.label22.Name = "label22";
+            this.label22.Size = new System.Drawing.Size(28, 13);
+            this.label22.TabIndex = 31;
+            this.label22.Text = "CH5";
+            // 
+            // progressBar_CH5
+            // 
+            this.progressBar_CH5.Location = new System.Drawing.Point(64, 88);
+            this.progressBar_CH5.Name = "progressBar_CH5";
+            this.progressBar_CH5.Size = new System.Drawing.Size(125, 10);
+            this.progressBar_CH5.TabIndex = 30;
+            // 
+            // label21
+            // 
+            this.label21.AutoSize = true;
+            this.label21.Location = new System.Drawing.Point(6, 69);
+            this.label21.Name = "label21";
+            this.label21.Size = new System.Drawing.Size(28, 13);
+            this.label21.TabIndex = 29;
+            this.label21.Text = "CH4";
+            // 
+            // progressBar_CH4
+            // 
+            this.progressBar_CH4.Location = new System.Drawing.Point(64, 72);
+            this.progressBar_CH4.Name = "progressBar_CH4";
+            this.progressBar_CH4.Size = new System.Drawing.Size(125, 10);
+            this.progressBar_CH4.TabIndex = 28;
+            // 
+            // label20
+            // 
+            this.label20.AutoSize = true;
+            this.label20.Location = new System.Drawing.Point(6, 53);
+            this.label20.Name = "label20";
+            this.label20.Size = new System.Drawing.Size(28, 13);
+            this.label20.TabIndex = 27;
+            this.label20.Text = "CH3";
+            // 
+            // progressBar_CH3
+            // 
+            this.progressBar_CH3.Location = new System.Drawing.Point(64, 56);
+            this.progressBar_CH3.Name = "progressBar_CH3";
+            this.progressBar_CH3.Size = new System.Drawing.Size(125, 10);
+            this.progressBar_CH3.TabIndex = 26;
+            // 
+            // label19
+            // 
+            this.label19.AutoSize = true;
+            this.label19.Location = new System.Drawing.Point(6, 37);
+            this.label19.Name = "label19";
+            this.label19.Size = new System.Drawing.Size(28, 13);
+            this.label19.TabIndex = 25;
+            this.label19.Text = "CH2";
+            // 
+            // progressBar_CH2
+            // 
+            this.progressBar_CH2.Location = new System.Drawing.Point(64, 40);
+            this.progressBar_CH2.Name = "progressBar_CH2";
+            this.progressBar_CH2.Size = new System.Drawing.Size(125, 10);
+            this.progressBar_CH2.TabIndex = 24;
+            // 
+            // label11
+            // 
+            this.label11.AutoSize = true;
+            this.label11.Location = new System.Drawing.Point(6, 21);
+            this.label11.Name = "label11";
+            this.label11.Size = new System.Drawing.Size(28, 13);
+            this.label11.TabIndex = 23;
+            this.label11.Text = "CH1";
+            // 
             // FacSettingsTool
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1016, 548);
+            this.ClientSize = new System.Drawing.Size(1025, 546);
+            this.Controls.Add(this.groupBox7);
             this.Controls.Add(this.buttonExport);
             this.Controls.Add(this.buttonImport);
             this.Controls.Add(this.groupBox6);
@@ -941,7 +1276,7 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
             this.Name = "FacSettingsTool";
-            this.Text = "FAC Settings Tool 2.0";
+            this.Text = "FAC Settings Tool 2.1";
             this.gBoxMovements.ResumeLayout(false);
             this.gBoxMovements.PerformLayout();
             this.groupBox1.ResumeLayout(false);
@@ -962,6 +1297,8 @@
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.groupBox6.ResumeLayout(false);
             this.groupBox6.PerformLayout();
+            this.groupBox7.ResumeLayout(false);
+            this.groupBox7.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -1036,6 +1373,37 @@
         private System.Windows.Forms.Button buttonExport;
         private System.Windows.Forms.PictureBox pictureBox1;
         private System.Windows.Forms.LinkLabel linkLabel1;
+        private System.Windows.Forms.ProgressBar progressBar_CH1;
+        private System.Windows.Forms.GroupBox groupBox7;
+        private System.Windows.Forms.Label label11;
+        private System.Windows.Forms.Label label24;
+        private System.Windows.Forms.ProgressBar progressBar_CH7;
+        private System.Windows.Forms.Label label23;
+        private System.Windows.Forms.ProgressBar progressBar_CH6;
+        private System.Windows.Forms.Label label22;
+        private System.Windows.Forms.ProgressBar progressBar_CH5;
+        private System.Windows.Forms.Label label21;
+        private System.Windows.Forms.ProgressBar progressBar_CH4;
+        private System.Windows.Forms.Label label20;
+        private System.Windows.Forms.ProgressBar progressBar_CH3;
+        private System.Windows.Forms.Label label19;
+        private System.Windows.Forms.ProgressBar progressBar_CH2;
+        private System.Windows.Forms.Label Batt_Configuration;
+        private System.Windows.Forms.Label label28;
+        private System.Windows.Forms.Label VBatt;
+        private System.Windows.Forms.Label label26;
+        private System.Windows.Forms.Label label25;
+        private System.Windows.Forms.ProgressBar progressBar_CH8;
+        private System.Windows.Forms.Label label_ARMED;
+        private System.Windows.Forms.Label label27;
+        private System.Windows.Forms.Label label_CH1;
+        private System.Windows.Forms.Label label_CH6;
+        private System.Windows.Forms.Label label_CH5;
+        private System.Windows.Forms.Label label_CH4;
+        private System.Windows.Forms.Label label_CH3;
+        private System.Windows.Forms.Label label_CH2;
+        private System.Windows.Forms.Label label_CH8;
+        private System.Windows.Forms.Label label_CH7;
     }
 }
 
