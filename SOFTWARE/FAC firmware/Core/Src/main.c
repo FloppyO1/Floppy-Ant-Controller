@@ -67,7 +67,7 @@ uint8_t armed = FALSE;
 uint8_t thChannel = 2;	// defines the channel of the throttle
 uint8_t stChannel = 4;
 uint8_t wpChannel = 3;
-uint8_t s1Channel = 1;
+uint8_t s1Channel = 3;
 uint8_t s2Channel = 3;
 uint8_t armChannel = 5;
 

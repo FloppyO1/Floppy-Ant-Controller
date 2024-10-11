@@ -13,6 +13,7 @@ using System.Web;
 namespace FAC_Settings_Tool {
     internal class MySerial {
         public SerialPort serialPort;
+        public Dictionary<string, string> statusDictionary;
         public Dictionary<string, string> commandDictionary;
 
         public static class Commands {
@@ -52,11 +53,39 @@ namespace FAC_Settings_Tool {
             public const string COMMAND_SAVE = "SAVE";     // Save settings
             public const string COMMAND_READ = "READ";     // Read settings
             public const string COMMAND_CONNECTED = "CON"; // Only to check if the device is a FAC or not
+            // DEBUG
+            public const string COMMAND_STATUS = "STATUS";  // Return all the FAC status informations
         }
 
+        public static class Stats {
+            public const string STATS_VBATT = "VBATT";
+            public const string STATS_BATT = "BATT";
+            public const string STATS_CH1 = "CH1";
+            public const string STATS_CH2 = "CH2";
+            public const string STATS_CH3 = "CH3";
+            public const string STATS_CH4 = "CH4";
+            public const string STATS_CH5 = "CH5";
+            public const string STATS_CH6 = "CH6";
+            public const string STATS_CH7 = "CH7";
+            public const string STATS_CH8 = "CH8";
+            public const string STATS_ARMED = "ARMED";
+        }
 
-        public MySerial() {
+            public MySerial() {
             serialPort = new SerialPort();
+            statusDictionary = new Dictionary<string, string> {
+                { Stats.STATS_VBATT, "0" },
+                { Stats.STATS_BATT, "0" },
+                { Stats.STATS_CH1, "0" },
+                { Stats.STATS_CH2, "0" },
+                { Stats.STATS_CH3, "0" },
+                { Stats.STATS_CH4, "0" },
+                { Stats.STATS_CH5, "0" },
+                { Stats.STATS_CH6, "0" },
+                { Stats.STATS_CH7, "0" },
+                { Stats.STATS_CH8, "0" },
+                { Stats.STATS_ARMED, "0" },
+            };
             commandDictionary = new Dictionary<string, string> {
                 { Commands.COMMAND_TH2CH, "0" },
                 { Commands.COMMAND_ST2CH, "0" },
@@ -112,6 +141,43 @@ namespace FAC_Settings_Tool {
             return ports;
         }
 
+        public bool readStatus() {
+            if (serialPort.IsOpen) {
+                Console.WriteLine("reading status");
+                serialPort.WriteLine("STATUS");
+
+                List<string> lines = new List<string>();
+                while (true) {  // store all the lines recieved from the serial comunication
+                    try {
+                        string line = serialPort.ReadLine();
+                        lines.Add(line);
+                    }
+                    catch (TimeoutException) {
+                        Console.WriteLine("data read");
+                        break;
+                    }
+                }
+
+                Console.WriteLine("understanding status");
+                foreach (string line in lines) {    // for each line understand what is it
+                    if (string.IsNullOrWhiteSpace(line)) continue;   // if the line stats with a non stats skip
+                    string nomalizedLine = line.Replace(" ", "");
+                    Console.WriteLine(nomalizedLine);
+                    if (!decodeStats(nomalizedLine)) { // error in understanding stats
+                        MessageBox.Show("Error in understanding stats, stats not found in dictionary");
+                        return false;
+                    }
+                }
+                Console.WriteLine("understanded");
+                Console.WriteLine("printing dicrionary");
+                foreach (var key in statusDictionary.Keys) {    // print the dictionary value
+                    Console.WriteLine(key + " > " + statusDictionary[key]);
+                }
+            }
+
+            return false;
+        }
+
         public bool readAllComands() {
             if (serialPort.IsOpen) {
                 serialPort.WriteLine("READ>1");
@@ -155,6 +221,17 @@ namespace FAC_Settings_Tool {
             return false;
         }
 
+        private bool decodeStats(string s) {
+            string[] statusDecoded = s.Split(Commands.COMMAND_TYPE_SEPARATOR);  // comandDecoded[0] is comand, [1] is value
+            //Console.WriteLine(statusDecoded[0]);
+            //Console.WriteLine(statusDecoded[1]);
+            if (statusDictionary.ContainsKey(statusDecoded[0])) {
+                statusDictionary[statusDecoded[0]] = statusDecoded[1]; // if the status is present update it in the dictionary
+                return true;
+            }
+            return true;    // to find because something are wrong
+        }
+
         private bool decodeCommand(string s) {  // return true if s is in the dictionary
             string[] commandDecoded = s.Split(Commands.COMMAND_TYPE_SEPARATOR);  // comandDecoded[0] is comand, [1] is value
             if (commandDictionary.ContainsKey(commandDecoded[0])) {
@@ -188,7 +265,7 @@ namespace FAC_Settings_Tool {
         public bool openPort(string port) {
             serialPort.PortName = port;
             serialPort.BaudRate = 9600;
-            serialPort.ReadTimeout = 1000;
+            serialPort.ReadTimeout = 100;
             serialPort.WriteTimeout = 1000;
 
             try {
@@ -211,6 +288,13 @@ namespace FAC_Settings_Tool {
         public string getCommandValue(string command) {
             if (commandDictionary.ContainsKey(command)) {
                 return commandDictionary[command];
+            }
+            return null;
+        }
+
+        public string getStatsValue(string stats) {
+            if (statusDictionary.ContainsKey(stats)) {
+                return statusDictionary[stats];
             }
             return null;
         }
