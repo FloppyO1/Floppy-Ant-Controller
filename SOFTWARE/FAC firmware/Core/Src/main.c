@@ -210,14 +210,16 @@ int main(void) {
 					armed = TRUE;
 				else
 					armed = FALSE;
+			}else{
+				armed = TRUE;
 			}
 
 			if (!armed) {	// if the robot is not already armed
 				makeSound(mLeft, 50);
 				HAL_Delay(50);
-				if (noDisarm) {	// if the throttle steering channels are at center, arm the robot
-					if (checkChannelOnCenter(thChannel) && checkChannelOnCenter(stChannel)) armed = TRUE;
-				}
+//				if (noDisarm) {	// if the throttle steering channels are at center, arm the robot
+//					if (checkChannelOnCenter(thChannel) && checkChannelOnCenter(stChannel)) armed = TRUE;
+//				}
 			}
 
 			if (armed) {	// if armed do...
@@ -233,19 +235,21 @@ int main(void) {
 				if (tankMixIsON) {	// calculate and use the tank mix only if it's enabled
 					tank = tankMix(getChannelValuePercentage(stChannel), getChannelValuePercentage(thChannel));
 					setTankMotor(tank);
+					// weapons  // NOT USED IF TANK MIX OFF TODO (DONE)
+					if (weaponDoubleDirection) {
+						setMotorSpeedBidirectional(mWeapon, getChannelValuePercentage(wpChannel));
+					} else {
+						uint8_t wp = getChannelValuePercentage(wpChannel);
+						if (limit == TRUE) wp = wp / 2;	// valid only in the unidirectional mode  !!FOR DC MOTOR ONLY!!
+						setMotorSpeedUnidirectional(mWeapon, wp);
+					}
 				} else {	// if tank off, th->m1, st->m2, wp->m3
-					setMotorSpeedBidirectional(1, getChannelValuePercentage(thChannel));
-					setMotorSpeedBidirectional(2, getChannelValuePercentage(stChannel));
-					setMotorSpeedBidirectional(3, getChannelValuePercentage(wpChannel));
-				}
-
-				// weapons
-				if (weaponDoubleDirection) {
-					setMotorSpeedBidirectional(mWeapon, getChannelValuePercentage(wpChannel));
-				} else {
-					uint8_t wp = getChannelValuePercentage(wpChannel);
-					if (limit == TRUE) wp = wp / 2;	// valid only in the unidirectional mode  !!FOR DC MOTOR ONLY!!
-					setMotorSpeedUnidirectional(mWeapon, wp);
+//					ccr1 = getChannelValuePercentage(thChannel);	// to whatch the channels value
+//					ccr2 = getChannelValuePercentage(stChannel);
+//					ccr3 = getChannelValuePercentage(wpChannel);
+					setMotorSpeedBidirectional(M1, getChannelValuePercentage(thChannel));
+					setMotorSpeedBidirectional(M2, getChannelValuePercentage(stChannel));
+					setMotorSpeedBidirectional(M3, getChannelValuePercentage(wpChannel));
 				}
 
 				// set the position of servos

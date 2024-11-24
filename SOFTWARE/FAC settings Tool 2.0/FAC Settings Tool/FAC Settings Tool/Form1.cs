@@ -177,9 +177,6 @@ namespace FAC_Settings_Tool {
             }
         }
 
-
-
-
         private void updateStats(object sender, EventArgs e) {
                 if (mySerial.serialPort.IsOpen) {
                     Console.WriteLine("evento dentro ifserOpen");

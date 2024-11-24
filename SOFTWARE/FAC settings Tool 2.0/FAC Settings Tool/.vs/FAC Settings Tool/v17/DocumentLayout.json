@@ -3,11 +3,11 @@
   "WorkspaceRootPath": "C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\FAC\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{25551DDB-A634-40E6-B43B-0C63983F9FDC}|FAC Settings Tool\\FAC Settings Tool.csproj|C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\FAC\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\fac settings tool\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
-      "RelativeMoniker": "D:0:0:{25551DDB-A634-40E6-B43B-0C63983F9FDC}|FAC Settings Tool\\FAC Settings Tool.csproj|solutionrelative:fac settings tool\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+      "AbsoluteMoniker": "D:0:0:{25551DDB-A634-40E6-B43B-0C63983F9FDC}|FAC Settings Tool\\FAC Settings Tool.csproj|c:\\users\\filippo castellan\\google drive\\progetti\\2024\\fac\\software\\fac settings tool 2.0\\fac settings tool\\fac settings tool\\myserial.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{25551DDB-A634-40E6-B43B-0C63983F9FDC}|FAC Settings Tool\\FAC Settings Tool.csproj|solutionrelative:fac settings tool\\myserial.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{25551DDB-A634-40E6-B43B-0C63983F9FDC}|FAC Settings Tool\\FAC Settings Tool.csproj|c:\\users\\filippo castellan\\google drive\\progetti\\2024\\fac\\software\\fac settings tool 2.0\\fac settings tool\\fac settings tool\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{25551DDB-A634-40E6-B43B-0C63983F9FDC}|FAC Settings Tool\\FAC Settings Tool.csproj|C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\FAC\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\fac settings tool\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{25551DDB-A634-40E6-B43B-0C63983F9FDC}|FAC Settings Tool\\FAC Settings Tool.csproj|solutionrelative:fac settings tool\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
@@ -15,8 +15,8 @@
       "RelativeMoniker": "D:0:0:{25551DDB-A634-40E6-B43B-0C63983F9FDC}|FAC Settings Tool\\FAC Settings Tool.csproj|solutionrelative:fac settings tool\\form1.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{25551DDB-A634-40E6-B43B-0C63983F9FDC}|FAC Settings Tool\\FAC Settings Tool.csproj|C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\FAC\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\FAC Settings Tool\\MySerial.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{25551DDB-A634-40E6-B43B-0C63983F9FDC}|FAC Settings Tool\\FAC Settings Tool.csproj|solutionrelative:FAC Settings Tool\\MySerial.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{25551DDB-A634-40E6-B43B-0C63983F9FDC}|FAC Settings Tool\\FAC Settings Tool.csproj|C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\FAC\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\fac settings tool\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{25551DDB-A634-40E6-B43B-0C63983F9FDC}|FAC Settings Tool\\FAC Settings Tool.csproj|solutionrelative:fac settings tool\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
     }
   ],
   "DocumentGroupContainers": [
@@ -26,11 +26,11 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 3,
               "Title": "Form1.cs [Design]",
               "DocumentMoniker": "C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\FAC\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\FAC Settings Tool\\Form1.cs",
               "RelativeDocumentMoniker": "FAC Settings Tool\\Form1.cs",
@@ -38,8 +38,7 @@
               "RelativeToolTip": "FAC Settings Tool\\Form1.cs [Design]",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2024-08-25T12:45:16.571Z",
-              "IsPinned": true,
-              "EditorCaption": " [Design]"
+              "IsPinned": true
             },
             {
               "$type": "Document",
@@ -49,10 +48,9 @@
               "RelativeDocumentMoniker": "FAC Settings Tool\\Form1.Designer.cs",
               "ToolTip": "C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\FAC\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\FAC Settings Tool\\Form1.Designer.cs",
               "RelativeToolTip": "FAC Settings Tool\\Form1.Designer.cs",
-              "ViewState": "AgIAAKUDAAAAAAAAAAAswIAEAAAmAAAAAAAAAA==",
+              "ViewState": "AgIAAI8EAAAAAAAAAAAswIAEAAAmAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-10-10T17:21:58.983Z",
-              "EditorCaption": ""
+              "WhenOpened": "2024-10-10T17:21:58.983Z"
             },
             {
               "$type": "Document",
@@ -62,20 +60,19 @@
               "RelativeDocumentMoniker": "FAC Settings Tool\\Form1.cs",
               "ToolTip": "C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\FAC\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\FAC Settings Tool\\Form1.cs",
               "RelativeToolTip": "FAC Settings Tool\\Form1.cs",
-              "ViewState": "AgIAAM0AAAAAAAAAAAAUwN0AAAAQAAAAAAAAAA==",
+              "ViewState": "AgIAAAUBAAAAAAAAAAAqwBMBAAAMAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-08-26T10:02:21.475Z",
-              "EditorCaption": ""
+              "WhenOpened": "2024-08-26T10:02:21.475Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 0,
               "Title": "MySerial.cs",
               "DocumentMoniker": "C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\FAC\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\FAC Settings Tool\\MySerial.cs",
               "RelativeDocumentMoniker": "FAC Settings Tool\\MySerial.cs",
               "ToolTip": "C:\\Users\\Filippo Castellan\\Google Drive\\PROGETTI\\2024\\FAC\\SOFTWARE\\FAC settings Tool 2.0\\FAC Settings Tool\\FAC Settings Tool\\MySerial.cs",
               "RelativeToolTip": "FAC Settings Tool\\MySerial.cs",
-              "ViewState": "AgIAAIoAAAAAAAAAAAA2wJcAAAAYAAAAAAAAAA==",
+              "ViewState": "AgIAANoAAAAAAAAAAAAowPAAAAAZAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2024-08-25T15:10:38.12Z",
               "EditorCaption": ""
