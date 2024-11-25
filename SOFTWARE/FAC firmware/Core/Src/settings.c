@@ -48,6 +48,9 @@ extern uint8_t recieverIsPWM;
 
 extern uint8_t armed;
 
+// status
+extern uint8_t batteryConfiguration;
+
 // debug and tests
 extern uint8_t recievedString[20];
 
@@ -379,7 +382,7 @@ void serialPrintStatus() {
 	serialPrintString(string);
 	HAL_Delay(1);
 	// which battery detected
-	sprintf(string, "BATT > %d\n", getBatteryConfiguration());
+	sprintf(string, "BATT > %d\n", batteryConfiguration);
 	serialPrintString(string);
 	HAL_Delay(1);
 	// print RX channels
