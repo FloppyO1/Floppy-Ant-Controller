@@ -1,0 +1,4 @@
+../Core/Src/reciever.c:22:10:getChannelValuePercentage	16	static
+../Core/Src/reciever.c:29:6:initReciever	8	static
+../Core/Src/reciever.c:35:6:HAL_GPIO_EXTI_Callback	16	static
+../Core/Src/reciever.c:104:12:tankMix	16	static
