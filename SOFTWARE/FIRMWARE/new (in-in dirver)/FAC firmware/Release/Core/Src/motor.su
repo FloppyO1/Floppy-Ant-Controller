@@ -1,10 +1,10 @@
 ../Core/Src/motor.c:23:6:initMotors	8	static
 ../Core/Src/motor.c:33:9:getMotorRev	0	static
-../Core/Src/motor.c:156:9:calculateSpeedWithDeadZoneSingle	0	static
-../Core/Src/motor.c:167:9:calculateSpeedWithDeadZoneDouble	0	static
+../Core/Src/motor.c:109:6:setMotorSpeedUnidirectional	8	static
+../Core/Src/motor.c:169:9:calculateSpeedWithDeadZoneSingle	0	static
+../Core/Src/motor.c:180:9:calculateSpeedWithDeadZoneDouble	0	static
 ../Core/Src/motor.c:49:6:setMotorSpeedBidirectional	16	static
 ../Core/Src/motor.c:27:6:setTankMotor	16	static
-../Core/Src/motor.c:198:6:disableMotor	8	static
-../Core/Src/motor.c:212:6:enableMotor	8	static
-../Core/Src/motor.c:109:6:setMotorSpeedUnidirectional	8	static
-../Core/Src/motor.c:179:6:makeSound	24	static
+../Core/Src/motor.c:216:6:disableMotor	8	static
+../Core/Src/motor.c:230:6:enableMotor	8	static
+../Core/Src/motor.c:192:6:makeSound	24	static
