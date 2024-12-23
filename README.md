@@ -8,7 +8,7 @@ Taking inspiration from the now well-known Malenki nano (https://github.com/Mark
 
 ## Features
 
-- 3x DC motors driver (200 speed steps);
+- 3x DC motors driver (1000 speed steps);
 - 2x servo outputs (one of which can be selected with a soldering jumper if 5V or HV from the battery);
 - 200Hz servo frequency;
 - BEC 5V 3A max;
