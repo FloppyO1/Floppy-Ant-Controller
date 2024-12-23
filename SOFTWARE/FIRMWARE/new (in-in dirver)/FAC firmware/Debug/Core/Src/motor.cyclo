@@ -1,0 +1,10 @@
+../Core/Src/motor.c:23:6:initMotors	1
+../Core/Src/motor.c:33:9:getMotorRev	4
+../Core/Src/motor.c:156:9:calculateSpeedWithDeadZoneSingle	4
+../Core/Src/motor.c:167:9:calculateSpeedWithDeadZoneDouble	3
+../Core/Src/motor.c:49:6:setMotorSpeedBidirectional	12
+../Core/Src/motor.c:27:6:setTankMotor	1
+../Core/Src/motor.c:198:6:disableMotor	4
+../Core/Src/motor.c:212:6:enableMotor	4
+../Core/Src/motor.c:109:6:setMotorSpeedUnidirectional	2
+../Core/Src/motor.c:179:6:makeSound	5
