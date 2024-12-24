@@ -9,8 +9,8 @@
 #include "DMApwm.h"
 
 // select one of the following two type of driver
-#define DRIVER_IN_IN
-//#define DRIVER_PH_EN
+//#define DRIVER_IN_IN
+#define DRIVER_PH_EN
 
 extern uint16_t speed_steps;
 
@@ -234,16 +234,16 @@ void makeSound(uint8_t motorN, uint8_t duration) {
 #ifdef DRIVER_PH_EN
 		switch (motorN) {
 			case M1:
-				setDMApwmDuty(PWM_M1_B_GPIO_Port, PWM_M1_B_Pin, 1);
-				setDMApwmDuty(PWM_M1_F_GPIO_Port, PWM_M1_F_Pin, MAX_DMA_PWM_VALUE - sp);
+				setDMApwmDuty(PWM_M1_B_GPIO_Port, PWM_M1_B_Pin, MAX_DMA_PWM_VALUE);
+				setDMApwmDuty(PWM_M1_F_GPIO_Port, PWM_M1_F_Pin, sp);
 				break;
 			case M2:
-				setDMApwmDuty(PWM_M2_B_GPIO_Port, PWM_M2_B_Pin, 1);
-				setDMApwmDuty(PWM_M2_F_GPIO_Port, PWM_M2_F_Pin, MAX_DMA_PWM_VALUE - sp);
+				setDMApwmDuty(PWM_M2_B_GPIO_Port, PWM_M2_B_Pin, MAX_DMA_PWM_VALUE);
+				setDMApwmDuty(PWM_M2_F_GPIO_Port, PWM_M2_F_Pin, sp);
 				break;
 			case M3:
 				setDMApwmDuty(PWM_M3_B_GPIO_Port, PWM_M3_B_Pin, 1);
-				setDMApwmDuty(PWM_M3_F_GPIO_Port, PWM_M3_F_Pin, MAX_DMA_PWM_VALUE - sp);
+				setDMApwmDuty(PWM_M3_F_GPIO_Port, PWM_M3_F_Pin, sp);
 				break;
 		}
 #endif
