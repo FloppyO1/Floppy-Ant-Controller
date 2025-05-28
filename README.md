@@ -14,7 +14,7 @@ Taking inspiration from the now well-known Malenki nano (https://github.com/Mark
 - BEC 5V 3A max;
 - 2x expansion ports with possible digital or analog readout (e.g. potentiometers, switches etc.);
 - Support for 1 and 2s batteries;
-- Batter voltage readout, with settable weapon speed limitation threshold & cutoff threshold (indipendent);
+- Battery voltage readout, with settable weapon speed limitation threshold & cutoff threshold (indipendent);
 - Settings can be set via USB with dedicated software or serial terminal;
 - 4 channels PWM, and 8 channels PPM compatibility;
 - Dimensions of 23mm*33mm for a weight of 2.9g.
