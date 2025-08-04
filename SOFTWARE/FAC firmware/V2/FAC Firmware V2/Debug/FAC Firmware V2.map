@@ -714,18 +714,32 @@ Discarded input sections
  .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_servo.o
  .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_servo.o
  .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_servo.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_servo.o
  .text          0x00000000        0x0 ./Core/Src/FAC_Code/fac_servo.o
  .data          0x00000000        0x0 ./Core/Src/FAC_Code/fac_servo.o
  .bss           0x00000000        0x0 ./Core/Src/FAC_Code/fac_servo.o
+ .text.FAC_servo_GET_position
+                0x00000000       0x10 ./Core/Src/FAC_Code/fac_servo.o
+ .text.FAC_servo_GET_is_enable
+                0x00000000       0x10 ./Core/Src/FAC_Code/fac_servo.o
+ .text.FAC_servo_GET_is_reversed
+                0x00000000       0x10 ./Core/Src/FAC_Code/fac_servo.o
+ .text.FAC_servo_GET_servo_freq
+                0x00000000       0x10 ./Core/Src/FAC_Code/fac_servo.o
  .text.FAC_servo_init
-                0x00000000        0x4 ./Core/Src/FAC_Code/fac_servo.o
- .debug_info    0x00000000      0x13c ./Core/Src/FAC_Code/fac_servo.o
- .debug_abbrev  0x00000000       0xb4 ./Core/Src/FAC_Code/fac_servo.o
+                0x00000000       0x18 ./Core/Src/FAC_Code/fac_servo.o
+ .bss.servos    0x00000000        0x8 ./Core/Src/FAC_Code/fac_servo.o
+ .bss.servo2    0x00000000        0x6 ./Core/Src/FAC_Code/fac_servo.o
+ .bss.servo1    0x00000000        0x6 ./Core/Src/FAC_Code/fac_servo.o
+ .debug_info    0x00000000      0x20f ./Core/Src/FAC_Code/fac_servo.o
+ .debug_abbrev  0x00000000      0x106 ./Core/Src/FAC_Code/fac_servo.o
+ .debug_loclists
+                0x00000000       0xa4 ./Core/Src/FAC_Code/fac_servo.o
  .debug_aranges
-                0x00000000       0x20 ./Core/Src/FAC_Code/fac_servo.o
+                0x00000000       0x40 ./Core/Src/FAC_Code/fac_servo.o
  .debug_rnglists
-                0x00000000       0x13 ./Core/Src/FAC_Code/fac_servo.o
- .debug_macro   0x00000000      0x231 ./Core/Src/FAC_Code/fac_servo.o
+                0x00000000       0x2b ./Core/Src/FAC_Code/fac_servo.o
+ .debug_macro   0x00000000      0x230 ./Core/Src/FAC_Code/fac_servo.o
  .debug_macro   0x00000000      0xad2 ./Core/Src/FAC_Code/fac_servo.o
  .debug_macro   0x00000000      0x145 ./Core/Src/FAC_Code/fac_servo.o
  .debug_macro   0x00000000       0x2e ./Core/Src/FAC_Code/fac_servo.o
@@ -772,11 +786,12 @@ Discarded input sections
  .debug_macro   0x00000000       0x44 ./Core/Src/FAC_Code/fac_servo.o
  .debug_macro   0x00000000      0x130 ./Core/Src/FAC_Code/fac_servo.o
  .debug_macro   0x00000000       0x2e ./Core/Src/FAC_Code/fac_servo.o
+ .debug_macro   0x00000000       0x10 ./Core/Src/FAC_Code/fac_servo.o
  .debug_macro   0x00000000      0x106 ./Core/Src/FAC_Code/fac_servo.o
- .debug_line    0x00000000      0x78d ./Core/Src/FAC_Code/fac_servo.o
- .debug_str     0x00000000    0x98dab ./Core/Src/FAC_Code/fac_servo.o
+ .debug_line    0x00000000      0x848 ./Core/Src/FAC_Code/fac_servo.o
+ .debug_str     0x00000000    0x98e52 ./Core/Src/FAC_Code/fac_servo.o
  .comment       0x00000000       0x44 ./Core/Src/FAC_Code/fac_servo.o
- .debug_frame   0x00000000       0x20 ./Core/Src/FAC_Code/fac_servo.o
+ .debug_frame   0x00000000       0x60 ./Core/Src/FAC_Code/fac_servo.o
  .ARM.attributes
                 0x00000000       0x28 ./Core/Src/FAC_Code/fac_servo.o
  .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_std_receiver.o

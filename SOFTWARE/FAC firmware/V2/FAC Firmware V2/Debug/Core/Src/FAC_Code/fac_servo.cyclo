@@ -1,1 +1,5 @@
-../Core/Src/FAC_Code/fac_servo.c:28:6:FAC_servo_init	1
+../Core/Src/FAC_Code/fac_servo.c:45:10:FAC_servo_GET_position	1
+../Core/Src/FAC_Code/fac_servo.c:49:9:FAC_servo_GET_is_enable	1
+../Core/Src/FAC_Code/fac_servo.c:53:9:FAC_servo_GET_is_reversed	1
+../Core/Src/FAC_Code/fac_servo.c:57:10:FAC_servo_GET_servo_freq	1
+../Core/Src/FAC_Code/fac_servo.c:66:6:FAC_servo_init	1
