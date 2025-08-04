@@ -7,21 +7,22 @@
 
 #include "FAC_Code/fac_motors.h"
 #include "Libraries/DMApwm.h"
+
 #include "FAC_Code/config.h"
 
 // definitions of the 3 DC motors
 static Motor motor1;
 static Motor motor2;
 static Motor motor3;
-static Motor *motors[3];	// array of pointers to all the motors
+static Motor *motors[MOTORS_NUMBER];	// array of pointers to all the motors
 
 /* STATIC FUNCTION PROTORYPES */
 static void FAC_set_pwm_duty(uint16_t pin, uint16_t duty);
 static void FAC_motor_SET_direction(uint8_t motorNumber, uint8_t dir);
+static void FAC_motor_SET_reverse(uint8_t motorNumber, uint8_t isReversed);
 static void FAC_motor_SET_speed(uint8_t motorNumber, uint16_t speed);
 static void FAC_motor_SET_break_en(uint8_t motorNumber, uint8_t brake_en);
 static void FAC_motor_apply_settings(uint8_t motorNumber);
-
 
 /* FUNCTION DEFINITION */
 static void FAC_set_pwm_duty(uint16_t pin, uint16_t duty) {
@@ -37,12 +38,23 @@ uint16_t FAC_motor_GET_speed(uint8_t motorNumber) {
 	return motors[motorNumber - 1]->speed;
 }
 
+uint16_t FAC_motor_GET_reverse(uint8_t motorNumber) {
+	return motors[motorNumber - 1]->is_reversed;
+}
+
 uint8_t FAC_motor_GET_brake_en(uint8_t motorNumber) {
 	return motors[motorNumber - 1]->brake_en;
 }
 
 static void FAC_motor_SET_direction(uint8_t motorNumber, uint8_t dir) {
-	motors[motorNumber - 1]->dir = dir;
+	if (motors[motorNumber - 1]->is_reversed)	// if reversed change the direction given
+		motors[motorNumber - 1]->dir = !dir;
+	else
+		motors[motorNumber - 1]->dir = dir;
+}
+
+static void FAC_motor_SET_reverse(uint8_t motorNumber, uint8_t isReversed) {
+	motors[motorNumber - 1]->is_reversed = isReversed;
 }
 
 static void FAC_motor_SET_speed(uint8_t motorNumber, uint16_t speed) {
@@ -117,6 +129,15 @@ void FAC_motor_disable_brake(uint8_t motorNumber) {
 }
 
 /**
+ * @brief 			Let you tell if the direction of the motor must be reversed or not
+ * @visibility 		Visible everywhere
+ * @note 			TRUE = Reversed, FALSE = not reversed
+ */
+void FAC_motor_is_reversed(uint8_t motorNumber, uint8_t isReversed) {
+	FAC_motor_SET_reverse(motorNumber, isReversed);
+}
+
+/**
  * @brief 			Set the values of speed and direction of a specified motor
  * @visibility 		Visible everywhere
  * @note 			The values will directly be applied with this function
@@ -150,7 +171,6 @@ void FAC_motor_make_noise(uint8_t motorNumber, uint16_t duration) {
 	FAC_motor_apply_settings(motorNumber);		// apply settings
 }
 
-/* MOTOR INITIALIZATION */
 /**
  * @brief 			Initialize all three motor values, and populate the array of pointers. It also initialize the DMA PWM generator
  * @visibility 		Visible everywhere
@@ -172,10 +192,11 @@ void FAC_motor_Init() {
 	motors[2]->pinF = M3_F_Pin;
 	motors[2]->pinB = M3_B_Pin;
 
-	for (int i = 1; i <= 3; i++) {
+	for (int i = 1; i <= MOTORS_NUMBER; i++) {
 		FAC_motor_SET_break_en(i, TRUE);	// motor will brake_en if speed = 0
 		FAC_motor_SET_direction(i, FORWARD);	// motor forward (doesn't care if speed = 0)
 		FAC_motor_SET_speed(i, 0);	// motor not spinning
+
 	}
 
 }

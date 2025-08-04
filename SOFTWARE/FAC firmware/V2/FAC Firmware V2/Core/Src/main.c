@@ -132,6 +132,7 @@ int main(void) {
 //		}
 //		HAL_Delay(2000);
 
+		//FAC_motor_is_reversed(1, FALSE);
 		for (int i = 0; i < 8; i++) {
 			chs[i] = FAC_std_receiver_GET_channel(i + 1);
 		}

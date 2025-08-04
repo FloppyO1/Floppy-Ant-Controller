@@ -4,6 +4,7 @@
 "./Core/Src/FAC_Code/fac_motors.o"
 "./Core/Src/FAC_Code/fac_ppm_receiver.o"
 "./Core/Src/FAC_Code/fac_pwm_receiver.o"
+"./Core/Src/FAC_Code/fac_servo.o"
 "./Core/Src/FAC_Code/fac_std_receiver.o"
 "./Core/Src/Libraries/DMApwm.o"
 "./Core/Src/adc.o"

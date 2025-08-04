@@ -16,4 +16,9 @@
 #define MOTOR_SPEED_RESOLUTION RECEIVER_CHANNEL_RESOLUTION
 #define MOTOR_CONTROL_FREQUENCY 2000	// it can be selected from the settings tool (?)
 
+/* SERVOS */
+#define SERVO_POSITION_RESOLUTION RECEIVER_CHANNEL_RESOLUTION
+#define SERVO_FREQUENCY 50	// it can be selected from the settings tool (?)
+
+
 #endif /* INC_FAC_CODE_CONFIG_H_ */
