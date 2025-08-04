@@ -1,0 +1,4 @@
+../Core/Src/DMApwm.c:39:6:initDMApwm	24	static
+../Core/Src/DMApwm.c:62:9:setDMApwmDuty	24	static
+../Core/Src/DMApwm.c:75:6:setSoftPWM	24	static
+../Core/Src/DMApwm.c:87:6:zeroSoftPWM	8	static

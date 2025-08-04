@@ -1,0 +1,4 @@
+../Core/Src/battery.c:12:6:initBattery	8	static
+../Core/Src/battery.c:23:9:getBatteryConfiguration	16	static
+../Core/Src/battery.c:30:10:getADCValue	16	static
+../Core/Src/battery.c:38:10:getBattVoltage	16	static

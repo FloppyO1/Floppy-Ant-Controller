@@ -1,0 +1,2 @@
+../Core/Src/Libraries/DMApwm.c:59:6:initDMApwm	16	static
+../Core/Src/Libraries/DMApwm.c:82:9:setDMApwmDuty	24	static

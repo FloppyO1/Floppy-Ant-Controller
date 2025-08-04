@@ -1,0 +1,2 @@
+../Core/Src/Libraries/DMApwm.c:59:6:initDMApwm	1
+../Core/Src/Libraries/DMApwm.c:82:9:setDMApwmDuty	5
