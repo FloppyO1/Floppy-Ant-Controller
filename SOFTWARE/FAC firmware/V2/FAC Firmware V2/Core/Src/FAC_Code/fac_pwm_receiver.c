@@ -31,6 +31,7 @@ static Pwm_receiver pwmReceiver;
  */
 void FAC_pwm_receiver_Callback(uint8_t edge, uint16_t GPIO_Pin) {
 	uint32_t t = __HAL_TIM_GET_COUNTER(&htim2);
+
 	if (edge == RISING) {
 		switch (GPIO_Pin) {
 			case CH1_Pin:
@@ -71,23 +72,25 @@ void FAC_pwm_receiver_Callback(uint8_t edge, uint16_t GPIO_Pin) {
  * @note		TIM2 has a resolution of 0.5us (~35 min of period), not used the FAC_std_receiver_new_channel_value in rage return value
  */
 void FAC_pwm_receiver_calculate_channel_value(uint8_t chNumber) {
-		uint32_t t1 = pwmReceiver.channels_t1[chNumber - 1];
-		uint32_t t2 = pwmReceiver.channels_t2[chNumber - 1];
+	uint32_t t1 = pwmReceiver.channels_t1[chNumber - 1];
+	uint32_t t2 = pwmReceiver.channels_t2[chNumber - 1];
 	if (t2 > t1) {	// the received value must be valid
-		uint16_t value = (uint16_t) (t2-t1);
+		uint16_t value = (uint16_t) (t2 - t1);
 		if (value <= MAX_TIM2_TEORETICAL_CHANNEL_COUNT + (MAX_TIM2_TEORETICAL_CHANNEL_COUNT / 100) * 10) {// if the count is grater than a 10% the value is ignored it must be something wrong with the time capture
 			if (value < MAX_TIM2_TEORETICAL_CHANNEL_COUNT / 2)
 				value = MAX_TIM2_TEORETICAL_CHANNEL_COUNT / 2;// sometime the transmitter has a grater range than the expected, so the min value is set to 1000 to not have any problem on the calculus
-			value = map_uint32(value - (MAX_TIM2_TEORETICAL_CHANNEL_COUNT / 2), 0, MAX_TIM2_TEORETICAL_CHANNEL_COUNT/2, 0, RECEIVER_CHANNEL_RESOLUTION - 1);
-			// if(value > RECEIVER_CHANNEL_RESOLUTION-1) value = RECEIVER_CHANNEL_RESOLUTION-1;	// not needed the value is already cropped on the map_uint32_t function
+			value = map_uint32(value - (MAX_TIM2_TEORETICAL_CHANNEL_COUNT / 2), 0, MAX_TIM2_TEORETICAL_CHANNEL_COUNT / 2, 0, RECEIVER_CHANNEL_RESOLUTION - 1);
+			if (value > RECEIVER_CHANNEL_RESOLUTION - 1)
+				value = RECEIVER_CHANNEL_RESOLUTION - 1;	// not needed the value is already cropped on the map_uint32_t function
 			FAC_std_receiver_new_channel_value(chNumber, value);
+			pwmReceiver.channels_t2[chNumber - 1] = 0;
+			pwmReceiver.channels_t1[chNumber - 1] = 0;
 		}
 	}
 	/* Reset the values of t1 and t2
 	 * If this is not done the value can never be zero
 	 */
-	pwmReceiver.channels_t2[chNumber - 1] = 0;
-	pwmReceiver.channels_t1[chNumber - 1] = 0;
+
 }
 
 /**

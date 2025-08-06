@@ -36,6 +36,7 @@
 #include "FAC_Code/fac_motors.h"
 #include "FAC_Code/fac_battery.h"
 #include "FAC_Code/fac_std_receiver.h"
+#include "FAC_Code/fac_servo.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -116,12 +117,12 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 	FAC_app_init();
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
+		//FAC_app_main_loop();
 
 //	  	FAC_motor_make_noise(1, 5); //<-- NOT WORKING
 
@@ -133,13 +134,17 @@ int main(void)
 //		}
 //		HAL_Delay(2000);
 
-		//FAC_motor_is_reversed(1, FALSE);
-		for (int i = 0; i < 8; i++) {
+//		FAC_motor_is_reversed(1, FALSE);
+		for (int i = 0; i < 4; i++) {
 			chs[i] = FAC_std_receiver_GET_channel(i + 1);
 		}
 		FAC_motor_set_speed_direction(1, FORWARD, FAC_std_receiver_GET_channel(3));
-		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		HAL_Delay(100);
+
+		FAC_servo_enable(1);
+		FAC_servo_set_position(1, FAC_std_receiver_GET_channel(3));
+
+//		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+//		HAL_Delay(50);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

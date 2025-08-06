@@ -36,7 +36,8 @@ Core/Src/FAC_Code/fac_servo.o: ../Core/Src/FAC_Code/fac_servo.c \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim_ex.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h \
- ../Core/Inc/FAC_Code/config.h ../Core/Inc/main.h
+ ../Core/Inc/FAC_Code/config.h ../Core/Inc/tim.h ../Core/Inc/main.h \
+ ../Core/Inc/main.h
 ../Core/Inc/FAC_Code/fac_servo.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h:
 ../Core/Inc/stm32f0xx_hal_conf.h:
@@ -75,4 +76,6 @@ Core/Src/FAC_Code/fac_servo.o: ../Core/Src/FAC_Code/fac_servo.c \
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h:
 ../Core/Inc/FAC_Code/config.h:
+../Core/Inc/tim.h:
+../Core/Inc/main.h:
 ../Core/Inc/main.h:

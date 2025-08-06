@@ -10,6 +10,7 @@
 #include "FAC_Code/fac_motors.h"
 #include "FAC_Code/fac_battery.h"
 #include "FAC_Code/fac_std_receiver.h"
+#include "FAC_Code/fac_servo.h"
 
 static FAC_App fac_application;
 
@@ -34,6 +35,7 @@ void FAC_app_init() {
 	FAC_motor_Init();
 	FAC_battery_init();
 	FAC_std_reciever_init(RECEIVER_TYPE_PWM);
+	FAC_servo_init();
 
 	fac_application.battery_voltage = 0;
 	fac_application.current_state = 0;

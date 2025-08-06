@@ -13,6 +13,7 @@
 
 #define SERVOS_NUMBER 2
 #define MAX_SERVO_VALUE RECEIVER_CHANNEL_RESOLUTION-1
+#define SERVO_RESOLUTION RECEIVER_CHANNEL_RESOLUTION
 
 typedef struct Servo {
 	uint16_t position;		// rage from 0 to max vale
@@ -20,9 +21,17 @@ typedef struct Servo {
 	uint8_t is_reversed;	// TRUE/FALSE, if TRUE the motor will spin in the inverse direction of dir
 	uint16_t servo_freq;	// will be the same for every servo, it will sincronyzed on the servo set freq.
 	uint16_t tim_channel;	// channel of timer used
+	uint16_t min_ms_value;	// some servos (especially cheap ones) have a greater range..
+	uint16_t max_ms_value;	// so the pulse range can be chosen
 } Servo;
 
 uint16_t FAC_servo_GET_position(uint8_t servoNumber);
 uint8_t FAC_servo_GET_is_enable(uint8_t servoNumber);
 uint8_t FAC_servo_GET_is_reversed(uint8_t servoNumber);
+void FAC_servo_set_position(uint8_t servoNumber, uint16_t position);
+void FAC_servo_enable(uint8_t servoNumber);
+void FAC_servo_disable(uint8_t servoNumber);
+void FAC_servo_is_reversed(uint8_t servoNumber, uint8_t isReversed);
+
+
 #endif /* INC_FAC_CODE_FAC_SERVO_H_ */
