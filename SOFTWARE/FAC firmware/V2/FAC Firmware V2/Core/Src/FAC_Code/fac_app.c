@@ -34,7 +34,7 @@ void FAC_app_init() {
 	FAC_adc_Init();
 	FAC_motor_Init();
 	FAC_battery_init();
-	FAC_std_reciever_init(RECEIVER_TYPE_PWM);
+	FAC_std_reciever_init(RECEIVER_TYPE_PPM);
 	FAC_servo_init();
 
 	fac_application.battery_voltage = 0;

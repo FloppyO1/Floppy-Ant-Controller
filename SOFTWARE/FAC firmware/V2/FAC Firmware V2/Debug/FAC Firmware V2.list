@@ -27,27 +27,27 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   ALLOC
  11 .ARM.attributes 00000028  00000000  00000000  0000600c  2**0
                   CONTENTS, READONLY
- 12 .debug_info   0002960f  00000000  00000000  00006034  2**0
+ 12 .debug_info   000295f8  00000000  00000000  00006034  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 13 .debug_abbrev 00005f84  00000000  00000000  0002f643  2**0
+ 13 .debug_abbrev 00005f84  00000000  00000000  0002f62c  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 14 .debug_loclists 0001aa2c  00000000  00000000  000355c7  2**0
+ 14 .debug_loclists 0001aa2c  00000000  00000000  000355b0  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 15 .debug_aranges 00001668  00000000  00000000  0004fff8  2**3
+ 15 .debug_aranges 00001668  00000000  00000000  0004ffe0  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_rnglists 00002ada  00000000  00000000  00051660  2**0
+ 16 .debug_rnglists 00002ada  00000000  00000000  00051648  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_macro  0001da19  00000000  00000000  0005413a  2**0
+ 17 .debug_macro  0001da19  00000000  00000000  00054122  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_line   0003412f  00000000  00000000  00071b53  2**0
+ 18 .debug_line   0003412f  00000000  00000000  00071b3b  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .debug_str    0009fa93  00000000  00000000  000a5c82  2**0
+ 19 .debug_str    0009fa93  00000000  00000000  000a5c6a  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 20 .comment      00000043  00000000  00000000  00145715  2**0
+ 20 .comment      00000043  00000000  00000000  001456fd  2**0
                   CONTENTS, READONLY
- 21 .debug_frame  00003d2c  00000000  00000000  00145758  2**2
+ 21 .debug_frame  00003d2c  00000000  00000000  00145740  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 22 .debug_line_str 0000008b  00000000  00000000  00149484  2**0
+ 22 .debug_line_str 0000008b  00000000  00000000  0014946c  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -892,8 +892,8 @@ void FAC_app_init() {
  80006ee:	f000 f891 	bl	8000814 <FAC_motor_Init>
 	FAC_battery_init();
  80006f2:	f000 f81b 	bl	800072c <FAC_battery_init>
-	FAC_std_reciever_init(RECEIVER_TYPE_PWM);
- 80006f6:	2000      	movs	r0, #0
+	FAC_std_reciever_init(RECEIVER_TYPE_PPM);
+ 80006f6:	2001      	movs	r0, #1
  80006f8:	f000 fb66 	bl	8000dc8 <FAC_std_reciever_init>
 	FAC_servo_init();
  80006fc:	f000 fb0c 	bl	8000d18 <FAC_servo_init>

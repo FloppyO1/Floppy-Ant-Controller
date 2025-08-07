@@ -352,6 +352,124 @@ Discarded input sections
  .debug_macro   0x00000000      0x130 ./Core/Src/FAC_Code/fac_battery.o
  .debug_macro   0x00000000      0x106 ./Core/Src/FAC_Code/fac_battery.o
  .debug_macro   0x00000000       0x10 ./Core/Src/FAC_Code/fac_battery.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_eeprom.o
+ .text          0x00000000        0x0 ./Core/Src/FAC_Code/fac_eeprom.o
+ .data          0x00000000        0x0 ./Core/Src/FAC_Code/fac_eeprom.o
+ .bss           0x00000000        0x0 ./Core/Src/FAC_Code/fac_eeprom.o
+ .text.FAC_eeprom_store_value
+                0x00000000       0x34 ./Core/Src/FAC_Code/fac_eeprom.o
+ .text.FAC_eeprom_read_value
+                0x00000000       0x4c ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_info    0x00000000      0x8f6 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_abbrev  0x00000000      0x2b0 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_loclists
+                0x00000000      0x15d ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_aranges
+                0x00000000       0x28 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_rnglists
+                0x00000000       0x67 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x23a ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0xad2 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x145 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0x2e ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0x22 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0x22 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0x8e ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0x51 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x103 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0x6a ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x1df ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0x1c ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0x22 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0xaf ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x391 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000     0xfe73 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0x66 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000     0x34da ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x190 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0x55 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x946 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x5f3 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x1ae ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x1a7 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x1a7 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x22c ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0x34 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0x43 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0x28 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x33d ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0xd4 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0xb0 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x217 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x22c ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0x61 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0xa5 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0x73 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x22d ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0x4c ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x16d ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x2fe ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x8f4 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0x28 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x5ba ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0x44 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x130 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0x2e ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000       0x16 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_macro   0x00000000      0x106 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_line    0x00000000      0x86e ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_str     0x00000000    0x99332 ./Core/Src/FAC_Code/fac_eeprom.o
+ .comment       0x00000000       0x44 ./Core/Src/FAC_Code/fac_eeprom.o
+ .debug_frame   0x00000000       0x54 ./Core/Src/FAC_Code/fac_eeprom.o
+ .ARM.attributes
+                0x00000000       0x28 ./Core/Src/FAC_Code/fac_eeprom.o
  .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_motors.o
  .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_motors.o
  .group         0x00000000        0xc ./Core/Src/FAC_Code/fac_motors.o
@@ -6055,6 +6173,7 @@ LOAD /opt/st/stm32cubeide_1.19.0/plugins/com.st.stm32cube.ide.mcu.externaltools.
 LOAD ./Core/Src/FAC_Code/fac_adc.o
 LOAD ./Core/Src/FAC_Code/fac_app.o
 LOAD ./Core/Src/FAC_Code/fac_battery.o
+LOAD ./Core/Src/FAC_Code/fac_eeprom.o
 LOAD ./Core/Src/FAC_Code/fac_motors.o
 LOAD ./Core/Src/FAC_Code/fac_ppm_receiver.o
 LOAD ./Core/Src/FAC_Code/fac_pwm_receiver.o
@@ -6801,46 +6920,46 @@ LOAD /opt/st/stm32cubeide_1.19.0/plugins/com.st.stm32cube.ide.mcu.externaltools.
 LOAD /opt/st/stm32cubeide_1.19.0/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.linux64_1.0.0.202410170706/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libm.a
 LOAD /opt/st/stm32cubeide_1.19.0/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.linux64_1.0.0.202410170706/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/thumb/v6-m/nofp/libgcc.a
 
-.debug_info     0x00000000    0x2960f
+.debug_info     0x00000000    0x295f8
  .debug_info    0x00000000      0x6ca ./Core/Src/FAC_Code/fac_adc.o
- .debug_info    0x000006ca      0x2eb ./Core/Src/FAC_Code/fac_app.o
- .debug_info    0x000009b5      0x6c5 ./Core/Src/FAC_Code/fac_battery.o
- .debug_info    0x0000107a      0xdc7 ./Core/Src/FAC_Code/fac_motors.o
- .debug_info    0x00001e41      0x9df ./Core/Src/FAC_Code/fac_ppm_receiver.o
- .debug_info    0x00002820      0x81e ./Core/Src/FAC_Code/fac_pwm_receiver.o
- .debug_info    0x0000303e      0xc8b ./Core/Src/FAC_Code/fac_servo.o
- .debug_info    0x00003cc9      0x48e ./Core/Src/FAC_Code/fac_std_receiver.o
- .debug_info    0x00004157      0x90b ./Core/Src/Libraries/DMApwm.o
- .debug_info    0x00004a62      0x990 ./Core/Src/adc.o
- .debug_info    0x000053f2      0x2ff ./Core/Src/dma.o
- .debug_info    0x000056f1      0x5ad ./Core/Src/gpio.o
- .debug_info    0x00005c9e      0x9da ./Core/Src/i2c.o
- .debug_info    0x00006678      0x6a1 ./Core/Src/main.o
- .debug_info    0x00006d19      0x8e2 ./Core/Src/spi.o
- .debug_info    0x000075fb      0x191 ./Core/Src/stm32f0xx_hal_msp.o
- .debug_info    0x0000778c      0x3fc ./Core/Src/stm32f0xx_it.o
- .debug_info    0x00007b88      0x271 ./Core/Src/system_stm32f0xx.o
- .debug_info    0x00007df9      0xfa9 ./Core/Src/tim.o
- .debug_info    0x00008da2      0x9ac ./Core/Src/usart.o
- .debug_info    0x0000974e      0x72f ./Core/Src/usb.o
- .debug_info    0x00009e7d       0x30 ./Core/Startup/startup_stm32f072cbtx.o
- .debug_info    0x00009ead      0x7a6 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal.o
- .debug_info    0x0000a653      0xf84 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_adc.o
- .debug_info    0x0000b5d7      0x597 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_adc_ex.o
- .debug_info    0x0000bb6e      0x82e ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_cortex.o
- .debug_info    0x0000c39c      0x8a5 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_dma.o
- .debug_info    0x0000cc41      0x5e0 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_gpio.o
- .debug_info    0x0000d221     0x6766 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_i2c.o
- .debug_info    0x00013987      0x83d ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_i2c_ex.o
- .debug_info    0x000141c4     0x1dc8 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_pcd.o
- .debug_info    0x00015f8c      0x9b1 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_pcd_ex.o
- .debug_info    0x0001693d      0xaf8 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_rcc.o
- .debug_info    0x00017435      0x6ec ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_rcc_ex.o
- .debug_info    0x00017b21     0x2ea8 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_spi.o
- .debug_info    0x0001a9c9     0x4c38 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_tim.o
- .debug_info    0x0001f601     0x1b4c ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_tim_ex.o
- .debug_info    0x0002114d     0x6834 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.o
- .debug_info    0x00027981     0x1c8e ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_usb.o
+ .debug_info    0x000006ca      0x2d4 ./Core/Src/FAC_Code/fac_app.o
+ .debug_info    0x0000099e      0x6c5 ./Core/Src/FAC_Code/fac_battery.o
+ .debug_info    0x00001063      0xdc7 ./Core/Src/FAC_Code/fac_motors.o
+ .debug_info    0x00001e2a      0x9df ./Core/Src/FAC_Code/fac_ppm_receiver.o
+ .debug_info    0x00002809      0x81e ./Core/Src/FAC_Code/fac_pwm_receiver.o
+ .debug_info    0x00003027      0xc8b ./Core/Src/FAC_Code/fac_servo.o
+ .debug_info    0x00003cb2      0x48e ./Core/Src/FAC_Code/fac_std_receiver.o
+ .debug_info    0x00004140      0x90b ./Core/Src/Libraries/DMApwm.o
+ .debug_info    0x00004a4b      0x990 ./Core/Src/adc.o
+ .debug_info    0x000053db      0x2ff ./Core/Src/dma.o
+ .debug_info    0x000056da      0x5ad ./Core/Src/gpio.o
+ .debug_info    0x00005c87      0x9da ./Core/Src/i2c.o
+ .debug_info    0x00006661      0x6a1 ./Core/Src/main.o
+ .debug_info    0x00006d02      0x8e2 ./Core/Src/spi.o
+ .debug_info    0x000075e4      0x191 ./Core/Src/stm32f0xx_hal_msp.o
+ .debug_info    0x00007775      0x3fc ./Core/Src/stm32f0xx_it.o
+ .debug_info    0x00007b71      0x271 ./Core/Src/system_stm32f0xx.o
+ .debug_info    0x00007de2      0xfa9 ./Core/Src/tim.o
+ .debug_info    0x00008d8b      0x9ac ./Core/Src/usart.o
+ .debug_info    0x00009737      0x72f ./Core/Src/usb.o
+ .debug_info    0x00009e66       0x30 ./Core/Startup/startup_stm32f072cbtx.o
+ .debug_info    0x00009e96      0x7a6 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal.o
+ .debug_info    0x0000a63c      0xf84 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_adc.o
+ .debug_info    0x0000b5c0      0x597 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_adc_ex.o
+ .debug_info    0x0000bb57      0x82e ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_cortex.o
+ .debug_info    0x0000c385      0x8a5 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_dma.o
+ .debug_info    0x0000cc2a      0x5e0 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_gpio.o
+ .debug_info    0x0000d20a     0x6766 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_i2c.o
+ .debug_info    0x00013970      0x83d ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_i2c_ex.o
+ .debug_info    0x000141ad     0x1dc8 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_pcd.o
+ .debug_info    0x00015f75      0x9b1 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_pcd_ex.o
+ .debug_info    0x00016926      0xaf8 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_rcc.o
+ .debug_info    0x0001741e      0x6ec ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_rcc_ex.o
+ .debug_info    0x00017b0a     0x2ea8 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_spi.o
+ .debug_info    0x0001a9b2     0x4c38 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_tim.o
+ .debug_info    0x0001f5ea     0x1b4c ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_tim_ex.o
+ .debug_info    0x00021136     0x6834 ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.o
+ .debug_info    0x0002796a     0x1c8e ./Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_usb.o
 
 .debug_abbrev   0x00000000     0x5f84
  .debug_abbrev  0x00000000      0x23d ./Core/Src/FAC_Code/fac_adc.o

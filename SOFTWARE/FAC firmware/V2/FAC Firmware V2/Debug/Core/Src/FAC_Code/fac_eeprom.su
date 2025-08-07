@@ -1,0 +1,2 @@
+../Core/Src/FAC_Code/fac_eeprom.c:62:6:FAC_eeprom_store_value	32	static
+../Core/Src/FAC_Code/fac_eeprom.c:68:10:FAC_eeprom_read_value	48	static

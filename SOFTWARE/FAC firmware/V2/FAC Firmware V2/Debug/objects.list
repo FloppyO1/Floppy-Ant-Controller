@@ -1,6 +1,7 @@
 "./Core/Src/FAC_Code/fac_adc.o"
 "./Core/Src/FAC_Code/fac_app.o"
 "./Core/Src/FAC_Code/fac_battery.o"
+"./Core/Src/FAC_Code/fac_eeprom.o"
 "./Core/Src/FAC_Code/fac_motors.o"
 "./Core/Src/FAC_Code/fac_ppm_receiver.o"
 "./Core/Src/FAC_Code/fac_pwm_receiver.o"
