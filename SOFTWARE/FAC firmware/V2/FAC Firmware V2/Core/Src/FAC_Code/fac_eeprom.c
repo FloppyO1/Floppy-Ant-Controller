@@ -8,16 +8,25 @@
  */
 
 #include "FAC_Code/fac_eeprom.h"
+#include "main.h"
 #include "i2c.h"
+
+static Eeprom eeprom;
 
 /* STATIC FUNCTION PROTORYPES */
 static void FAC_eeprom_uint16_to_bytes(uint16_t value, uint8_t *array);
 static uint16_t FAC_eeprom_bytes_to_uint16(const uint8_t *array);
 static void FAC_eeprom_write_byte(uint8_t address, uint8_t value);
 static uint8_t FAC_eeprom_read_byte(uint8_t address);
+static void FAC_eeprom_SET_is_first_boot_value(uint8_t bootValue);
 
 /* FUNCTION DEFINITION */
 /* ----------------------PRIVATE FUNCTIONS---------------------- */
+static void FAC_eeprom_SET_is_first_boot_value(uint8_t bootValue) {
+	eeprom.is_first_boot_value = bootValue;
+
+}
+
 /**
  * @brief	Convert a uint16 into its two byte stored on a uint8_t array (second argoment)
  *
@@ -58,27 +67,60 @@ static uint8_t FAC_eeprom_read_byte(uint8_t address) {
 }
 
 /* ----------------------PUBBLIC FUNCTIONS---------------------- */
+uint8_t FAC_eeprom_GET_is_first_boot_value() {
+	return eeprom.is_first_boot_value;
+}
+
+/**
+ * @brief	Write to eeprom the "is first boot value", it is used to know if the eeprom is already initialized or not
+ */
+void FAC_eeprom_WRITE_frist_boot_value_in_eeprom(){
+	FAC_eeprom_write_byte(EEPROM_ISFIRSTBOOT_ADDRESS, FAC_eeprom_GET_is_first_boot_value());
+}
 
 /**
  * @brief	Store into eeprom memory a two byte (uint16) value
  * @note	It consist in a multiple byte write operation
  */
-void FAC_eeprom_store_value(uint8_t address, uint16_t value) {
+void FAC_eeprom_store_value(uint8_t position, uint16_t value) {
 	uint8_t array[2];
 	FAC_eeprom_uint16_to_bytes(value, array);
-	FAC_eeprom_write_byte(address, value);
+	for (int i = 0; i < sizeof(uint16_t); i++) {
+		FAC_eeprom_write_byte((position*2)+i, array[i]);
+	}
+
 }
 
 /**
  * @brief	Read from eeprom memory a two byte (uint16) value
- * @note	It consist in a multiple byte read operation
- * @retval	Returns the value read from the eprom in uint16 format
+ * @note	It consist in a multiple byte read operation, *2 on the address is used because a setting value is made of 2 byte
+ * @retval	Returns the value read from the eeprom in uint16 format
  */
-uint16_t FAC_eeprom_read_value(uint8_t address) {
+uint16_t FAC_eeprom_read_value(uint8_t position) {
 	uint8_t array[2];
 	for (int i = 0; i < sizeof(uint16_t); i++) {
-		FAC_eeprom_read_byte(address + i);
+		array[i] = FAC_eeprom_read_byte((position*2) + i);
 	}
 	return FAC_eeprom_bytes_to_uint16(array);
 }
 
+/**
+ * @brief 	This function read the eeprom byte that indicates if the settings are already been stored once.
+ * @retval 	Return TRUE if
+ */
+uint8_t FAC_eeprom_is_first_time() {
+	uint8_t isFirst = FALSE;
+	if (FAC_eeprom_read_byte(EEPROM_ISFIRSTBOOT_ADDRESS) != FAC_eeprom_GET_is_first_boot_value())
+		isFirst = TRUE;
+	return isFirst;
+}
+
+/**
+ * @brief	Initialize the first boot value, if it is changed the settings are returned to the default value
+ */
+void FAC_eeprom_init(uint8_t bootValue) {
+	if (bootValue == UINT8_MAX)	// this because the eeprom default value is 0xFF, so this value can not be used
+		FAC_eeprom_SET_is_first_boot_value(bootValue - 1);
+	else
+		FAC_eeprom_SET_is_first_boot_value(bootValue);
+}

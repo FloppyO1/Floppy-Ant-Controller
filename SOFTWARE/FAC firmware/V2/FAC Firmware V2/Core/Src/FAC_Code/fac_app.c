@@ -11,14 +11,24 @@
 #include "FAC_Code/fac_battery.h"
 #include "FAC_Code/fac_std_receiver.h"
 #include "FAC_Code/fac_servo.h"
+#include "FAC_Code/fac_settings.h"
 
 static FAC_App fac_application;
+uint8_t newComSerialReceived = FALSE;	// turn true when something is received
 
 /* STATIC FUNCTION PROTORYPES */
 
-
 /* FUNCTION DEFINITION */
 void FAC_app_main_loop() {
+	if(newComSerialReceived){
+		// understand the comand received and do what you have to do
+
+		newComSerialReceived = FALSE;
+	}
+
+
+
+
 	switch (fac_application.current_state) {
 		case FAC_STATE_DISARMED:
 			break;
@@ -36,11 +46,11 @@ void FAC_app_init() {
 	FAC_battery_init();
 	FAC_std_reciever_init(RECEIVER_TYPE_PPM);
 	FAC_servo_init();
+	//FAC_settings_init(1);
 
 	fac_application.battery_voltage = 0;
 	fac_application.current_state = 0;
 }
-
 
 /**
  * @brief 	change the range of a variable from one to another
@@ -48,7 +58,8 @@ void FAC_app_init() {
  * @retval 	return the value in the new range
  */
 uint32_t map_uint32(uint32_t x, uint32_t in_min, uint32_t in_max, uint32_t out_min, uint32_t out_max) {
-	if(x > in_max) x = in_max;
-    // Cast to uint64_t to avoid overflow during the calculation
-    return (uint32_t)(((uint64_t)(x - in_min) * (out_max - out_min)) / (in_max - in_min) + out_min);
+	if (x > in_max)
+		x = in_max;
+	// Cast to uint64_t to avoid overflow during the calculation
+	return (uint32_t) (((uint64_t) (x - in_min) * (out_max - out_min)) / (in_max - in_min) + out_min);
 }

@@ -39,7 +39,7 @@ Core/Src/FAC_Code/fac_app.o: ../Core/Src/FAC_Code/fac_app.c \
  ../Core/Inc/FAC_Code/fac_adc.h ../Core/Inc/FAC_Code/fac_motors.h \
  ../Core/Inc/main.h ../Core/Inc/FAC_Code/fac_battery.h \
  ../Core/Inc/FAC_Code/fac_std_receiver.h ../Core/Inc/FAC_Code/config.h \
- ../Core/Inc/FAC_Code/fac_servo.h
+ ../Core/Inc/FAC_Code/fac_servo.h ../Core/Inc/FAC_Code/fac_settings.h
 ../Core/Inc/FAC_Code/fac_app.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h:
 ../Core/Inc/stm32f0xx_hal_conf.h:
@@ -84,3 +84,4 @@ Core/Src/FAC_Code/fac_app.o: ../Core/Src/FAC_Code/fac_app.c \
 ../Core/Inc/FAC_Code/fac_std_receiver.h:
 ../Core/Inc/FAC_Code/config.h:
 ../Core/Inc/FAC_Code/fac_servo.h:
+../Core/Inc/FAC_Code/fac_settings.h:

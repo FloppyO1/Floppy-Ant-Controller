@@ -1,0 +1,3 @@
+../Core/Src/FAC_Code/fac_settings.c:69:6:FAC_settings_USB_SEND_setting_value	16	static
+../Core/Src/FAC_Code/fac_settings.c:83:6:FAC_settings_USB_SEND_setting_ranges	16	static
+../Core/Src/FAC_Code/fac_settings.c:95:6:FAC_settings_init	8	static

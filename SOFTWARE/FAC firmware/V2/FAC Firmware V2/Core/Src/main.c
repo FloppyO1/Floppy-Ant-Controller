@@ -24,7 +24,7 @@
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
-#include "usb.h"
+#include "usb_device.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -37,6 +37,7 @@
 #include "FAC_Code/fac_battery.h"
 #include "FAC_Code/fac_std_receiver.h"
 #include "FAC_Code/fac_servo.h"
+#include "FAC_Code/fac_eeprom.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -64,6 +65,8 @@ uint16_t vbat = 0;
 uint16_t adcCh0 = 0;
 uint16_t adcCh1 = 0;
 uint16_t chs[8];
+uint16_t dataW = 43690;
+uint16_t dataR = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -111,18 +114,19 @@ int main(void)
   MX_I2C1_Init();
   MX_SPI2_Init();
   MX_USART1_UART_Init();
-  MX_USB_PCD_Init();
   MX_TIM1_Init();
   MX_TIM3_Init();
   MX_TIM2_Init();
+  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
 	FAC_app_init();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
-		//FAC_app_main_loop();
+		FAC_app_main_loop();
 
 //	  	FAC_motor_make_noise(1, 5); //<-- NOT WORKING
 
