@@ -1,3 +1,3 @@
-../Core/Src/FAC_Code/fac_app.c:22:6:FAC_app_main_loop	8	static
-../Core/Src/FAC_Code/fac_app.c:41:6:FAC_app_init	8	static
-../Core/Src/FAC_Code/fac_app.c:59:10:map_uint32	16	static
+../Core/Src/FAC_Code/fac_app.c:22:6:FAC_app_main_loop	0	static
+../Core/Src/FAC_Code/fac_app.c:42:6:FAC_app_init	8	static
+../Core/Src/FAC_Code/fac_app.c:60:10:map_uint32	16	static
