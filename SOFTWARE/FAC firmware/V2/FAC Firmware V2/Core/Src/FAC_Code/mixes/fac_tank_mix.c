@@ -34,6 +34,10 @@ static void FAC_tank_mix_calculate_parameters() {
 	/* preparing th and st values */
 	thValue = (thValue - (RECEIVER_CHANNEL_RESOLUTION - 1) / 2) * 2;	// thake the value of the thCh [0,-999] and map to [-999, +999]
 	stValue = (stValue - (RECEIVER_CHANNEL_RESOLUTION - 1) / 2) * 2;	// same thing ^
+	/* Apply deadzone */
+	thValue = FAC_mix_calculate_dead_zone(thValue, tankmix.dead_zone_th_st, -(RECEIVER_CHANNEL_RESOLUTION-1), RECEIVER_CHANNEL_RESOLUTION-1);
+	stValue = FAC_mix_calculate_dead_zone(stValue, tankmix.dead_zone_th_st, -(RECEIVER_CHANNEL_RESOLUTION-1), RECEIVER_CHANNEL_RESOLUTION-1);
+
 	if (tankmix.throttle_reversed)
 		thValue = -thValue;	// reverse the throttle if is reversed by settings
 	if (tankmix.steering_reversed)
@@ -78,7 +82,7 @@ void FAC_tank_mix_update() {
  * @IMPORTANT	!! MUST BE CALLED IF NEW SETTINGS ARE LOADED !!
  * @param1		Deadzone for commands (th, st), expressed in percentage.
  */
-void FAC_tank_mix_init(uint8_t mixChannel1Trhottle, int8_t mixChannel2Steering, uint8_t leftMotorNumber, uint8_t rightMotorNumber, uint8_t thReverse, uint8_t stReverse , uint8_t deadzone) {
+void FAC_tank_mix_init(uint8_t mixChannel1Trhottle, int8_t mixChannel2Steering, uint8_t leftMotorNumber, uint8_t rightMotorNumber, uint8_t thReverse, uint8_t stReverse, uint8_t deadzone) {
 	tankmix.throttle_channel = mixChannel1Trhottle;
 	tankmix.steering_channel = mixChannel2Steering;
 	tankmix.throttle_reversed = thReverse;

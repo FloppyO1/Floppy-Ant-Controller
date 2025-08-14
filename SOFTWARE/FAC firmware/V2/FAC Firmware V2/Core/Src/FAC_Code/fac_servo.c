@@ -93,12 +93,12 @@ static void FAC_servo_apply_settings(uint8_t servoNumber) {
 			case 1:
 				// using 1000 ticks per ms the formula is the same for every frequency chosen
 //				TIM3->CCR3 = 1000 + servos[servoNumber]->position;	// old method, only 1-2ms
-				TIM3->CCR3 = servos[servoNumber]->min_ms_value + p;
+				TIM3->CCR3 = servos[servoNumber-1]->min_ms_value + p;
 				break;
 			case 2:
 				// using 1000 ticks per ms the formula is the same for every frequency chosen
 //				TIM3->CCR4 = 1000 + servos[servoNumber]->position;	// old method, only 1-2ms
-				TIM3->CCR4 = servos[servoNumber]->min_ms_value + p;
+				TIM3->CCR4 = servos[servoNumber-1]->min_ms_value + p;
 				break;
 		}
 	} else {

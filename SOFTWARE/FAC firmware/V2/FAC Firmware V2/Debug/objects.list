@@ -8,6 +8,8 @@
 "./Core/Src/FAC_Code/fac_servo.o"
 "./Core/Src/FAC_Code/fac_settings.o"
 "./Core/Src/FAC_Code/fac_std_receiver.o"
+"./Core/Src/FAC_Code/mixes/fac_mixes.o"
+"./Core/Src/FAC_Code/mixes/fac_none_mix.o"
 "./Core/Src/FAC_Code/mixes/fac_tank_mix.o"
 "./Core/Src/Libraries/DMApwm.o"
 "./Core/Src/adc.o"
