@@ -128,21 +128,12 @@ int main(void)
 	while (1) {
 		FAC_app_main_loop();
 
-//	  	FAC_motor_make_noise(1, 5); //<-- NOT WORKING
 
-//		vbat = FAC_battery_GET_voltage();
-//		batType = FAC_battery_GET_type();
-//		for (int i = 0; i <  batType * 2; i++) {
-//			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-//			HAL_Delay(200);
-//		}
-//		HAL_Delay(2000);
-
-//		FAC_motor_is_reversed(1, FALSE);
 		for (int i = 0; i < 4; i++) {
 			chs[i] = FAC_std_receiver_GET_channel(i + 1);
 		}
-		FAC_motor_set_speed_direction(1, FORWARD, FAC_std_receiver_GET_channel(3));
+		FAC_motor_set_speed_direction(3, FORWARD, FAC_std_receiver_GET_channel(3));
+
 
 		FAC_servo_enable(1);
 		FAC_servo_set_position(1, FAC_std_receiver_GET_channel(3));

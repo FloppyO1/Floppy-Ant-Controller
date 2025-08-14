@@ -15,6 +15,7 @@
 #include "FAC_Code/config.h"
 #include "FAC_Code/fac_std_receiver.h"
 #include "FAC_Code/fac_motors.h"
+#include <stdlib.h>
 
 enum FAC_MIXES{
 	FAC_MIX_NONE,

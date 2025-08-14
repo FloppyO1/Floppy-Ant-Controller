@@ -22,6 +22,12 @@ typedef struct Tankmix {
 	uint16_t right_motor_speed;
 	uint8_t left_motor_direction;
 	uint8_t right_motor_direction;
+	uint8_t dead_zone_th_st;	// deadzone expressed in percentage for commands steering and throttle
 } Tankmix;
+
+
+void FAC_tank_mix_init(uint8_t mixChannel1Trhottle, int8_t mixChannel2Steering, uint8_t leftMotorNumber, uint8_t rightMotorNumber, uint8_t thReverse, uint8_t stReverse , uint8_t deadzone);
+void FAC_tank_mix_update();
+
 
 #endif /* INC_FAC_CODE_MIXES_FAC_TANK_MIX_H_ */
