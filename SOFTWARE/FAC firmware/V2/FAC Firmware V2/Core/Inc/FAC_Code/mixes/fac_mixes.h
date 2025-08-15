@@ -19,8 +19,8 @@
 #include <stdlib.h>
 
 /* needed for the deadzone calculation, declared in fac_app.h */
-extern uint32_t map_uint32(uint32_t x, uint32_t in_min, uint32_t in_max, uint32_t out_min, uint32_t out_max);
-
+//extern uint32_t map_uint32(uint32_t x, uint32_t in_min, uint32_t in_max, uint32_t out_min, uint32_t out_max);
+extern int32_t map_int32(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max);
 
 typedef struct Mix{
 	uint8_t current_mix;
@@ -33,5 +33,7 @@ enum FAC_MIXES{
 
 
 int16_t FAC_mix_calculate_dead_zone(int16_t value, uint8_t deadzonePerc, int16_t minValue, int16_t maxValue);
+void FAC_mix_update();
+void FAC_mix_init(uint8_t currentMix, uint8_t deadzonePerc);
 
 #endif /* INC_FAC_CODE_MIXES_FAC_MIXES_H_ */

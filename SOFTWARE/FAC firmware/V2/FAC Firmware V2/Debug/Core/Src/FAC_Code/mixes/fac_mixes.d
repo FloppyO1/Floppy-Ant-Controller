@@ -40,6 +40,7 @@ Core/Src/FAC_Code/mixes/fac_mixes.o: \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h \
  ../Core/Inc/FAC_Code/fac_motors.h ../Core/Inc/main.h \
  ../Core/Inc/FAC_Code/fac_servo.h \
+ ../Core/Inc/FAC_Code/mixes/fac_none_mix.h \
  ../Core/Inc/FAC_Code/mixes/fac_tank_mix.h
 ../Core/Inc/FAC_Code/mixes/fac_mixes.h:
 ../Core/Inc/FAC_Code/config.h:
@@ -83,4 +84,5 @@ Core/Src/FAC_Code/mixes/fac_mixes.o: \
 ../Core/Inc/FAC_Code/fac_motors.h:
 ../Core/Inc/main.h:
 ../Core/Inc/FAC_Code/fac_servo.h:
+../Core/Inc/FAC_Code/mixes/fac_none_mix.h:
 ../Core/Inc/FAC_Code/mixes/fac_tank_mix.h:

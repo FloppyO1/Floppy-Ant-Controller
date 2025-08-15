@@ -54,6 +54,9 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(DIGITAL_AUX1_GPIO_Port, DIGITAL_AUX1_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, M1_F_Pin|M1_B_Pin|M2_F_Pin|M2_B_Pin
                           |M3_F_Pin|M3_B_Pin|NRF24L01_CE_Pin, GPIO_PIN_RESET);
 
@@ -64,11 +67,18 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : DIGITAL_AUX1_Pin DIGITAL_AUX2_Pin */
-  GPIO_InitStruct.Pin = DIGITAL_AUX1_Pin|DIGITAL_AUX2_Pin;
+  /*Configure GPIO pin : DIGITAL_AUX1_Pin */
+  GPIO_InitStruct.Pin = DIGITAL_AUX1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(DIGITAL_AUX1_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : DIGITAL_AUX2_Pin */
+  GPIO_InitStruct.Pin = DIGITAL_AUX2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+  HAL_GPIO_Init(DIGITAL_AUX2_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : M1_F_Pin M1_B_Pin M2_F_Pin M2_B_Pin
                            M3_F_Pin M3_B_Pin NRF24L01_CE_Pin */

@@ -27,8 +27,9 @@ void FAC_app_main_loop() {
 		newComSerialReceived = FALSE;
 	}
 
-	FAC_none_mix_update();
-
+	HAL_GPIO_WritePin(DIGITAL_AUX1_GPIO_Port, DIGITAL_AUX1_Pin, 1);	// for execution time mesurement
+	FAC_mix_update();
+	HAL_GPIO_WritePin(DIGITAL_AUX1_GPIO_Port, DIGITAL_AUX1_Pin, 0); // for execution time mesurement
 
 	switch (fac_application.current_state) {
 		case FAC_STATE_DISARMED:
@@ -68,4 +69,15 @@ uint32_t map_uint32(uint32_t x, uint32_t in_min, uint32_t in_max, uint32_t out_m
 		x = in_max;
 	// Cast to uint64_t to avoid overflow during the calculation
 	return (uint32_t) (((uint64_t) (x - in_min) * (out_max - out_min)) / (in_max - in_min) + out_min);
+}
+
+/**
+ * @brief 		change the range of a variable from one to another
+ * @retval 		return the value in the new range
+ */
+int32_t map_int32(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max) {
+	if (x > in_max)
+		x = in_max;
+	// Cast to uint64_t to avoid overflow during the calculation
+	return (int32_t) (((int64_t) (x - in_min) * (out_max - out_min)) / (in_max - in_min) + out_min);
 }

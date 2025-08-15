@@ -11,6 +11,10 @@ static Nonemix noneMix;
 
 /* STATIC FUNCTION PROTORYPES */
 static void FAC_none_mix_SET_dead_zone(uint8_t deadzone);
+static void FAC_none_mix_SET_motor_channel(uint8_t motorNumber, uint8_t channel);
+static void FAC_none_mix_SET_servo_channel(uint8_t servoNumber, uint8_t channel);
+static uint8_t FAC_none_mix_GET_motor_channel(uint8_t motorNumber);
+static uint8_t FAC_none_mix_GET_servo_channel(uint8_t servoNumber);
 
 /* FUNCTION DEFINITION */
 /* ----------------------PRIVATE FUNCTIONS---------------------- */
@@ -19,6 +23,29 @@ static void FAC_none_mix_SET_dead_zone(uint8_t deadzone) {
 	noneMix.dead_zone = deadzone;
 }
 
+static void FAC_none_mix_SET_motor_channel(uint8_t motorNumber, uint8_t channel) {
+	if (motorNumber > MOTORS_NUMBER)
+		return;	// this motor does not exist
+	noneMix.motors_channels[motorNumber - 1] = channel;
+}
+
+static void FAC_none_mix_SET_servo_channel(uint8_t servoNumber, uint8_t channel) {
+	if (servoNumber > SERVOS_NUMBER)
+		return;	// this servo does not exist
+	noneMix.servos_channels[servoNumber - 1] = channel;
+}
+
+static uint8_t FAC_none_mix_GET_motor_channel(uint8_t motorNumber) {
+	if (motorNumber > MOTORS_NUMBER)
+		return 0;	// this motor does not exist
+	return noneMix.motors_channels[motorNumber - 1];
+}
+
+static uint8_t FAC_none_mix_GET_servo_channel(uint8_t servoNumber) {
+	if (servoNumber > SERVOS_NUMBER)
+		return 0;	// this servo does not exist
+	return noneMix.servos_channels[servoNumber - 1];
+}
 /* ----------------------PUBBLIC FUNCTIONS---------------------- */
 uint8_t FAC_none_mix_GET_dead_zone() {
 	return noneMix.dead_zone;
@@ -27,89 +54,52 @@ uint8_t FAC_none_mix_GET_dead_zone() {
 /**
  * @biref	Update the motors/servos speeds/positions
  * @note	This function directly apply the settings on the motor/servos
+ * @time	Max execution time: ~8.25ms
  */
 void FAC_none_mix_update() {
 	/* get receiver values */
-	int16_t channels[6];
-	for (int i = 1; i < 6; i++) {
-		channels[i] = FAC_std_receiver_GET_channel(i);
+	int16_t channels[8];
+	for (int i = 1; i <= 8; i++) {
+		channels[i - 1] = FAC_std_receiver_GET_channel(i);
 	}
-//	int16_t ch1 = FAC_std_receiver_GET_channel(1);	// motor double direction
-//	int16_t ch2 = FAC_std_receiver_GET_channel(2);	// motor double direction
-//	int16_t ch3 = FAC_std_receiver_GET_channel(3);	// servo
-//	int16_t ch4 = FAC_std_receiver_GET_channel(4);	// servo
-//	int16_t ch5 = FAC_std_receiver_GET_channel(5);	// motor double direction
 
 	/* center the value for motors */
-	channels[1] = (channels[1] - (RECEIVER_CHANNEL_RESOLUTION - 1) / 2) * 2;
-	channels[2] = (channels[2] - (RECEIVER_CHANNEL_RESOLUTION - 1) / 2) * 2;
-	channels[5] = (channels[5] - (RECEIVER_CHANNEL_RESOLUTION - 1) / 2) * 2;
-	/* Apply deadzone */
-	channels[1] = FAC_mix_calculate_dead_zone(channels[1], noneMix.dead_zone, -(RECEIVER_CHANNEL_RESOLUTION - 1), RECEIVER_CHANNEL_RESOLUTION - 1);
-	channels[2] = FAC_mix_calculate_dead_zone(channels[2], noneMix.dead_zone, -(RECEIVER_CHANNEL_RESOLUTION - 1), RECEIVER_CHANNEL_RESOLUTION - 1);
-	channels[5] = FAC_mix_calculate_dead_zone(channels[5], noneMix.dead_zone, -(RECEIVER_CHANNEL_RESOLUTION - 1), RECEIVER_CHANNEL_RESOLUTION - 1);
-
-	channels[3] = FAC_mix_calculate_dead_zone(channels[3], noneMix.dead_zone, 0, RECEIVER_CHANNEL_RESOLUTION - 1);
-	channels[4] = FAC_mix_calculate_dead_zone(channels[4], noneMix.dead_zone, 0, RECEIVER_CHANNEL_RESOLUTION - 1);
-
-	/* calculate direction ad speed of motors */
-	/* translating mr, ml to speed and direction for the motors
-	 * mr = -500 means that it is going backward with 50% of the speed (assuming max speed 1000)
-	 */
-	/* direction */
-	uint8_t m1dir;
-	uint8_t m2dir;
-	uint8_t m3dir;
-	for (int i = 1; i < 6; i++) {
-		switch (i) {
-			case 1:
-				if (channels[i] > 0)
-					m1dir = FORWARD;
+	for (int i = 1; i < 8; i++) {	// run across all channel
+		for (int j = 1; j <= MOTORS_NUMBER; j++) {	// run across all motors
+			if (i == FAC_none_mix_GET_motor_channel(j)/*noneMix.motors_channels[j - 1]*/) {	// check if the motor is associated to this channel
+				channels[i - 1] = (channels[i - 1] - (RECEIVER_CHANNEL_RESOLUTION - 1) / 2) * 2;// center the value of the channel if it is associated to a motor
+				channels[i - 1] = FAC_mix_calculate_dead_zone(channels[i - 1], noneMix.dead_zone, -(RECEIVER_CHANNEL_RESOLUTION - 1), RECEIVER_CHANNEL_RESOLUTION - 1);	// calculate also the deadzone
+				/* calculate the direction */
+				uint8_t dir;
+				if (channels[i - 1] > 0)
+					dir = FORWARD;
 				else
-					m1dir = BACKWARD;
-				break;
-			case 2:
-				if (channels[i] > 0)
-					m2dir = FORWARD;
-				else
-					m2dir = BACKWARD;
-				break;
-			case 5:
-				if (channels[i] > 0)
-					m3dir = FORWARD;
-				else
-					m3dir = BACKWARD;
-				break;
+					dir = BACKWARD;
+				/* set the new motor speed */
+				FAC_motor_set_speed_direction(j, dir, abs(channels[i - 1]));
+			}
+		}
+		for (int j = 1; j <= SERVOS_NUMBER; j++) {	// run across all servos
+			if (i == FAC_none_mix_GET_servo_channel(j)/*noneMix.servos_channels[j - 1]*/) {	// check if the servo is associated to this channel
+				channels[i-1] = FAC_mix_calculate_dead_zone(channels[i - 1], noneMix.dead_zone, 0, RECEIVER_CHANNEL_RESOLUTION - 1);// calculate deadzone
+				/* set the new servo position */
+				FAC_servo_set_position(j, channels[i - 1]);
+			}
 		}
 	}
-	/* Apply value to motors and servos */
-	FAC_motor_set_speed_direction(noneMix.channel1_motor_number, m1dir, abs(channels[1]));
-	FAC_motor_set_speed_direction(noneMix.channel2_motor_number, m2dir, abs(channels[2]));
-	FAC_motor_set_speed_direction(noneMix.channel5_motor_number, m3dir, abs(channels[5]));
-
-	FAC_servo_set_position(noneMix.channel3_servo_number, channels[3]);
-	FAC_servo_set_position(noneMix.channel4_servo_number, channels[4]);
 }
 
 /*
- * @brief	The initialization used when no mixes are active
- * @note	Channels are connected as below (all motors have reverse):
- * 			Ch1 ->	Motor1
- * 			Ch2 ->	Motor2
- * 			Ch3 ->	Servo1
- * 			Ch4 ->	Servo2
- * 			Ch5 ->	Motor3
- * 			Ch6 ->	Arming function (active low = 0)
- * 			Ch7 ->	none
- * 			Ch8 ->	none
+ * @brief	  	The initialization used when no mixes are active
+ * @IMPORTANT 	!! MUST BE CALLED IF NEW SETTINGS ARE LOADED !!
+ * @note	 	Channels are connected following the initialization
  */
-void FAC_none_mix_init(uint8_t deadzone) {
+void FAC_none_mix_init(uint8_t deadzone, uint8_t m1Ch, uint8_t m2Ch, uint8_t m3Ch, uint8_t s1Ch, uint8_t s2Ch) {
 	FAC_none_mix_SET_dead_zone(deadzone);
-	noneMix.channel1_motor_number = 1;
-	noneMix.channel2_motor_number = 2;
-	noneMix.channel5_motor_number = 3;
+	FAC_none_mix_SET_motor_channel(1, m1Ch);
+	FAC_none_mix_SET_motor_channel(2, m2Ch);
+	FAC_none_mix_SET_motor_channel(3, m3Ch);
 
-	noneMix.channel3_servo_number = 1;
-	noneMix.channel4_servo_number = 2;
-
+	FAC_none_mix_SET_servo_channel(1, s1Ch);
+	FAC_none_mix_SET_servo_channel(2, s2Ch);
 }

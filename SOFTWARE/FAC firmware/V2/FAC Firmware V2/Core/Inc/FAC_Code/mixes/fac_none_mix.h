@@ -12,14 +12,12 @@
 #include "FAC_Code/mixes/fac_mixes.h"
 
 typedef struct Nonemix {
-	uint8_t channel1_motor_number;
-	uint8_t channel2_motor_number;
-	uint8_t channel3_servo_number;
-	uint8_t channel4_servo_number;
-	uint8_t channel5_motor_number;
-	// ch6 -> Arming (active low)
-	// ch7/ch8 not used
+	uint8_t motors_channels[MOTORS_NUMBER];  // only one channel for each servo/motor, viceversa one channel can have multiple motors/servos
+	uint8_t servos_channels[SERVOS_NUMBER];
 	uint8_t dead_zone;	// deadzone expressed in percentage for commands steering and throttle
 } Nonemix;
+
+void FAC_none_mix_init(uint8_t deadzone, uint8_t m1Ch, uint8_t m2Ch, uint8_t m3Ch, uint8_t s1Ch, uint8_t s2Ch);
+void FAC_none_mix_update();
 
 #endif /* INC_FAC_CODE_MIXES_FAC_NONE_MIX_H_ */

@@ -6,6 +6,7 @@
  */
 
 #include "FAC_Code/mixes/fac_mixes.h"
+#include "FAC_Code/mixes/fac_none_mix.h"
 #include "FAC_Code/mixes/fac_tank_mix.h"
 
 static Mix mix;
@@ -40,7 +41,7 @@ uint8_t FAC_mix_GET_current_mix() {
  *
  */
 int16_t FAC_mix_calculate_dead_zone(int16_t value, uint8_t deadzonePerc, int16_t minValue, int16_t maxValue) {
-	int16_t temp = value;
+	int16_t temp = (int16_t) value;
 	uint16_t deadzoneValue = ((maxValue - minValue) / 100) * deadzonePerc;	// calculate the deadzone using the precentage argument on the full range
 	/* keep the value inside the range */
 	if (value > maxValue)
@@ -58,12 +59,28 @@ int16_t FAC_mix_calculate_dead_zone(int16_t value, uint8_t deadzonePerc, int16_t
 		return 0;	// the value is inside the center deadzone
 
 	/* linearization of the value if it is not in the center */
-	if (temp > 0)	// linearize the bottom value
-		return map_uint32(temp, 0 + deadzoneValue, maxValue - deadzoneValue, 0, maxValue);
-	if (temp > 0)	// linearize the bottom value
-		return map_uint32(temp, 0 - deadzoneValue, minValue + deadzoneValue, 0, minValue);
+	if (temp > 0)	// linearize the top value
+		return map_int32(temp, 0 + deadzoneValue, maxValue - deadzoneValue, 0, maxValue);
+	if (temp < 0)	// linearize the bottom value
+		return map_int32(temp, minValue + deadzoneValue, 0 - deadzoneValue, minValue, 0);
 
 	return temp;	// if something go wrong (no case detected return the value without deadzone
+}
+
+/*
+ * @brief	Update the current mix, and apply the update to servos and motors
+ *
+ */
+void FAC_mix_update() {
+	uint8_t currentMix = FAC_mix_GET_current_mix();
+	switch (currentMix) {
+		case FAC_MIX_NONE:
+			FAC_none_mix_update();
+			break;
+		case FAC_MIX_SIMPLE_TANK:
+			FAC_tank_mix_update();
+			break;
+	}
 }
 
 /*
@@ -75,7 +92,7 @@ void FAC_mix_init(uint8_t currentMix, uint8_t deadzonePerc) {
 	FAC_mix_SET_current_mix(currentMix);
 	switch (currentMix) {
 		case FAC_MIX_NONE:
-			FAC_none_mix_init(deadzonePerc);
+			FAC_none_mix_init(deadzonePerc, 1, 2, 5, 3, 4);
 			break;
 		case FAC_MIX_SIMPLE_TANK:
 			FAC_tank_mix_init(2, 1, 1, 2, 0, 0, deadzonePerc);	//thch 1, stch 2, lmotor 1, rmotor 2, th no reversed, st no reversed, deadzone 1%

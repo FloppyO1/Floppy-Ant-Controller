@@ -68,6 +68,7 @@ static void FAC_tank_mix_calculate_parameters() {
 /**
  * @biref	Update the mix calculation and the motors/servos speeds/positions
  * @note	This function directly apply the settings on the motor/servos
+ * @time	Max execution time: ~4.6ms
  */
 void FAC_tank_mix_update() {
 	FAC_tank_mix_calculate_parameters();	// calculate speeds and directions of motors

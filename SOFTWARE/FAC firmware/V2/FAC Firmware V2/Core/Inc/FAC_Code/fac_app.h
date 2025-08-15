@@ -23,4 +23,5 @@ enum FAC_STATES {
 
 void FAC_app_init();
 uint32_t map_uint32(uint32_t x, uint32_t in_min, uint32_t in_max, uint32_t out_min, uint32_t out_max);
+int32_t map_int32(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max);
 #endif /* INC_FAC_CODE_FAC_APP_H_ */
