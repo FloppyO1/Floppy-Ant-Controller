@@ -1,3 +1,5 @@
-../Core/Src/FAC_Code/fac_settings.c:69:6:FAC_settings_USB_SEND_setting_value	16	static
-../Core/Src/FAC_Code/fac_settings.c:83:6:FAC_settings_USB_SEND_setting_ranges	16	static
-../Core/Src/FAC_Code/fac_settings.c:95:6:FAC_settings_init	8	static
+../Core/Src/FAC_Code/fac_settings.c:133:10:FAC_settings_GET_value	0	static
+../Core/Src/FAC_Code/fac_settings.c:141:6:FAC_settings_USB_SEND_setting_value	16	static
+../Core/Src/FAC_Code/fac_settings.c:155:6:FAC_settings_USB_SEND_setting_ranges	16	static
+../Core/Src/FAC_Code/fac_settings.c:167:6:FAC_settings_init	8	static
+../Core/Src/FAC_Code/fac_settings.c:181:6:FAC_settings_SEND_what_received	8	static

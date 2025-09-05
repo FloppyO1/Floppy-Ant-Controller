@@ -23,7 +23,7 @@ C_DEPS :=
 # Every subdirectory with source files must be described here
 SUBDIRS := \
 Core/Src/FAC_Code \
-Core/Src/FAC_Code/mixes \
+Core/Src/FAC_Code/mixes_functions \
 Core/Src/Libraries \
 Core/Src \
 Core/Startup \

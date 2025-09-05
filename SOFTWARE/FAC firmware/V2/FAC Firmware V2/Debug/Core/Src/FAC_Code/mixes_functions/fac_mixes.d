@@ -1,6 +1,6 @@
-Core/Src/FAC_Code/mixes/fac_none_mix.o: \
- ../Core/Src/FAC_Code/mixes/fac_none_mix.c \
- ../Core/Inc/FAC_Code/mixes/fac_none_mix.h \
+Core/Src/FAC_Code/mixes_functions/fac_mixes.o: \
+ ../Core/Src/FAC_Code/mixes_functions/fac_mixes.c \
+ ../Core/Inc/FAC_Code/mixes_functions/fac_mixes.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h \
  ../Core/Inc/stm32f0xx_hal_conf.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_rcc.h \
@@ -37,11 +37,9 @@ Core/Src/FAC_Code/mixes/fac_none_mix.o: \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim_ex.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h \
- ../Core/Inc/FAC_Code/mixes/fac_mixes.h ../Core/Inc/FAC_Code/config.h \
- ../Core/Inc/FAC_Code/fac_std_receiver.h \
- ../Core/Inc/FAC_Code/fac_motors.h ../Core/Inc/main.h \
- ../Core/Inc/FAC_Code/fac_servo.h
-../Core/Inc/FAC_Code/mixes/fac_none_mix.h:
+ ../Core/Inc/FAC_Code/config.h ../Core/Inc/FAC_Code/fac_std_receiver.h \
+ ../Core/Inc/FAC_Code/fac_settings.h ../Core/Inc/main.h
+../Core/Inc/FAC_Code/mixes_functions/fac_mixes.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h:
 ../Core/Inc/stm32f0xx_hal_conf.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_rcc.h:
@@ -78,9 +76,7 @@ Core/Src/FAC_Code/mixes/fac_none_mix.o: \
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim_ex.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h:
-../Core/Inc/FAC_Code/mixes/fac_mixes.h:
 ../Core/Inc/FAC_Code/config.h:
 ../Core/Inc/FAC_Code/fac_std_receiver.h:
-../Core/Inc/FAC_Code/fac_motors.h:
+../Core/Inc/FAC_Code/fac_settings.h:
 ../Core/Inc/main.h:
-../Core/Inc/FAC_Code/fac_servo.h:

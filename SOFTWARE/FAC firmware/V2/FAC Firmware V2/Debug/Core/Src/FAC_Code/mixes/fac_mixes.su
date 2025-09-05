@@ -1,4 +1,0 @@
-../Core/Src/FAC_Code/mixes/fac_mixes.c:23:9:FAC_mix_GET_current_mix	0	static
-../Core/Src/FAC_Code/mixes/fac_mixes.c:43:9:FAC_mix_calculate_dead_zone	32	static
-../Core/Src/FAC_Code/mixes/fac_mixes.c:74:6:FAC_mix_update	8	static
-../Core/Src/FAC_Code/mixes/fac_mixes.c:91:6:FAC_mix_init	24	static

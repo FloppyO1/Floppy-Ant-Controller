@@ -137,7 +137,7 @@ int main(void)
 
 		FAC_servo_enable(1);
 		FAC_servo_enable(2);
-//		FAC_servo_set_position(2, FAC_std_receiver_GET_channel(3));
+		//FAC_servo_set_position(1, FAC_std_receiver_GET_channel(3));
 
 		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 		HAL_Delay(50);

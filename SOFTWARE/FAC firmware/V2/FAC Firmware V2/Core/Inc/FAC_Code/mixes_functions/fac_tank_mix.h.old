@@ -5,11 +5,11 @@
  *      Author: filippo-castellan
  */
 
-#ifndef INC_FAC_CODE_MIXES_FAC_TANK_MIX_H_
-#define INC_FAC_CODE_MIXES_FAC_TANK_MIX_H_
+#ifndef INC_FAC_CODE_MIXES_FUNCTIONS_FAC_TANK_MIX_H_
+#define INC_FAC_CODE_MIXES_FUNCTIONS_FAC_TANK_MIX_H_
 
+#include <FAC_Code/mixes_functions/fac_mixes.h>
 #include "stm32f0xx_hal.h"
-#include "FAC_Code/mixes/fac_mixes.h"
 
 typedef struct Tankmix {
 	uint8_t throttle_channel;	// (mixch1 in settings) receiver channel associated to the throttle
@@ -26,8 +26,8 @@ typedef struct Tankmix {
 } Tankmix;
 
 
-void FAC_tank_mix_init(uint8_t mixChannel1Trhottle, int8_t mixChannel2Steering, uint8_t leftMotorNumber, uint8_t rightMotorNumber, uint8_t thReverse, uint8_t stReverse , uint8_t deadzone);
+void FAC_tank_mix_init(uint8_t throttleChannel, int8_t teeringChannel, uint8_t leftMotorNumber, uint8_t rightMotorNumber, uint8_t thReverse, uint8_t stReverse , uint8_t deadzone);
 void FAC_tank_mix_update();
 
 
-#endif /* INC_FAC_CODE_MIXES_FAC_TANK_MIX_H_ */
+#endif /* INC_FAC_CODE_MIXES_FUNCTIONS_FAC_TANK_MIX_H_ */
