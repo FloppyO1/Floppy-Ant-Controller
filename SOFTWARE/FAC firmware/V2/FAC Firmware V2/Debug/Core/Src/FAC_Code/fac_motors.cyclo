@@ -3,9 +3,10 @@
 ../Core/Src/FAC_Code/fac_motors.c:37:10:FAC_motor_GET_speed	1
 ../Core/Src/FAC_Code/fac_motors.c:41:10:FAC_motor_GET_reverse	1
 ../Core/Src/FAC_Code/fac_motors.c:45:9:FAC_motor_GET_brake_en	1
-../Core/Src/FAC_Code/fac_motors.c:119:6:FAC_motor_enable_brake	1
-../Core/Src/FAC_Code/fac_motors.c:127:6:FAC_motor_disable_brake	1
-../Core/Src/FAC_Code/fac_motors.c:136:6:FAC_motor_is_reversed	1
-../Core/Src/FAC_Code/fac_motors.c:145:6:FAC_motor_set_speed_direction	8
-../Core/Src/FAC_Code/fac_motors.c:156:6:FAC_motor_make_noise	3
-../Core/Src/FAC_Code/fac_motors.c:179:6:FAC_motor_Init	1
+../Core/Src/FAC_Code/fac_motors.c:119:6:FAC_motor_set_brake_status	1
+../Core/Src/FAC_Code/fac_motors.c:128:6:FAC_motor_enable_brake	1
+../Core/Src/FAC_Code/fac_motors.c:136:6:FAC_motor_disable_brake	1
+../Core/Src/FAC_Code/fac_motors.c:145:6:FAC_motor_is_reversed	1
+../Core/Src/FAC_Code/fac_motors.c:154:6:FAC_motor_set_speed_direction	8
+../Core/Src/FAC_Code/fac_motors.c:165:6:FAC_motor_make_noise	3
+../Core/Src/FAC_Code/fac_motors.c:188:6:FAC_motor_Init	1

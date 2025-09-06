@@ -11,7 +11,7 @@
 #include "stm32f0xx_hal.h"
 
 
-uint8_t FAC_name_mix_update_outputs();
+void FAC_name_mix_update();
 
 
 

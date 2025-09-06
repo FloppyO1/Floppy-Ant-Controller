@@ -21,17 +21,13 @@ uint8_t newComSerialReceived = FALSE;	// turn true when something is received
 
 /* FUNCTION DEFINITION */
 void FAC_app_main_loop() {
-	if(newComSerialReceived){
+	if (newComSerialReceived) {
 		// understand the comand received and do what you have to do
 
 		FAC_settings_SEND_what_received();
 
 		newComSerialReceived = FALSE;
 	}
-
-
-
-
 
 	switch (fac_application.current_state) {
 		case FAC_STATE_DISARMED:
@@ -42,10 +38,9 @@ void FAC_app_main_loop() {
 			break;
 	}
 
-
 	/* ONE SECOND FUNCTION */
 	static uint32_t time = 0;
-	if(HAL_GetTick() - time >= 1000){
+	if (HAL_GetTick() - time >= 1000) {
 		time = HAL_GetTick();
 		/* WRITE HERE YOUR CODE */
 
@@ -65,11 +60,9 @@ void FAC_app_init() {
 
 	/* mixis init */
 
-
 	fac_application.battery_voltage = 0;
 	fac_application.current_state = 0;
 }
-
 
 /**
  * @brief 		change the range of a variable from one to another
@@ -91,4 +84,19 @@ int32_t map_int32(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, in
 		x = in_max;
 	// Cast to uint64_t to avoid overflow during the calculation
 	return (int32_t) (((int64_t) (x - in_min) * (out_max - out_min)) / (in_max - in_min) + out_min);
+}
+
+/**
+ * @brief 		change the range of a variable from one to another
+ * @retval 		return the value in the new range
+ */
+float map_float(float x, float in_min, float in_max, float out_min, float out_max) {
+	// Limita il valore di input 'x' per assicurarti che rimanga all'interno del suo intervallo
+	if (x > in_max)
+		x = in_max;
+
+	if (x < in_min)
+		x = in_min;
+
+	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }

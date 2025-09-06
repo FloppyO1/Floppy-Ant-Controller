@@ -1,4 +1,5 @@
-../Core/Src/FAC_Code/mixes_functions/fac_mixes.c:68:9:FAC_mixes_GET_input	1
-../Core/Src/FAC_Code/mixes_functions/fac_mixes.c:77:6:FAC_mixes_update_mix_outputs	1
-../Core/Src/FAC_Code/mixes_functions/fac_mixes.c:88:6:FAC_mixes_update_mix_inputs	3
-../Core/Src/FAC_Code/mixes_functions/fac_mixes.c:107:6:FAC_mixes_init	1
+../Core/Src/FAC_Code/mixes_functions/fac_mixes.c:70:7:FAC_mixes_GET_input	1
+../Core/Src/FAC_Code/mixes_functions/fac_mixes.c:79:6:FAC_mixes_update_mix_outputs	1
+../Core/Src/FAC_Code/mixes_functions/fac_mixes.c:90:6:FAC_mixes_update_mix_inputs	17
+../Core/Src/FAC_Code/mixes_functions/fac_mixes.c:111:6:FAC_mix_update	1
+../Core/Src/FAC_Code/mixes_functions/fac_mixes.c:132:6:FAC_mixes_init	2

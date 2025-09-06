@@ -6,16 +6,18 @@
  */
 
 #include "FAC_Code/mixes_functions/fac_mixes.h"
-#include "FAC_Code/fac_std_receiver.h"
+//#include "FAC_Code/fac_std_receiver.h"
 #include "FAC_Code/fac_settings.h"
 #include "main.h"
+
+//#include "FAC_Code/mixes_functions/fac_<name>_mix.h"			// 6) of HOW TO MAKE A MIX
 
 static Mixes mixes;
 /* STATIC FUNCTION PROTORYPES */
 static void FAC_mixes_SET_current_mix(uint8_t currentMix);
-static void FAC_mixes_SET_input(uint8_t inputNumber, int16_t inputValue);
+static void FAC_mixes_SET_input(uint8_t inputNumber, float inputValue);
 static void FAC_mixes_SET_input_channel_number(uint8_t inputNumber, uint8_t inputChannel);
-static void FAC_mixes_SET_output(uint8_t outputNumber, int16_t value);
+static void FAC_mixes_SET_output(uint8_t outputNumber, float value);
 static void FAC_mixes_SET_input_reversed(uint8_t inputNumber, uint8_t isReversed);
 static uint8_t FAC_mixes_GET_current_mix();
 static uint8_t FAC_mixes_GET_input_channel_number(uint8_t inputNumber);
@@ -31,7 +33,7 @@ static void FAC_mixes_SET_current_mix(uint8_t currentMix) {
 	mixes.current_mix = currentMix;
 }
 
-static void FAC_mixes_SET_input(uint8_t inputNumber, int16_t inputValue) {
+static void FAC_mixes_SET_input(uint8_t inputNumber, float inputValue) {
 	mixes.mix_input[inputNumber] = inputValue;
 }
 
@@ -39,7 +41,7 @@ static void FAC_mixes_SET_input_channel_number(uint8_t inputNumber, uint8_t inpu
 	mixes.mix_input_channel_number[inputNumber] = inputChannel;
 }
 
-static void FAC_mixes_SET_output(uint8_t outputNumber, int16_t value) {
+static void FAC_mixes_SET_output(uint8_t outputNumber, float value) {
 	mixes.mix_output[outputNumber] = value;
 }
 
@@ -65,7 +67,7 @@ static uint8_t FAC_mixes_GET_input_reversed(uint8_t inputNumber) {
 
 /* ----------------------PUBBLIC FUNCTIONS---------------------- */
 
-uint8_t FAC_mixes_GET_input(uint8_t inputNumber) {
+float FAC_mixes_GET_input(uint8_t inputNumber) {
 	return mixes.mix_input[inputNumber];
 }
 
@@ -74,7 +76,7 @@ uint8_t FAC_mixes_GET_input(uint8_t inputNumber) {
  * @IMPORTANT	!!!! MUST BE CALLED AFTER EACH CALL OF THE MIX UPDATE !!!!
  * @note		this function will not modify the value of the single mix output array
  */
-void FAC_mixes_update_mix_outputs(int16_t mix_output[]) {
+void FAC_mixes_update_mix_outputs(float mix_output[]) {
 	for (int i = 0; i < MIXES_MAX_OUTPUTS_NUMBER; i++) {
 		FAC_mixes_SET_output(i, mix_output[i]);
 	}
@@ -87,29 +89,53 @@ void FAC_mixes_update_mix_outputs(int16_t mix_output[]) {
  */
 void FAC_mixes_update_mix_inputs() {
 	for (int i = 0; i < MIXES_MAX_INPUTS_NUMBER; i++) {
-		FAC_mixes_SET_input_channel_number(i, FAC_settings_GET_value(FAC_SETTINGS_CODE_MIX_INPUT1_CHANNEL + i));	// take from settings the inputvalues
-
 		uint8_t chNumber = FAC_mixes_GET_input_channel_number(i);	// get channel number corresponding to the input evaluated
 
 		if (chNumber != 0) {	// if this channel is valid
-			int16_t chValue = FAC_std_receiver_GET_channel(chNumber);	// get the receiver channel value
 			uint16_t receiverResolution = FAC_settings_GET_value(FAC_SETTINGS_CODE_RECEIVER_RESOLUTION);
-			int16_t inputValue = map_int32(chValue, 0, receiverResolution, -receiverResolution, receiverResolution); // map the channel value to make it standard
+			float chValue = (float) (FAC_std_receiver_GET_channel(chNumber)) / (float) (receiverResolution);	// get the receiver channel value
+			float inputValue = map_float(chValue, 0.0f, 1.0f, -1.0f, 1.0f); // map the channel value to make it standard [-1.0 to 1.0]
+
+			// reverse input if it is reversed
+			if(FAC_settings_GET_value(FAC_SETTINGS_CODE_MIX_INPUT1_REVERSED + i)) inputValue = inputValue * (-1.0f) ;
+
 			FAC_mixes_SET_input(i, inputValue);	// store the value into the struct array (where all mixes will take them)
 		}
 	}
 }
 
 /*
+ *
+ *
+ */
+void FAC_mix_update() {							// 5) of HOW TO MAKE A MIX
+	switch (FAC_mixes_GET_current_mix()) {
+		case FAC_MIX_NONE:
+
+			break;
+		case FAC_MIX_SIMPLE_TANK:
+
+			break;
+		/*
+		case FAC_MIX_<NAME>:
+			FAC_<name>_mix_update();
+		break;
+		*/
+	}
+}
+
+/*
  * @brief		Initialize the mixes struct
- * @note		initialized to zero (all disabled all mix input and output)
+ * @IMPORTANT	!! BEFORE CALLING THIS FUNCTION MAKE SECURE TO LOAD SETTINGS FROM EEPROM !!
+ * @note		initialized to zero (all disabled all mix input and output) get the channels of all inputs
  */
 void FAC_mixes_init() {
-	mixes.current_mix = FAC_MIX_NONE;
+	FAC_mix_SET_current_mix(FAC_settings_GET_value(FAC_SETTINGS_CODE_ACTIVE_MIX));	// get the active mix from the settings
 
 	for (int i = 0; i < MIXES_MAX_INPUTS_NUMBER; i++) {	// set all input channels to zero (no input selected)
-		mixes.mix_input_channel_number[i] = 0;
-		mixes.mix_input[i] = 0;
+		FAC_mixes_SET_input_channel_number(i, FAC_settings_GET_value(FAC_SETTINGS_CODE_MIX_INPUT1_CHANNEL + i));// take from settings the inputvalues
+
+		mixes.mix_input[i] = 0.0f;
 		mixes.mix_input_reversed[i] = FALSE;
 	}
 

@@ -5,14 +5,17 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../Core/Src/FAC_Code/mixes_functions/fac_functions.c \
 ../Core/Src/FAC_Code/mixes_functions/fac_mixes.c \
 ../Core/Src/FAC_Code/mixes_functions/fac_template_mix.c 
 
 OBJS += \
+./Core/Src/FAC_Code/mixes_functions/fac_functions.o \
 ./Core/Src/FAC_Code/mixes_functions/fac_mixes.o \
 ./Core/Src/FAC_Code/mixes_functions/fac_template_mix.o 
 
 C_DEPS += \
+./Core/Src/FAC_Code/mixes_functions/fac_functions.d \
 ./Core/Src/FAC_Code/mixes_functions/fac_mixes.d \
 ./Core/Src/FAC_Code/mixes_functions/fac_template_mix.d 
 
@@ -24,7 +27,7 @@ Core/Src/FAC_Code/mixes_functions/%.o Core/Src/FAC_Code/mixes_functions/%.su Cor
 clean: clean-Core-2f-Src-2f-FAC_Code-2f-mixes_functions
 
 clean-Core-2f-Src-2f-FAC_Code-2f-mixes_functions:
-	-$(RM) ./Core/Src/FAC_Code/mixes_functions/fac_mixes.cyclo ./Core/Src/FAC_Code/mixes_functions/fac_mixes.d ./Core/Src/FAC_Code/mixes_functions/fac_mixes.o ./Core/Src/FAC_Code/mixes_functions/fac_mixes.su ./Core/Src/FAC_Code/mixes_functions/fac_template_mix.cyclo ./Core/Src/FAC_Code/mixes_functions/fac_template_mix.d ./Core/Src/FAC_Code/mixes_functions/fac_template_mix.o ./Core/Src/FAC_Code/mixes_functions/fac_template_mix.su
+	-$(RM) ./Core/Src/FAC_Code/mixes_functions/fac_functions.cyclo ./Core/Src/FAC_Code/mixes_functions/fac_functions.d ./Core/Src/FAC_Code/mixes_functions/fac_functions.o ./Core/Src/FAC_Code/mixes_functions/fac_functions.su ./Core/Src/FAC_Code/mixes_functions/fac_mixes.cyclo ./Core/Src/FAC_Code/mixes_functions/fac_mixes.d ./Core/Src/FAC_Code/mixes_functions/fac_mixes.o ./Core/Src/FAC_Code/mixes_functions/fac_mixes.su ./Core/Src/FAC_Code/mixes_functions/fac_template_mix.cyclo ./Core/Src/FAC_Code/mixes_functions/fac_template_mix.d ./Core/Src/FAC_Code/mixes_functions/fac_template_mix.o ./Core/Src/FAC_Code/mixes_functions/fac_template_mix.su
 
 .PHONY: clean-Core-2f-Src-2f-FAC_Code-2f-mixes_functions
 

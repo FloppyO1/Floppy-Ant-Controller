@@ -4,7 +4,7 @@
  *	HOW MIXes WORKS:
  *	Each mix implements all the mixing logic using the receiver channel
  *	values ​​and/or sensor values ​​as inputs, and writes the outputs in a
- *	standard format [-RX_RESOLUTION,+RX_RESOLUTION] (e.g., [-1000,+1000])
+ *	standard format [-1.0f ,+1.0f].
  *	to a predefined array in the Mixes structure.
  *	Each generated output from the mix is ​​assigned a value in the array,
  *	which is then taken by the mapper and applied to the appropriate
@@ -31,6 +31,7 @@
 /* needed for the deadzone calculation, declared in fac_app.h */
 //extern uint32_t map_uint32(uint32_t x, uint32_t in_min, uint32_t in_max, uint32_t out_min, uint32_t out_max);
 extern int32_t map_int32(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max);
+extern float map_float(float x, float in_min, float in_max, float out_min, float out_max);
 
 #define MIXES_MAX_INPUTS_NUMBER 8
 #define MIXES_MAX_OUTPUTS_NUMBER 10
@@ -38,21 +39,21 @@ extern int32_t map_int32(int32_t x, int32_t in_min, int32_t in_max, int32_t out_
 typedef struct Mixes {
 	uint8_t current_mix;											// FAC_MIXES_ID of the active mix
 	uint8_t mix_input_channel_number[MIXES_MAX_INPUTS_NUMBER];				// input channels number given by settings (chennale number not channel values)
-	int16_t mix_input[MIXES_MAX_INPUTS_NUMBER];				// input values (value of the channel not of the channel number)
+	float mix_input[MIXES_MAX_INPUTS_NUMBER];				// input values (value of the channel not of the channel number) [-1.0f, 1.0f]
 	uint8_t mix_input_reversed[MIXES_MAX_INPUTS_NUMBER];			// boolean value that indicates if the INPUT is reversed or not
-	int16_t mix_output[MIXES_MAX_OUTPUTS_NUMBER];					// output calculated from the mix's logics
+	float mix_output[MIXES_MAX_OUTPUTS_NUMBER];					// output calculated from the mix's logics [-1.0f, 1.0f]
 } Mixes;
 
-enum FAC_MIXES_ID {
-	FAC_MIX_NAME,			// 3) of HOW TO MAKE A MIX
+enum FAC_MIXES_ID {			// 3) of HOW TO MAKE A MIX
+	FAC_MIX_NAME,
 	FAC_MIX_NONE,			// this mix disable all the devices
 	FAC_MIX_SIMPLE_TANK,
 	FAC_MIX_LAST
 };
 
 
-uint8_t FAC_mixes_GET_input(uint8_t inputNumber);
-
+float FAC_mixes_GET_input(uint8_t inputNumber);
+void FAC_mix_update();
 /*
  * AFTER THIS THERE IS ALL OF THE OLD METHOD
  *

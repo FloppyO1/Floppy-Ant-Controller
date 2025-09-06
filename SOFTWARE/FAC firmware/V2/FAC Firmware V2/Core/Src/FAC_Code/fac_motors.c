@@ -112,6 +112,15 @@ static void FAC_motor_apply_settings(uint8_t motorNumber) {
 
 /* ----------------------PUBBLIC FUNCTIONS---------------------- */
 /**
+ * @brief 			Apply the state of the brake control of the motor
+ * @visibility 		Visible everywhere
+ * @note 			See motor_enable_brake and disable_brake for what brake is
+ */
+void FAC_motor_set_brake_status(uint8_t motorNumber, uint8_t state) {
+	FAC_motor_SET_break_en(motorNumber, state);
+}
+
+/**
  * @brief 			Enable the brake control of the motor (coast control disable)
  * @visibility 		Visible everywhere
  * @note 			It make possible to control the speed more precisely, when the speed is = 0, the motors are braked (not free to spin)
@@ -192,11 +201,10 @@ void FAC_motor_Init() {
 	motors[2]->pinF = M3_F_Pin;
 	motors[2]->pinB = M3_B_Pin;
 
-	for (int i = 1; i <= MOTORS_NUMBER; i++) {
+	for (int i = 1; i <= MOTORS_NUMBER; i++) {	// for safety reason
 		FAC_motor_SET_break_en(i, TRUE);	// motor will brake_en if speed = 0
 		FAC_motor_SET_direction(i, FORWARD);	// motor forward (doesn't care if speed = 0)
 		FAC_motor_SET_speed(i, 0);	// motor not spinning
-
 	}
 
 }

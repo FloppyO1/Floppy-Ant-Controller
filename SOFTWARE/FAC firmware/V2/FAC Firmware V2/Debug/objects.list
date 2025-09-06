@@ -9,6 +9,7 @@
 "./Core/Src/FAC_Code/fac_servo.o"
 "./Core/Src/FAC_Code/fac_settings.o"
 "./Core/Src/FAC_Code/fac_std_receiver.o"
+"./Core/Src/FAC_Code/mixes_functions/fac_functions.o"
 "./Core/Src/FAC_Code/mixes_functions/fac_mixes.o"
 "./Core/Src/FAC_Code/mixes_functions/fac_template_mix.o"
 "./Core/Src/Libraries/DMApwm.o"
