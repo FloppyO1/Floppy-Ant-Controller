@@ -1,0 +1,94 @@
+/*
+ * fac_template_function.c		// 1) of HOW TO MAKE A SPECIAL FUNCTION
+ *
+ *	HOW TO MAKE A SPECIAL FUNCTION:
+ *	1) Copy this file and the fac_template_function.h.template and rename
+ *		with the name of the new mix (ex: fac_direct_link_function.c/h)
+ *		In the .h files, update the #ifndef and #define with the new name.
+ *	2) Fix the include to match the new name you have choose
+ *	3) Add to the FAC_SPECIAL_FUNCTIONS_ID on fac_functions.h file the new FAC_SPECIAL_FUNCTION
+ *		(ex: FAC_SPECIAL_FUNCTION_DIRECT_LINK_TO_CHANNEL_1ST) and set it to the first_special_function_id
+ *		In case this new function can be used multiple times, add multiple times on the FAC_SPECIAL_FUNCTIONS_ID
+ *		and add a suffix 1ST, 2ND ecc.
+ *	4) Rename the FAC_<name>_function_update() function on this file and
+ *		on the fac_<name>_function.h
+ *	5) Add the FAC_<name>_function_update() function into a new case into
+ *		the fac_functions.c file inside the FAC_functions_update() function using
+ *		as case value your first_special_function_id value.
+ *		In case this new function can be used multiple times, add all cases one after
+ *		the other WITHOUT break, and only the last one use the break.
+ *	6) Add the include header file of your new special function inside the
+ *		fac_functions.c (#include "FAC_Code/mixes_functions/functions/fac_<name>_function.h")
+ *	7) Make a description of the new special function and describe the input and output it takes/gives
+ *		Remeber: an input is a remote controller channel converted in
+ *		standard values (the channel is chosen by the settings).
+ *		If for example you need the gyroscope data you have to manage it
+ *		inside your code.
+ *	8) Include all the modules you need for your special function logic
+ *		(uncomment the modules you need in CUSTOM INCLUDE part)
+ *	9) Write your mix logic code
+ *
+ *
+ *
+ *  Created on: Sep 8, 2025
+ *      Author: filippo-castellan
+ */
+
+#include "FAC_Code/mixes_functions/functions/fac_template_function.h"	// 2) of HOW TO MAKE A SPECIAL FUNCTION
+
+/* DEFAULT INCLUDE */ // DON´T TOUCH THIS CODE!!
+#include "FAC_Code/mixes_functions/fac_functions.h"
+#include "FAC_Code/fac_settings.h"
+
+/* CUSTOM INCLUDE */										// 8) of HOW TO MAKE A SPECIAL FUNCTION
+//#include "FAC_Code/fac_adc.h"
+//#include "FAC_Code/fac_gyro.h"
+
+/* PRIVATE FUNCTIONS AND VARIABLES */
+static const uint8_t first_special_function_id = FAC_SPECIAL_FUNCTION_DIRECT_LINK_TO_CHANNEL_1ST;	// 3) of HOW TO MAKE A SPECIAL FUNCTION		(only to know witch mix is this) in case of multiple usage, use the first ID
+
+/* WHAT THIS SPECIAL FUNCTION DO */											// 7) of HOW TO MAKE A SPECIAL FUNCTION
+/*
+ * DESCRIPTION:
+ * write here the description of your special function
+ *
+ * INPUTs DESCRIPTION:
+ * write here
+ *
+ * OUTPUTs DESCRIPTION:
+ * !! REMEMBER:
+ * 		- All outputs must be in a standard format, values form -1.0f to 1.0f !!
+ * 			write here what each mix's output is (ex: 0) motor left, 1) motor right 2)not used ...)
+ * 		- If an output is for a DC motor, a positive number is considered as forward movement, a negative number is considered as backwards movement of the DC motor
+ * 		- If an output is for a Servo vomor/esc, -1.0 is considered as 0 and 1.0 is considered as 100% (in degrees for servos 0°-180°)
+ *
+ * 	write here
+ *
+ */
+
+void FAC_name_function_update(uint8_t sFunctionID) {
+	// this code must be left as it is, DON'T TOUCH IT!
+	uint8_t functionArrayPosition = sFunctionID;// position for the input and output in the functions array
+	FAC_functions_update_inputs();
+	float input = FAC_functions_GET_input(functionArrayPosition);
+	float output = 0.0f;
+	/* INSERT YOUR CODE HERE -START- */						// 9) of HOW TO MAKE A SPECIAL FUNCTION
+	/* REMEMBER
+	 * - input contains the value of the input of this function
+	 * - in the output you have to write the output generate by your function
+	 * 		output value must stay in this range [-1.0, +1.0]
+	 */
+	// write here your code
+	if (0) {	//delete this and insert your code
+
+	}
+	/* INSERT YOUR CODE HERE -END- */
+	// keep outputs in range
+	if (output > 1.0f)
+		output = 1.0f;
+	if (output < -1.0f)
+		output = -1.0f;
+	// update outputs values on mixes struct
+	FAC_functions_SET_output(functionArrayPosition, output);
+}
+

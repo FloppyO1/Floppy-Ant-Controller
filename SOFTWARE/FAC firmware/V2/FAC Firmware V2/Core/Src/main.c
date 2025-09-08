@@ -85,7 +85,7 @@ void SystemClock_Config(void);
   * @retval int
   */
 int main(void)
-{
+{uint8_t
 
   /* USER CODE BEGIN 1 */
 
@@ -132,15 +132,9 @@ int main(void)
 		for (int i = 0; i < 4; i++) {
 			chs[i] = FAC_std_receiver_GET_channel(i + 1);
 		}
-		//FAC_motor_set_speed_direction(3, FORWARD, FAC_std_receiver_GET_channel(3));
 
-
-		FAC_servo_enable(1);
-		FAC_servo_enable(2);
-		//FAC_servo_set_position(1, FAC_std_receiver_GET_channel(3));
-
-		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		HAL_Delay(50);
+//		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+//		HAL_Delay(50);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

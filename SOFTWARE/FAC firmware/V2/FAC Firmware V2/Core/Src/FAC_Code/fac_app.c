@@ -4,15 +4,18 @@
  *  Created on: Jul 31, 2025
  *      Author: filippo-castellan
  */
-
-#include <FAC_Code/mixes_functions/fac_mixes.h>
 #include "FAC_Code/fac_app.h"
+
+#include "FAC_Code/mixes_functions/fac_mixes.h"
+#include "FAC_Code/mixes_functions/fac_functions.h"
+#include "FAC_Code/fac_mapper.h"
 #include "FAC_Code/fac_adc.h"
 #include "FAC_Code/fac_motors.h"
 #include "FAC_Code/fac_battery.h"
 #include "FAC_Code/fac_std_receiver.h"
 #include "FAC_Code/fac_servo.h"
 #include "FAC_Code/fac_settings.h"
+
 
 static FAC_App fac_application;
 uint8_t newComSerialReceived = FALSE;	// turn true when something is received
@@ -23,11 +26,11 @@ uint8_t newComSerialReceived = FALSE;	// turn true when something is received
 void FAC_app_main_loop() {
 	if (newComSerialReceived) {
 		// understand the comand received and do what you have to do
-
 		FAC_settings_SEND_what_received();
-
 		newComSerialReceived = FALSE;
 	}
+
+	FAC_mapper_apply_to_devices();
 
 	switch (fac_application.current_state) {
 		case FAC_STATE_DISARMED:
@@ -54,8 +57,8 @@ void FAC_app_init() {
 	FAC_battery_init();
 	FAC_std_reciever_init(RECEIVER_TYPE_PWM);	// must be changed in base of settings
 	FAC_servo_init();
-	//FAC_mix_init(FAC_MIX_NONE, 10);
-
+	FAC_mixes_init();
+	FAC_functions_init();
 	//FAC_settings_init(1);
 
 	/* mixis init */

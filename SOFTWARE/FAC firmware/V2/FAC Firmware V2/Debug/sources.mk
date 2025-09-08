@@ -24,6 +24,8 @@ C_DEPS :=
 SUBDIRS := \
 Core/Src/FAC_Code \
 Core/Src/FAC_Code/mixes_functions \
+Core/Src/FAC_Code/mixes_functions/functions \
+Core/Src/FAC_Code/mixes_functions/mixes \
 Core/Src/Libraries \
 Core/Src \
 Core/Startup \

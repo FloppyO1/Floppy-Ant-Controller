@@ -13,5 +13,7 @@
 #define MAPPER_MIX_PREFIX 100
 #define MAPPER_SPECIAL_FUNCTION_PREFIX 200
 
+void FAC_mapper_apply_to_devices();
+
 #endif /* INC_FAC_CODE_FAC_MAPPER_H_ */
 

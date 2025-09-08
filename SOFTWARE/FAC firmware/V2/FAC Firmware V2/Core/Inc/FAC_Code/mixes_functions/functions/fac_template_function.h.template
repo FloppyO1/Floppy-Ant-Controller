@@ -1,0 +1,15 @@
+/*
+ * fac_template_function.h
+ *
+ *  Created on: Sep 8, 2025
+ *      Author: filippo-castellan
+ */
+
+#ifndef INC_FAC_CODE_MIXES_FUNCTIONS_FUNCTIONS_FAC_TEMPLATE_FUNCTION_H_		// 1) of HOW TO MAKE A SPECIAL FUNCTION
+#define INC_FAC_CODE_MIXES_FUNCTIONS_FUNCTIONS_FAC_TEMPLATE_FUNCTION_H_		// 1) of HOW TO MAKE A SPECIAL FUNCTION
+
+#include "stm32f0xx_hal.h"
+
+void FAC_name_function_update(uint8_t sFunctionID);		// 4) of HOW TO MAKE A SPECIAL FUNCTION
+
+#endif /* INC_FAC_CODE_MIXES_FUNCTIONS_FUNCTIONS_FAC_TEMPLATE_FUNCTION_H_ */

@@ -38,38 +38,23 @@ extern float map_float(float x, float in_min, float in_max, float out_min, float
 
 typedef struct Mixes {
 	uint8_t current_mix;											// FAC_MIXES_ID of the active mix
-	uint8_t mix_input_channel_number[MIXES_MAX_INPUTS_NUMBER];				// input channels number given by settings (chennale number not channel values)
+	uint8_t mix_input_channels_number[MIXES_MAX_INPUTS_NUMBER];				// input channels number given by settings (chennale number not channel values)
 	float mix_input[MIXES_MAX_INPUTS_NUMBER];				// input values (value of the channel not of the channel number) [-1.0f, 1.0f]
 	uint8_t mix_input_reversed[MIXES_MAX_INPUTS_NUMBER];			// boolean value that indicates if the INPUT is reversed or not
 	float mix_output[MIXES_MAX_OUTPUTS_NUMBER];					// output calculated from the mix's logics [-1.0f, 1.0f]
 } Mixes;
 
 enum FAC_MIXES_ID {			// 3) of HOW TO MAKE A MIX
-	FAC_MIX_NAME,
 	FAC_MIX_NONE,			// this mix disable all the devices
 	FAC_MIX_SIMPLE_TANK,
-	FAC_MIX_LAST
+
+	FAC_MIX_LAST,
 };
 
-
+float FAC_mixes_GET_output(uint8_t outputNumber);
 float FAC_mixes_GET_input(uint8_t inputNumber);
+void FAC_mixes_update_mix_inputs();
+void FAC_mixes_update_mix_outputs();
 void FAC_mix_update();
-/*
- * AFTER THIS THERE IS ALL OF THE OLD METHOD
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- */
 
-//int16_t FAC_mix_calculate_dead_zone(int16_t value, uint8_t deadzonePerc, int16_t minValue, int16_t maxValue);
-//void FAC_mix_update();
-//void FAC_mix_init(uint8_t currentMix, uint8_t deadzonePerc);
 #endif /* INC_FAC_CODE_MIXES_FUNCTIONS_FAC_MIXES_H_ */

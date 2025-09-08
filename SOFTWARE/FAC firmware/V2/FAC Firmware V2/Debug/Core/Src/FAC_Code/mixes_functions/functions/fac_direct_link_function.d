@@ -1,6 +1,6 @@
-Core/Src/FAC_Code/mixes_functions/fac_template_mix.o: \
- ../Core/Src/FAC_Code/mixes_functions/fac_template_mix.c \
- ../Core/Inc/FAC_Code/mixes_functions/fac_template_mix.h \
+Core/Src/FAC_Code/mixes_functions/functions/fac_direct_link_function.o: \
+ ../Core/Src/FAC_Code/mixes_functions/functions/fac_direct_link_function.c \
+ ../Core/Inc/FAC_Code/mixes_functions/functions/fac_direct_link_function.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h \
  ../Core/Inc/stm32f0xx_hal_conf.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_rcc.h \
@@ -37,9 +37,9 @@ Core/Src/FAC_Code/mixes_functions/fac_template_mix.o: \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim_ex.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h \
- ../Core/Inc/FAC_Code/mixes_functions/fac_mixes.h \
+ ../Core/Inc/FAC_Code/mixes_functions/fac_functions.h \
  ../Core/Inc/FAC_Code/config.h ../Core/Inc/FAC_Code/fac_settings.h
-../Core/Inc/FAC_Code/mixes_functions/fac_template_mix.h:
+../Core/Inc/FAC_Code/mixes_functions/functions/fac_direct_link_function.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h:
 ../Core/Inc/stm32f0xx_hal_conf.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_rcc.h:
@@ -76,6 +76,6 @@ Core/Src/FAC_Code/mixes_functions/fac_template_mix.o: \
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim_ex.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h:
-../Core/Inc/FAC_Code/mixes_functions/fac_mixes.h:
+../Core/Inc/FAC_Code/mixes_functions/fac_functions.h:
 ../Core/Inc/FAC_Code/config.h:
 ../Core/Inc/FAC_Code/fac_settings.h:

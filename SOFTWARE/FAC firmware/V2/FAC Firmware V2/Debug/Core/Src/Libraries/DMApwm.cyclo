@@ -1,2 +1,4 @@
+../Core/Src/Libraries/DMApwm.c:41:13:setSoftPWM	3
+../Core/Src/Libraries/DMApwm.c:53:13:zeroSoftPWM	2
 ../Core/Src/Libraries/DMApwm.c:59:6:initDMApwm	1
-../Core/Src/Libraries/DMApwm.c:82:9:setDMApwmDuty	5
+../Core/Src/Libraries/DMApwm.c:82:9:setDMApwmDuty	2

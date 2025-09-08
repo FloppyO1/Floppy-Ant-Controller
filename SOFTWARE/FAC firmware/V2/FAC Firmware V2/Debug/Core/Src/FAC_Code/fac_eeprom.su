@@ -1,6 +1,11 @@
+../Core/Src/FAC_Code/fac_eeprom.c:25:13:FAC_eeprom_SET_is_first_boot_value	0	static
+../Core/Src/FAC_Code/fac_eeprom.c:34:13:FAC_eeprom_uint16_to_bytes	0	static
+../Core/Src/FAC_Code/fac_eeprom.c:43:17:FAC_eeprom_bytes_to_uint16	0	static
+../Core/Src/FAC_Code/fac_eeprom.c:52:13:FAC_eeprom_write_byte	32	static
+../Core/Src/FAC_Code/fac_eeprom.c:63:16:FAC_eeprom_read_byte	40	static
 ../Core/Src/FAC_Code/fac_eeprom.c:70:9:FAC_eeprom_GET_is_first_boot_value	0	static
-../Core/Src/FAC_Code/fac_eeprom.c:77:6:FAC_eeprom_WRITE_frist_boot_value_in_eeprom	32	static
-../Core/Src/FAC_Code/fac_eeprom.c:85:6:FAC_eeprom_store_value	56	static
-../Core/Src/FAC_Code/fac_eeprom.c:99:10:FAC_eeprom_read_value	56	static
-../Core/Src/FAC_Code/fac_eeprom.c:111:9:FAC_eeprom_is_first_time	32	static
-../Core/Src/FAC_Code/fac_eeprom.c:121:6:FAC_eeprom_init	0	static
+../Core/Src/FAC_Code/fac_eeprom.c:77:6:FAC_eeprom_WRITE_frist_boot_value_in_eeprom	8	static
+../Core/Src/FAC_Code/fac_eeprom.c:85:6:FAC_eeprom_store_value	24	static
+../Core/Src/FAC_Code/fac_eeprom.c:99:10:FAC_eeprom_read_value	24	static
+../Core/Src/FAC_Code/fac_eeprom.c:111:9:FAC_eeprom_is_first_time	8	static
+../Core/Src/FAC_Code/fac_eeprom.c:121:6:FAC_eeprom_init	8	static
