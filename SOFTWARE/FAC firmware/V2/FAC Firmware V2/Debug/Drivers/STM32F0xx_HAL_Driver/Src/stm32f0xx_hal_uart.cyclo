@@ -1,5 +1,5 @@
-../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3492:13:UART_EndTxTransfer	1
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3507:13:UART_EndRxTransfer	2
+../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3910:13:UART_TxISR_8BIT.part.0	1
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3910:13:UART_TxISR_8BIT	3
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3939:13:UART_TxISR_16BIT	3
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:721:13:HAL_UART_MspInit	1
@@ -15,7 +15,6 @@
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:1886:19:HAL_UART_AbortReceive	6
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:2585:13:HAL_UART_TxCpltCallback	1
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3533:13:UART_DMATransmitCplt	2
-../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3971:13:UART_EndTransmit_IT	1
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:2600:13:HAL_UART_TxHalfCpltCallback	1
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3567:13:UART_DMATxHalfCplt	1
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:2615:13:HAL_UART_RxCpltCallback	1
@@ -34,7 +33,7 @@
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:2186:19:HAL_UART_AbortReceive_IT	5
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3877:13:UART_DMARxOnlyAbortCallback	1
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:2707:13:HAL_UARTEx_RxEventCallback	1
-../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:2279:6:HAL_UART_IRQHandler	43
+../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:2279:6:HAL_UART_IRQHandler	40
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3996:13:UART_RxISR_8BIT	6
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:4084:13:UART_RxISR_16BIT	6
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3646:13:UART_DMARxHalfCplt	2
@@ -48,11 +47,11 @@
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:2927:19:HAL_LIN_SendBreak	2
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:2973:23:HAL_UART_GetState	1
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:2989:10:HAL_UART_GetError	1
-../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3037:19:UART_SetConfig	30
+../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3037:19:UART_SetConfig	32
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3175:6:UART_AdvFeatureConfig	10
-../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3318:19:UART_WaitOnFlagUntilTimeout	10
+../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3318:19:UART_WaitOnFlagUntilTimeout	9
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:1149:19:HAL_UART_Transmit	13
-../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:1251:19:HAL_UART_Receive	18
+../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:1251:19:HAL_UART_Receive	16
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3249:19:UART_CheckIdleState	5
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:289:19:HAL_UART_Init	5
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:380:19:HAL_HalfDuplex_Init	5
@@ -60,7 +59,7 @@
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:582:19:HAL_MultiProcessor_Init	6
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:2829:19:HAL_MultiProcessor_EnableMuteMode	2
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:2849:19:HAL_MultiProcessor_DisableMuteMode	2
-../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3386:19:UART_Start_Receive_IT	10
+../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3386:19:UART_Start_Receive_IT	9
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:1416:19:HAL_UART_Receive_IT	8
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:3435:19:UART_Start_Receive_DMA	4
 ../Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_uart.c:1556:19:HAL_UART_Receive_DMA	8

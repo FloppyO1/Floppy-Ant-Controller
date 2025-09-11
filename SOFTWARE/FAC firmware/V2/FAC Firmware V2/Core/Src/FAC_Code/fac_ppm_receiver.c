@@ -64,6 +64,7 @@ void FAC_ppm_receiver_calculate_channels_values() {
 			FAC_std_receiver_new_channel_value(i + 1, value);
 		}
 	}
+
 }
 
 /**

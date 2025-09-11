@@ -13,11 +13,10 @@
 #define RECEIVER_CHANNELS_NUMBER 8
 
 /* MOTORS */
-#define MOTOR_SPEED_RESOLUTION RECEIVER_CHANNEL_RESOLUTION
-#define MOTOR_CONTROL_FREQUENCY 2000	// it can be selected from the settings tool (?)
+#define MOTOR_SPEED_RESOLUTION RECEIVER_CHANNEL_RESOLUTION		// use always max resolution of the receiver
 
 /* SERVOS */
-#define SERVO_POSITION_RESOLUTION RECEIVER_CHANNEL_RESOLUTION
+#define SERVO_POSITION_RESOLUTION RECEIVER_CHANNEL_RESOLUTION	// use always max resolution
 #define SERVO_FREQUENCY 50	// it can be selected from the settings tool (?)
 
 

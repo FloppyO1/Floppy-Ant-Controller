@@ -37,6 +37,7 @@ Core/Src/FAC_Code/fac_std_receiver.o: \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h \
  ../Core/Inc/FAC_Code/fac_std_receiver.h ../Core/Inc/FAC_Code/config.h \
+ ../Core/Inc/FAC_Code/fac_app.h ../Core/Inc/FAC_Code/fac_settings.h \
  ../Core/Inc/FAC_Code/fac_pwm_receiver.h \
  ../Core/Inc/FAC_Code/fac_ppm_receiver.h
 ../Core/Inc/main.h:
@@ -78,5 +79,7 @@ Core/Src/FAC_Code/fac_std_receiver.o: \
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h:
 ../Core/Inc/FAC_Code/fac_std_receiver.h:
 ../Core/Inc/FAC_Code/config.h:
+../Core/Inc/FAC_Code/fac_app.h:
+../Core/Inc/FAC_Code/fac_settings.h:
 ../Core/Inc/FAC_Code/fac_pwm_receiver.h:
 ../Core/Inc/FAC_Code/fac_ppm_receiver.h:

@@ -25,14 +25,12 @@
  */
 
 // SOME SETTINGS ARE INSIDE THE DMApwm.h file
-
 // timer handle type and hdma handle type
 // INSERT YOUR HADLE TYPE NAME making find&replace in all the document (Ctrl+F)
 extern TIM_HandleTypeDef htim1;
 //extern TIM_HandleTypeDef htim2;
 extern DMA_HandleTypeDef hdma_tim1_up;
 //extern DMA_HandleTypeDef hdma_tim2_up;
-
 
 // buffer for the GPIO values (data transfered by DMA)
 static uint32_t dataA[PWM_STEPS];
@@ -56,10 +54,20 @@ static void zeroSoftPWM(uint32_t softpwmbuffer[]) {
 	}
 }
 
-void initDMApwm() {
+/*
+ * @brief	Change the frequency of the DMA pwm generator
+ * @note 	can be useful in case of tone change or simply motor drive frequency change
+ */
+void FAC_DMA_pwm_change_freq(uint16_t freq) {
+	htim1.Init.Period = TIMER_FREQ - 1;
+	htim1.Instance->ARR = (TIMER_FREQ / (PWM_STEPS * freq)) - 1;
+	HAL_TIM_Base_Start(&htim1);
+}
+
+void initDMApwm(uint16_t freq) {
 	// set the frequency
 	htim1.Init.Period = TIMER_FREQ - 1;
-	htim1.Instance->ARR = (TIMER_FREQ / (PWM_STEPS * PWM_FREQ)) - 1;
+	htim1.Instance->ARR = (TIMER_FREQ / (PWM_STEPS * freq)) - 1;
 //	htim2.Init.Period = TIMER_FREQ - 1;
 //	htim2.Instance->ARR = (TIMER_FREQ / (PWM_STEPS * PWM_FREQ)) - 1;
 	// start timers

@@ -53,7 +53,7 @@ static void FAC_mapper_apply_to_DCmotor(uint8_t motorNumber, uint8_t linkValue) 
 	}
 	if (outputLinkedValue < 0.0f)
 		outputLinkedValue = outputLinkedValue * (-1);
-	uint16_t speed = (uint16_t) (outputLinkedValue * RECEIVER_CHANNEL_RESOLUTION); // translate the output value to understandable value for servos and motors
+	uint16_t speed = (uint16_t) (outputLinkedValue * MOTOR_SPEED_RESOLUTION); // translate the output value to understandable value for servos and motors
 
 	/* APPLY TO THE MOTOR */
 	FAC_motor_set_speed_direction(motorNumber, dir, speed);
@@ -74,7 +74,7 @@ static void FAC_mapper_apply_to_servo(uint8_t servoNumber, uint8_t linkValue) {
 	}
 
 	/* CALCULATE SERVO POSITION/ESC VELOCITY */
-	uint16_t position = (uint16_t) (map_float(outputLinkedValue, -1.0f, 1.0f, 0.0f, (float) RECEIVER_CHANNEL_RESOLUTION)); // translate the output value to understandable value for servos and motors
+	uint16_t position = (uint16_t) (map_float(outputLinkedValue, -1.0f, 1.0f, 0.0f, (float) SERVO_POSITION_RESOLUTION)); // translate the output value to understandable value for servos and motors
 
 	/* APPLY TO THE MOTOR */
 	FAC_servo_set_position(servoNumber, position);

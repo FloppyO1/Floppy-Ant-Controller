@@ -129,10 +129,12 @@ int main(void)
 		FAC_app_main_loop();
 
 
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < 8; i++) {
 			chs[i] = FAC_std_receiver_GET_channel(i + 1);
 		}
 
+		if( FAC_std_receiver_GET_channel(8)>750)
+			FAC_motor_make_noise(1, 1000);
 //		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 //		HAL_Delay(50);
     /* USER CODE END WHILE */

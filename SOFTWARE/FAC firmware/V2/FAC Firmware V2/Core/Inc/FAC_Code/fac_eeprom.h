@@ -23,6 +23,7 @@ typedef struct Eeprom {
 	uint8_t is_first_boot_value;
 } Eeprom;
 
+
 void FAC_eeprom_store_value(uint8_t position, uint16_t value);
 uint16_t FAC_eeprom_read_value(uint8_t position);
 uint8_t FAC_eeprom_is_first_time();

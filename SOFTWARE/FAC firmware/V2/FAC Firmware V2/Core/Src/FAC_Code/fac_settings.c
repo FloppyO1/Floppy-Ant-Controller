@@ -11,6 +11,7 @@
 
 #include "FAC_Code/fac_eeprom.h"
 #include "FAC_Code/fac_std_receiver.h"
+#include "FAC_Code/fac_battery.h"
 #include "FAC_Code/mixes_functions/fac_mixes.h"
 #include "FAC_Code/config.h"
 
@@ -30,7 +31,7 @@ static Setting settings[FAC_SETTINGS_CODE_LAST] = {	// insert every single setti
 	{ FAC_SETTINGS_CODE_M1_BREAKE_EN, FALSE, FALSE, TRUE },
 	{ FAC_SETTINGS_CODE_M2_BREAKE_EN, FALSE, FALSE, TRUE },
 	{ FAC_SETTINGS_CODE_M3_BREAKE_EN, FALSE, FALSE, TRUE },
-	{ FAC_SETTINGS_CODE_MOTORS_FREQ, 1000, 100, 10000 },			// min freq = 100 Hz, max freq = 10kHz
+	{ FAC_SETTINGS_CODE_MOTORS_FREQ, 500, 100, 10000 },			// min freq = 100 Hz, max freq = 10kHz
 	/* SERVO */
 	{ FAC_SETTINGS_CODE_S1_REVERSED, FALSE, FALSE, TRUE },
 	{ FAC_SETTINGS_CODE_S2_REVERSED, FALSE, FALSE, TRUE },
@@ -44,10 +45,10 @@ static Setting settings[FAC_SETTINGS_CODE_LAST] = {	// insert every single setti
 	{ FAC_SETTINGS_CODE_CUTOFF_VOLTAGE_MV, 2800, 0, 3500 },			// min cutoff 0mV (disabled), max 3500mV
 	{ FAC_SETTINGS_CODE_CUTOFF_DETECTION_TIME, 10, 0, 30 },			// min cutoff detection time 0s (trigger instantaneously), max 30 seconds (trigger only if battery voltage stay below cutoff voltage for 30s)
 	/* RECEIVER */
-	{ FAC_SETTINGS_CODE_RECEIVER_TYPE, RECEIVER_TYPE_PWM, RECEIVER_TYPE_PWM, RECEIVER_TYPE_LAST-1 },
-	{ FAC_SETTINGS_CODE_CHANNELS_DEADZONE_PERCENTAGE, 0, 0, 50 },	// expressed in percentage of the max receiver resolution
+	{ FAC_SETTINGS_CODE_RECEIVER_TYPE, RECEIVER_TYPE_PPM, RECEIVER_TYPE_PWM, RECEIVER_TYPE_LAST-1 },
+	{ FAC_SETTINGS_CODE_CHANNELS_DEADZONE_PERCENTAGE, 2, 0, 50 },	// expressed in percentage of the max receiver resolution
 	{ FAC_SETTINGS_CODE_ARMING_CHANNEL, 5, 1, RECEIVER_CHANNELS_NUMBER },
-	{ FAC_SETTINGS_CODE_RECEIVER_RESOLUTION, 1000, 100, 2000 },
+	{ FAC_SETTINGS_CODE_RECEIVER_RESOLUTION, 1000, 100, 2000 },	// not needed this settings will be deleted
 	/* MIXES */
 	{ FAC_SETTINGS_CODE_ACTIVE_MIX, FAC_MIX_SIMPLE_TANK, 0, FAC_MIX_LAST-1 },
 	{ FAC_SETTINGS_CODE_MIX_INPUT1_CHANNEL, 2, 1, RECEIVER_CHANNELS_NUMBER },
@@ -126,7 +127,7 @@ static void FAC_settings_SET_value(uint8_t code, uint16_t value) {
  */
 static void FAC_settings_LOAD_ALL_from_eeprom() {
 	for (int i = 0; i < FAC_SETTINGS_CODE_LAST; i++) {
-		settings[i].value = FAC_eeprom_read_value(i);
+		FAC_settings_SET_value(i, FAC_eeprom_read_value(i));
 	}
 }
 
@@ -136,12 +137,115 @@ static void FAC_settings_LOAD_ALL_from_eeprom() {
  */
 static void FAC_settings_STORE_ALL_to_eeprom() {
 	for (int i = 0; i < FAC_SETTINGS_CODE_LAST; i++) {
-		FAC_eeprom_store_value(i, settings[i].value);
+		FAC_eeprom_store_value(i, FAC_settings_GET_value(i));
 	}
+}
+
+/**
+ * @brief	Convert a uint16 into its two byte stored on a uint8_t array (second argoment)
+ * @note	MSB first
+ */
+static void FAC_settings_uint16_to_bytes(uint16_t value, uint8_t *array) {
+	array[1] = (uint8_t) (value & 0xFF);        // LSB
+	array[0] = (uint8_t) ((value >> 8) & 0xFF); // MSB
+}
+
+/**
+ * @brief	Convert a uint8 array into the corrisponding uint16_t
+ * @retval	Uint16_t converted form the byte array
+ * @note	MSB first
+ */
+static uint16_t FAC_settings_bytes_to_uint16(const uint8_t *array) {
+	return (uint16_t) array[0] | ((uint16_t) array[1] << 8);
+}
+
+/*
+ * @brief	Send the telemetry via USB serial
+ * @note	Telemetry message is composed by (21 bytes):
+ * 			1B	Telemetry RES code									0
+ * 			2B	ch1,2,3,4,5,6,7,8	(two byte each)					1-2, 3-4, 5-6, 7-8, 9-10, 11-12, 13-14, 15-16
+ * 			2B	Vbat [mV]											17-18
+ * 			1B	Battery type detected (see battery.h for values)	19
+ * 			1B	Arm status											20
+ */
+static void FAC_settings_USB_SEND_telemetry() {
+	uint8_t telemetryPocket[21];
+	/* telemetry res code */
+	telemetryPocket[0] = FAC_USB_COMMAND_TELEMETRY_RESPONSE;
+	/* receiver channels */
+	for (int i = 0; i < 8; i++) {
+		uint8_t ch[2];
+		uint16_t chValue = FAC_std_receiver_GET_channel(i + 1);
+		FAC_settings_uint16_to_bytes(chValue, ch);
+		telemetryPocket[1 + (i * 2)] = ch[0];
+		telemetryPocket[1 + ((i * 2) + 1)] = ch[1];
+	}
+	/* battery voltage */
+	uint8_t vbat[2];
+	FAC_settings_uint16_to_bytes(FAC_battery_GET_voltage(), vbat);
+	telemetryPocket[17] = vbat[0];
+	telemetryPocket[18] = vbat[1];
+	/* battery type detected */			// 0-5: USB, 1S, 2S, 3S, 4S, UNKNOWN
+	telemetryPocket[19] = FAC_battery_GET_type();
+	/* ARMIMG status */
+	telemetryPocket[20] = FALSE;	// add the arming value
+
+	/* TRANMIT POCKET */
+	CDC_Transmit_FS(telemetryPocket, sizeof(telemetryPocket));
 }
 /* ----------------------PUBBLIC FUNCTIONS---------------------- */
 uint16_t FAC_settings_GET_value(uint8_t code) {
 	return settings[code].value;
+}
+
+/*
+ * @brief	understand the command received via COM serial and give the correct response
+ * @retval	TRUE (1) if command understood, else FALSE (0)
+ */
+uint8_t FAC_settings_command_response() {
+	uint8_t commandUndestood = FALSE;
+	uint8_t command_code = comSerialBuffer[0];
+	uint8_t setting_code = comSerialBuffer[1];
+	/* understand the command received from usb serial communication */
+	switch (command_code) {
+		case FAC_USB_COMMAND_READ_VALUE:
+			FAC_settings_USB_SEND_setting_value(setting_code);
+			commandUndestood = TRUE;
+			break;
+		case FAC_USB_COMMAND_READ_RANGE:
+			FAC_settings_USB_SEND_setting_ranges(setting_code);
+			commandUndestood = TRUE;
+			break;
+		case FAC_USB_COMMAND_WRITE:
+			uint8_t valueRaw[2] = {
+				comSerialBuffer[2],
+				comSerialBuffer[3] };
+			uint16_t value = FAC_settings_bytes_to_uint16(valueRaw);
+			FAC_settings_SET_value(setting_code, value);
+			commandUndestood = TRUE;
+			break;
+		case FAC_USB_COMMAND_PING:
+			uint8_t ping[2];
+			FAC_settings_uint16_to_bytes(1234, ping);
+			CDC_Transmit_FS(ping, 2);	// da fare un solo byte
+			commandUndestood = TRUE;
+			break;
+		case FAC_USB_COMMAND_TELEMETRY_REQUEST:
+			FAC_settings_USB_SEND_telemetry();
+			commandUndestood = TRUE;
+			break;
+		case FAC_USB_COMMAND_SAVE_TO_EEPROM:
+			FAC_settings_STORE_ALL_to_eeprom();
+			commandUndestood = TRUE;
+			break;
+	}
+
+	if (commandUndestood) {	// blink led if command understood, also add the usb_timeout time to the trasmition
+		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+		HAL_Delay(USB_SERIAL_TIMEOUT);
+		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+	}
+	return commandUndestood;
 }
 
 /**
@@ -175,12 +279,15 @@ void FAC_settings_USB_SEND_setting_ranges(uint8_t code) {
 }
 
 void FAC_settings_init(uint8_t bootValue) {
-	FAC_eeprom_init(1);
-	if (FAC_eeprom_GET_is_first_boot_value()) {	// if the eeprom doesn´t contain any settings yet
+	FAC_eeprom_init(bootValue);		// set the "first boot" value
+	if (FAC_eeprom_is_first_time()) {	// if the eeprom doesn´t contain any settings yet
 		// STORE TO THE DEFAULT SETTINGS TO THE EEPROM
-		FAC_eeprom_WRITE_frist_boot_value_in_eeprom(bootValue);	// store the new bootValue
+		FAC_settings_STORE_ALL_to_eeprom();
+
+		FAC_eeprom_WRITE_frist_boot_value_in_eeprom();	// store the new bootValue
 	} else {	// if the eeprom already contains settings
 		// LOAD FROM EEPROM SAVED SETTINGS
+		FAC_settings_LOAD_ALL_from_eeprom();
 	}
 }
 

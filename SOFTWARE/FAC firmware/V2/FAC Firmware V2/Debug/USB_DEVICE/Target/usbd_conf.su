@@ -1,5 +1,4 @@
 ../USB_DEVICE/Target/usbd_conf.c:625:20:USBD_Get_USB_Status	0	static
-../USB_DEVICE/Target/usbd_conf.c:614:13:SystemClockConfig_Resume	8	static
 ../USB_DEVICE/Target/usbd_conf.c:65:6:HAL_PCD_MspInit	16	static
 ../USB_DEVICE/Target/usbd_conf.c:84:6:HAL_PCD_MspDeInit	8	static
 ../USB_DEVICE/Target/usbd_conf.c:111:6:HAL_PCD_SetupStageCallback	8	static

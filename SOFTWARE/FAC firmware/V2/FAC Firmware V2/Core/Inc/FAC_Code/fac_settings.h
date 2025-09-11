@@ -92,6 +92,18 @@ enum FAC_SETTINGS_CODE {
 	FAC_SETTINGS_CODE_LAST	// just to have the last code possible, useful for for loop
 };
 
+#define USB_SERIAL_TIMEOUT 5	// ms between two different command
+
+enum FAC_USB_COMMAND_CODE{
+	FAC_USB_COMMAND_READ_VALUE,
+	FAC_USB_COMMAND_READ_RANGE,
+	FAC_USB_COMMAND_WRITE,
+	FAC_USB_COMMAND_PING,
+	FAC_USB_COMMAND_TELEMETRY_REQUEST,
+	FAC_USB_COMMAND_TELEMETRY_RESPONSE,
+	FAC_USB_COMMAND_SAVE_TO_EEPROM
+};
+
 typedef struct Setting {
 	uint8_t code;
 	uint16_t value;
@@ -99,9 +111,12 @@ typedef struct Setting {
 	uint16_t max_value;
 } Setting;
 
+void FAC_settings_init(uint8_t bootValue);
+uint8_t FAC_settings_command_response();
 uint16_t FAC_settings_GET_value(uint8_t code);
-void FAC_settings_USB_SEND_setting_ranges(uint8_t code);
-void FAC_settings_USB_SEND_setting_value(uint8_t code);
+void FAC_settings_USB_SEND_setting_ranges(uint8_t code);	// does not need to be globally visible
+void FAC_settings_USB_SEND_setting_value(uint8_t code);		// does not need to be globally visible
+void FAC_settings_SEND_what_received();						// does not need to be globally visible
 
 
 #endif /* INC_FAC_CODE_FAC_SETTINGS_H_ */

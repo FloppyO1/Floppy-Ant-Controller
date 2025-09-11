@@ -37,7 +37,7 @@ Core/Src/FAC_Code/fac_motors.o: ../Core/Src/FAC_Code/fac_motors.c \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h \
  ../Core/Inc/main.h ../Core/Inc/Libraries/DMApwm.h \
- ../Core/Inc/FAC_Code/config.h
+ ../Core/Inc/FAC_Code/config.h ../Core/Inc/FAC_Code/fac_settings.h
 ../Core/Inc/FAC_Code/fac_motors.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h:
 ../Core/Inc/stm32f0xx_hal_conf.h:
@@ -78,3 +78,4 @@ Core/Src/FAC_Code/fac_motors.o: ../Core/Src/FAC_Code/fac_motors.c \
 ../Core/Inc/main.h:
 ../Core/Inc/Libraries/DMApwm.h:
 ../Core/Inc/FAC_Code/config.h:
+../Core/Inc/FAC_Code/fac_settings.h:

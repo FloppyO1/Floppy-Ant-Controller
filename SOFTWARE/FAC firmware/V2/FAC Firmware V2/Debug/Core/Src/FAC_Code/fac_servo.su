@@ -1,14 +1,10 @@
-../Core/Src/FAC_Code/fac_servo.c:37:13:FAC_servo_SET_is_enable	0	static
-../Core/Src/FAC_Code/fac_servo.c:41:13:FAC_servo_SET_is_reversed	0	static
-../Core/Src/FAC_Code/fac_servo.c:76:13:FAC_servo_apply_new_freq	8	static
 ../Core/Src/FAC_Code/fac_servo.c:118:10:FAC_servo_GET_position	0	static
 ../Core/Src/FAC_Code/fac_servo.c:122:9:FAC_servo_GET_is_enable	0	static
 ../Core/Src/FAC_Code/fac_servo.c:87:13:FAC_servo_apply_settings	16	static
 ../Core/Src/FAC_Code/fac_servo.c:126:9:FAC_servo_GET_is_reversed	0	static
-../Core/Src/FAC_Code/fac_servo.c:28:13:FAC_servo_SET_position	16	static
 ../Core/Src/FAC_Code/fac_servo.c:130:10:FAC_servo_GET_servo_freq	0	static
-../Core/Src/FAC_Code/fac_servo.c:138:6:FAC_servo_set_position	8	static
+../Core/Src/FAC_Code/fac_servo.c:138:6:FAC_servo_set_position	16	static
 ../Core/Src/FAC_Code/fac_servo.c:147:6:FAC_servo_enable	8	static
 ../Core/Src/FAC_Code/fac_servo.c:156:6:FAC_servo_disable	8	static
 ../Core/Src/FAC_Code/fac_servo.c:165:6:FAC_servo_is_reversed	8	static
-../Core/Src/FAC_Code/fac_servo.c:174:6:FAC_servo_init	8	static
+../Core/Src/FAC_Code/fac_servo.c:174:6:FAC_servo_init	16	static

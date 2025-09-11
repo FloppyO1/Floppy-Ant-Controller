@@ -17,6 +17,8 @@
 #include "main.h"
 
 #include "FAC_Code/fac_std_receiver.h"
+#include "FAC_Code/fac_app.h"
+#include "FAC_Code/fac_settings.h"
 #include "FAC_Code/config.h"
 #include "FAC_Code/fac_pwm_receiver.h"
 #include "FAC_Code/fac_ppm_receiver.h"
@@ -39,6 +41,61 @@ static uint16_t FAC_std_receiver_SET_channel(uint8_t chNumber, uint16_t value) {
 	}
 	receiver.channels[chNumber - 1] = v;
 	return v;
+}
+
+/*
+ * @brief	This function calculate the new value applying a deadzone in the center (0) and at the extremes
+ * @note 	Center deadzone applied only in case the value is positive and negative. Channel 3 only has exremes deadzone
+ * @arg1	Value is the value given by the std reciver [0, RECEIVER_RESOLUTION]
+ *
+ *               __
+ *              /	 <-- high deadzone
+ *             /
+ *            /
+ *           /
+ *         --		<-- center deadzone
+ *        /
+ *       /
+ *      /
+ *   __/			<-- low deadzone
+ *
+ */
+static int16_t FAC_std_receiver_calculate_dead_zone(uint16_t value, uint8_t deadzonePerc, uint8_t chNumber) {
+	int16_t temp = (int16_t) value;
+	int16_t maxValue = RECEIVER_CHANNEL_RESOLUTION;
+	int16_t minValue = -RECEIVER_CHANNEL_RESOLUTION;
+	uint16_t deadzoneValue = ((maxValue - minValue) / 100 / 2) * deadzonePerc; // calculate the deadzone using the precentage argument on the full range
+		/* keep the value inside the range */
+	if (chNumber != 3) {	// channel 3 always don't have the return spring, so the offset must be only at the extremes
+		temp = map_int32(temp, 0, RECEIVER_CHANNEL_RESOLUTION, -RECEIVER_CHANNEL_RESOLUTION, RECEIVER_CHANNEL_RESOLUTION); // change the range of the value
+	}
+
+	// keep inside the max e min value
+	if (value > maxValue)
+		temp = maxValue;
+	if (value < minValue)
+		temp = minValue;
+
+	// extremes deadzone
+	if (temp + (deadzoneValue*2) >= maxValue)
+		temp = maxValue;
+	else if (temp - (deadzoneValue*2) <= minValue)
+		temp = minValue;
+
+	else if (temp >= -deadzoneValue && temp <= deadzoneValue)
+		temp = 0;	// the value is inside the center deadzone
+
+	/* linearization of the value if it is not in the center */
+	else if (temp > 0)	// linearize the top value
+		temp = map_int32(temp, 0 + deadzoneValue, maxValue - (deadzoneValue*2), 0, maxValue);
+	else if (temp < 0)	// linearize the bottom value
+		temp = map_int32(temp, minValue + (deadzoneValue*2), 0 - deadzoneValue, minValue, 0);
+
+	if(chNumber != 3){
+		temp = map_int32(temp, -RECEIVER_CHANNEL_RESOLUTION, RECEIVER_CHANNEL_RESOLUTION, 0, RECEIVER_CHANNEL_RESOLUTION);
+	}
+
+	return temp;
 }
 
 /*
@@ -71,7 +128,8 @@ uint16_t FAC_std_receiver_GET_channel(uint8_t chNumber) {
  * @retval		Return 0 if the new value was inside the range, 1 if it was outside the range so it is resized to max value allowed
  */
 uint8_t FAC_std_receiver_new_channel_value(uint8_t chNumber, uint16_t value) {
-	uint16_t valueStored = FAC_std_receiver_SET_channel(chNumber, value);
+	uint16_t valueWithDeadzone = FAC_std_receiver_calculate_dead_zone(value, FAC_settings_GET_value(FAC_SETTINGS_CODE_CHANNELS_DEADZONE_PERCENTAGE), chNumber);
+	uint16_t valueStored = FAC_std_receiver_SET_channel(chNumber, valueWithDeadzone);
 	if (value != valueStored)
 		return 1;	// the value stored was not in the range (value stored do not correspond to "value")
 	return 0;

@@ -106,7 +106,7 @@ uint16_t FAC_eeprom_read_value(uint8_t position) {
 
 /**
  * @brief 	This function read the eeprom byte that indicates if the settings are already been stored once.
- * @retval 	Return TRUE if
+ * @retval 	Return TRUE if it si the first time
  */
 uint8_t FAC_eeprom_is_first_time() {
 	uint8_t isFirst = FALSE;

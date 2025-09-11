@@ -56,5 +56,6 @@ float FAC_mixes_GET_input(uint8_t inputNumber);
 void FAC_mixes_update_mix_inputs();
 void FAC_mixes_update_mix_outputs();
 void FAC_mix_update();
+void FAC_mixes_init();
 
 #endif /* INC_FAC_CODE_MIXES_FUNCTIONS_FAC_MIXES_H_ */

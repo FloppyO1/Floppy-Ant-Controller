@@ -8,6 +8,7 @@
 #include "FAC_Code/fac_motors.h"
 #include "Libraries/DMApwm.h"
 
+#include "FAC_Code/fac_settings.h"
 #include "FAC_Code/config.h"
 
 // definitions of the 3 DC motors
@@ -167,13 +168,15 @@ void FAC_motor_make_noise(uint8_t motorNumber, uint16_t duration) {
 	uint8_t brakeBackup = FAC_motor_GET_brake_en(motorNumber);
 	uint8_t dirBackup = FAC_motor_GET_direction(motorNumber);
 	//FAC_motor_disable_brake(motorNumber);
-	FAC_motor_SET_speed(motorNumber, (MAX_DMA_PWM_VALUE / 100) * 1);	// set speed at 2%
+	FAC_motor_SET_speed(motorNumber, 5);	// set speed at 2%
 	FAC_motor_apply_settings(motorNumber);
 	uint32_t timerSound = HAL_GetTick();
 	HAL_Delay(duration);
-//	while (HAL_GetTick() - timerSound <= duration) {
-//
-//	}
+	FAC_DMA_pwm_change_freq(500);
+	while (HAL_GetTick() - timerSound <= duration) {
+		HAL_Delay(1);
+	}
+	FAC_DMA_pwm_change_freq(FAC_settings_GET_value(FAC_SETTINGS_CODE_MOTORS_FREQ));
 	FAC_motor_SET_direction(motorNumber, dirBackup);
 	FAC_motor_SET_speed(motorNumber, speedBackup);	// set the previews speed
 	FAC_motor_SET_break_en(motorNumber, brakeBackup);
@@ -186,7 +189,7 @@ void FAC_motor_make_noise(uint8_t motorNumber, uint16_t duration) {
  * @note			Motors PWM are generated from the DMA
  */
 void FAC_motor_Init() {
-	initDMApwm();
+	initDMApwm(FAC_settings_GET_value(FAC_SETTINGS_CODE_MOTORS_FREQ));	// initialize the DMA PWM with the correct frequency
 	/* INITIALIZE THE ARRAY OF MOTOR POINTERs */
 	motors[0] = &motor1;
 	motors[1] = &motor2;

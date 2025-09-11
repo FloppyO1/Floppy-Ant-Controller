@@ -23,7 +23,7 @@
  * 	TIMER_FREQ: frequency at which the timer runs
  */
 #define PWM_STEPS MOTOR_SPEED_RESOLUTION
-#define PWM_FREQ MOTOR_CONTROL_FREQUENCY	// freq is given by tim_freq/ARR/lengthSoftPWMbuffer
+// freq is given by tim_freq/ARR/lengthSoftPWMbuffer
 #define TIMER_FREQ 48000000	// freq at which timers are running [Hz]
 
 
@@ -31,7 +31,7 @@
 #define MAX_DMA_PWM_VALUE PWM_STEPS-1
 #define MIN_DMA_PWM_VALUE 0
 
-void initDMApwm();
+void initDMApwm(uint16_t freq);
 uint8_t setDMApwmDuty(GPIO_TypeDef* port, uint16_t pin, uint16_t duty);
 //void setSoftPWM(uint16_t pin, uint32_t duty, uint32_t *softpwmbuffer);
 //void zeroSoftPWM(uint32_t softpwmbuffer[]);

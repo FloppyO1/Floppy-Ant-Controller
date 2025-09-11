@@ -16,7 +16,6 @@
 #include "FAC_Code/fac_servo.h"
 #include "FAC_Code/fac_settings.h"
 
-
 static FAC_App fac_application;
 uint8_t newComSerialReceived = FALSE;	// turn true when something is received
 
@@ -26,7 +25,10 @@ uint8_t newComSerialReceived = FALSE;	// turn true when something is received
 void FAC_app_main_loop() {
 	if (newComSerialReceived) {
 		// understand the comand received and do what you have to do
-		FAC_settings_SEND_what_received();
+//		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+		FAC_settings_command_response();
+//		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+
 		newComSerialReceived = FALSE;
 	}
 
@@ -52,14 +54,16 @@ void FAC_app_main_loop() {
 
 void FAC_app_init() {
 	/* ALL INIT CODE HERE */
+	FAC_settings_init(1);	/// first load all settings than initialize all modules
+
 	FAC_adc_Init();
 	FAC_motor_Init();
 	FAC_battery_init();
-	FAC_std_reciever_init(RECEIVER_TYPE_PWM);	// must be changed in base of settings
+	FAC_std_reciever_init(RECEIVER_TYPE_PPM);	// must be changed in base of settings
 	FAC_servo_init();
 	FAC_mixes_init();
 	FAC_functions_init();
-	//FAC_settings_init(1);
+
 
 	/* mixis init */
 

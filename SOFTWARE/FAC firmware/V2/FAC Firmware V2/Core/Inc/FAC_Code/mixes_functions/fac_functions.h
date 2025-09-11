@@ -1,4 +1,4 @@
-/*
+/*https://github.com/FloppyO1/Floppy-Ant-Controller/tree/FAC_V2/SOFTWARE/FAC%20firmware/V2/FAC%20Firmware%20V2
  * fac_functions.h
  *
  *  Created on: Sep 6, 2025
@@ -45,6 +45,6 @@ float FAC_functions_GET_input(uint8_t functionNumber);
 void FAC_functions_SET_output(uint8_t functionNumber, float outputValue);
 void FAC_functions_update_inputs();
 void FAC_functions_update(uint8_t sFunctionID);
-
+void FAC_functions_init();
 
 #endif /* INC_FAC_CODE_MIXES_FUNCTIONS_FAC_FUNCTIONS_H_ */

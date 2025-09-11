@@ -1,6 +1,3 @@
-../Core/Src/FAC_Code/mixes_functions/fac_functions.c:27:13:FAC_functions_SET_input_channels	1
-../Core/Src/FAC_Code/mixes_functions/fac_functions.c:31:13:FAC_functions_SET_input	1
-../Core/Src/FAC_Code/mixes_functions/fac_functions.c:35:16:FAC_functions_GET_input_channel_number	1
 ../Core/Src/FAC_Code/mixes_functions/fac_functions.c:41:7:FAC_functions_GET_output	1
 ../Core/Src/FAC_Code/mixes_functions/fac_functions.c:45:7:FAC_functions_GET_input	1
 ../Core/Src/FAC_Code/mixes_functions/fac_functions.c:49:6:FAC_functions_SET_output	1
