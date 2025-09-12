@@ -160,27 +160,30 @@ void FAC_motor_set_speed_direction(uint8_t motorNumber, uint8_t dir, uint16_t sp
 
 /**
  * @brief 			Set the values of speed of the motor to make some beeping noise (blocking function)
- * @visibility 		Visible everywhere
- * @note 			This function block the code execution for duration ms
+ * @note 			This function block the code execution for duration ms. All DC motor will make noise
  */
-void FAC_motor_make_noise(uint8_t motorNumber, uint16_t duration) {
-	uint16_t speedBackup = FAC_motor_GET_speed(motorNumber);
-	uint8_t brakeBackup = FAC_motor_GET_brake_en(motorNumber);
-	uint8_t dirBackup = FAC_motor_GET_direction(motorNumber);
-	//FAC_motor_disable_brake(motorNumber);
-	FAC_motor_SET_speed(motorNumber, 5);	// set speed at 2%
-	FAC_motor_apply_settings(motorNumber);
+void FAC_motor_make_noise(uint16_t freq, uint16_t duration) {
+	FAC_DMA_pwm_change_freq(freq);
+	for (int i = 1; i < MOTORS_NUMBER + 1; i++) {
+		FAC_motor_SET_speed(i, 200);	// set speed at 2%
+		FAC_motor_apply_settings(i);
+	}
 	uint32_t timerSound = HAL_GetTick();
 	HAL_Delay(duration);
-	FAC_DMA_pwm_change_freq(500);
+
 	while (HAL_GetTick() - timerSound <= duration) {
-		HAL_Delay(1);
+		for (int i = 1; i < MOTORS_NUMBER + 1; i++) {
+			FAC_motor_SET_direction(i, FORWARD);
+			FAC_motor_apply_settings(i);
+			FAC_motor_SET_direction(i, BACKWARD);
+			FAC_motor_apply_settings(i);
+		}
 	}
 	FAC_DMA_pwm_change_freq(FAC_settings_GET_value(FAC_SETTINGS_CODE_MOTORS_FREQ));
-	FAC_motor_SET_direction(motorNumber, dirBackup);
-	FAC_motor_SET_speed(motorNumber, speedBackup);	// set the previews speed
-	FAC_motor_SET_break_en(motorNumber, brakeBackup);
-	FAC_motor_apply_settings(motorNumber);		// apply settings
+	for (int i = 1; i < MOTORS_NUMBER + 1; i++) {
+		FAC_motor_SET_speed(i, 0);	// set speed at 2%
+		FAC_motor_apply_settings(i);
+	}
 }
 
 /**

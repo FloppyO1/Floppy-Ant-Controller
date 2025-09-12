@@ -22,7 +22,7 @@ static Setting settings[FAC_SETTINGS_CODE_LAST] = {	// insert every single setti
 /* { <NAME> , <VALUE> , <MIN> , <MAX> },
  * {SETTINGS_CODE_1, 10, 0, 100},
  * {SETTINGS_CODE_2, 6, 0, 50},
- * {SETTINGS_CODE_3, 5, 0, 250}
+ * {SETTINGS_CODE_3, 5, 0, 250}freq
  */
 /* MOTORS */
 	{ FAC_SETTINGS_CODE_M1_REVERSED, FALSE, FALSE, TRUE },
@@ -283,11 +283,26 @@ void FAC_settings_init(uint8_t bootValue) {
 	if (FAC_eeprom_is_first_time()) {	// if the eeprom doesn´t contain any settings yet
 		// STORE TO THE DEFAULT SETTINGS TO THE EEPROM
 		FAC_settings_STORE_ALL_to_eeprom();
+		/* A LOTS OF BLINK TO INDICARTE AN MASSIVE EEPROM WRITE */
+		for (int i = 0; i < 10; i++) {
+			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+			HAL_Delay(50);
+			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+			HAL_Delay(50);
+		}
 
 		FAC_eeprom_WRITE_frist_boot_value_in_eeprom();	// store the new bootValue
 	} else {	// if the eeprom already contains settings
 		// LOAD FROM EEPROM SAVED SETTINGS
 		FAC_settings_LOAD_ALL_from_eeprom();
+
+		/* SOME BLINKS TO INDICATE A NORMAL EEPROM READ */
+		for (int i = 0; i < 3; i++) {
+			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+			HAL_Delay(50);
+			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+			HAL_Delay(50);
+		}
 	}
 }
 

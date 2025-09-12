@@ -65,7 +65,7 @@ static int16_t FAC_std_receiver_calculate_dead_zone(uint16_t value, uint8_t dead
 	int16_t maxValue = RECEIVER_CHANNEL_RESOLUTION;
 	int16_t minValue = -RECEIVER_CHANNEL_RESOLUTION;
 	uint16_t deadzoneValue = ((maxValue - minValue) / 100 / 2) * deadzonePerc; // calculate the deadzone using the precentage argument on the full range
-		/* keep the value inside the range */
+	/* keep the value inside the range */
 	if (chNumber != 3) {	// channel 3 always don't have the return spring, so the offset must be only at the extremes
 		temp = map_int32(temp, 0, RECEIVER_CHANNEL_RESOLUTION, -RECEIVER_CHANNEL_RESOLUTION, RECEIVER_CHANNEL_RESOLUTION); // change the range of the value
 	}
@@ -77,9 +77,9 @@ static int16_t FAC_std_receiver_calculate_dead_zone(uint16_t value, uint8_t dead
 		temp = minValue;
 
 	// extremes deadzone
-	if (temp + (deadzoneValue*2) >= maxValue)
+	if (temp + (deadzoneValue * 2) >= maxValue)
 		temp = maxValue;
-	else if (temp - (deadzoneValue*2) <= minValue)
+	else if (temp - (deadzoneValue * 2) <= minValue)
 		temp = minValue;
 
 	else if (temp >= -deadzoneValue && temp <= deadzoneValue)
@@ -87,11 +87,11 @@ static int16_t FAC_std_receiver_calculate_dead_zone(uint16_t value, uint8_t dead
 
 	/* linearization of the value if it is not in the center */
 	else if (temp > 0)	// linearize the top value
-		temp = map_int32(temp, 0 + deadzoneValue, maxValue - (deadzoneValue*2), 0, maxValue);
+		temp = map_int32(temp, 0 + deadzoneValue, maxValue - (deadzoneValue * 2), 0, maxValue);
 	else if (temp < 0)	// linearize the bottom value
-		temp = map_int32(temp, minValue + (deadzoneValue*2), 0 - deadzoneValue, minValue, 0);
+		temp = map_int32(temp, minValue + (deadzoneValue * 2), 0 - deadzoneValue, minValue, 0);
 
-	if(chNumber != 3){
+	if (chNumber != 3) {
 		temp = map_int32(temp, -RECEIVER_CHANNEL_RESOLUTION, RECEIVER_CHANNEL_RESOLUTION, 0, RECEIVER_CHANNEL_RESOLUTION);
 	}
 
@@ -159,6 +159,16 @@ void FAC_std_reciever_init(uint8_t type) {
 			// INITIALZE THIS TYPE OF RECEIVER..
 			break;
 	}
+
+	/* stay in this loop until some channel are received */
+	uint8_t receiverConnected = FALSE;
+	uint8_t channelToCheck = 0;
+	do {
+		if(channelToCheck == 0) channelToCheck++;
+		else channelToCheck = ((channelToCheck+1) % (RECEIVER_CHANNELS_NUMBER+1));
+		if (FAC_std_receiver_GET_channel(channelToCheck) != 0)
+			receiverConnected = TRUE;
+	} while (!receiverConnected);
 }
 
 /**

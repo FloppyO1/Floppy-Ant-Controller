@@ -12,13 +12,14 @@
 
 typedef struct FAC_App {
 	uint8_t current_state;
-	uint16_t battery_voltage;
+	uint8_t is_low_battery;
 } FAC_App;
 
 enum FAC_STATES {
 	FAC_STATE_DISARMED,
 	FAC_STATE_NORMAL,
-	FAC_STATE_LIMIT
+	FAC_STATE_CUTOFF,
+	FAC_STATE_LAST
 };
 
 void FAC_app_init();

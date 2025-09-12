@@ -33,6 +33,7 @@
 
 void initDMApwm(uint16_t freq);
 uint8_t setDMApwmDuty(GPIO_TypeDef* port, uint16_t pin, uint16_t duty);
+void FAC_DMA_pwm_change_freq(uint16_t freq);
 //void setSoftPWM(uint16_t pin, uint32_t duty, uint32_t *softpwmbuffer);
 //void zeroSoftPWM(uint32_t softpwmbuffer[]);
 

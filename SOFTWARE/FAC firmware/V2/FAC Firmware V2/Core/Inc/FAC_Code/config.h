@@ -19,5 +19,20 @@
 #define SERVO_POSITION_RESOLUTION RECEIVER_CHANNEL_RESOLUTION	// use always max resolution
 #define SERVO_FREQUENCY 50	// it can be selected from the settings tool (?)
 
+/* FAC APP */
+#define ARMING_THRESHOLD 80				// 80% of the max receiver number
+
+#define DISARMED_LED_PERIOD	1000			// in milliseconds
+#define DISARMED_TONE_PERIOD 500
+#define DISARMED_TONE_DURATION 100
+
+#define LOW_BATTERY_LED_PERIOD 500
+
+#define CUT_OFF_LED_PERIOD	200
+#define CUT_OFF_TONE_PERIOD 300
+#define CUT_OFFTONE_DURATION 100
+
+//#define NORMAL_LED_PERIOD	3000		// in milliseconds
+
 
 #endif /* INC_FAC_CODE_CONFIG_H_ */

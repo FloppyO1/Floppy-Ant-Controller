@@ -28,6 +28,7 @@ Core/Src/FAC_Code/mixes_functions/functions \
 Core/Src/FAC_Code/mixes_functions/mixes \
 Core/Src/Libraries \
 Core/Src \
+Core/Src/jingles \
 Core/Startup \
 Drivers/STM32F0xx_HAL_Driver/Src \
 Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src \
