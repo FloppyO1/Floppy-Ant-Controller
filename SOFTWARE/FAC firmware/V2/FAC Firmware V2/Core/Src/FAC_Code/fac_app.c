@@ -29,7 +29,7 @@ static void FAC_app_SET_current_state(uint8_t current_state) {
 		fac_application.current_state = current_state;
 }
 
-static uint8_t FAC_app_GET_current_state() {
+uint8_t FAC_app_GET_current_state() {
 	return fac_application.current_state;
 }
 
@@ -156,26 +156,41 @@ void FAC_app_main_loop() {
 	}
 }
 
+/*
+ * @brief	Initialize all modules and load from eeprom all the settings
+ *
+ */
 void FAC_app_init() {
 	/* ALL INIT CODE HERE */
-	FAC_settings_init(5);	/// first load all settings than initialize all modules
+	FAC_settings_init(1);	/// first load all settings than initialize all modules
 
 	FAC_adc_Init();
-	FAC_motor_Init();
 	FAC_battery_init();
-	FAC_std_reciever_init(RECEIVER_TYPE_PPM);	// must be changed in base of settings
+	FAC_app_init_all_modules();
+
+
+	fac_application.is_low_battery = FALSE;
+	FAC_app_SET_current_state(FAC_STATE_DISARMED);
+
+	/* INIT END */
+//	FAC_jingle_Tequila_long();
+//	FAC_jingle_neverGiveYouUp();
+
+
+}
+
+
+/*
+ * @brief	Initialize all modules dependent to setting values
+ * @note	EEPROM is not initialized
+ *
+ */
+void FAC_app_init_all_modules(){
+	FAC_motor_init();
+	FAC_std_reciever_init(FAC_settings_GET_value(FAC_SETTINGS_CODE_RECEIVER_TYPE));	// must be changed in base of settings
 	FAC_servo_init();
 	FAC_mixes_init();
 	FAC_functions_init();
-
-	fac_application.is_low_battery = FALSE;
-	fac_application.current_state = FAC_STATE_DISARMED;
-
-	/* INIT END */
-	//FAC_jingle_Tequila_long();
-	FAC_jingle_neverGiveYouUp();
-
-	FAC_app_SET_current_state(FAC_STATE_DISARMED);
 }
 
 /**

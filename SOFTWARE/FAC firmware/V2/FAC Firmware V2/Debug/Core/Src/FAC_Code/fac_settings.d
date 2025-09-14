@@ -47,7 +47,8 @@ Core/Src/FAC_Code/fac_settings.o: ../Core/Src/FAC_Code/fac_settings.c \
  ../Core/Inc/FAC_Code/fac_eeprom.h \
  ../Core/Inc/FAC_Code/fac_std_receiver.h \
  ../Core/Inc/FAC_Code/fac_battery.h \
- ../Core/Inc/FAC_Code/mixes_functions/fac_mixes.h
+ ../Core/Inc/FAC_Code/mixes_functions/fac_mixes.h \
+ ../Core/Inc/FAC_Code/fac_app.h
 ../Core/Inc/FAC_Code/fac_settings.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h:
 ../Core/Inc/stm32f0xx_hal_conf.h:
@@ -99,3 +100,4 @@ Core/Src/FAC_Code/fac_settings.o: ../Core/Src/FAC_Code/fac_settings.c \
 ../Core/Inc/FAC_Code/fac_std_receiver.h:
 ../Core/Inc/FAC_Code/fac_battery.h:
 ../Core/Inc/FAC_Code/mixes_functions/fac_mixes.h:
+../Core/Inc/FAC_Code/fac_app.h:

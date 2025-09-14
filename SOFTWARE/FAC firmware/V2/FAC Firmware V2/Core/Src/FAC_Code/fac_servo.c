@@ -8,6 +8,7 @@
 #include "FAC_Code/fac_servo.h"
 #include "tim.h"
 #include "main.h"
+#include "FAC_Code/fac_settings.h"
 
 static Servo servo1;
 static Servo servo2;
@@ -21,7 +22,7 @@ static void FAC_servo_apply_new_freq();
 static uint16_t FAC_servo_GET_min_ms_value(uint8_t servoNumber);
 static void FAC_servo_SET_min_ms_value(uint8_t servoNumber, uint16_t minMsValue);
 static uint16_t FAC_servo_GET_max_ms_value(uint8_t servoNumber);
-static void FAC_servo_SET_max_ms_value(uint8_t servoNumber, uint16_t minMsValue);
+static void FAC_servo_SET_max_ms_value(uint8_t servoNumber, uint16_t maxMsValue);
 
 /* FUNCTION DEFINITION */
 /* ----------------------PRIVATE FUNCTIONS---------------------- */
@@ -52,19 +53,19 @@ static void FAC_servo_SET_freq(uint16_t servoFreq) {
 }
 
 static uint16_t FAC_servo_GET_min_ms_value(uint8_t servoNumber) {
-	return servos[servoNumber]->min_ms_value;
+	return servos[servoNumber-1]->min_ms_value;
 }
 
 static void FAC_servo_SET_min_ms_value(uint8_t servoNumber, uint16_t minMsValue) {
-	servos[servoNumber]->min_ms_value = minMsValue;
+	servos[servoNumber-1]->min_ms_value = minMsValue;
 }
 
 static uint16_t FAC_servo_GET_max_ms_value(uint8_t servoNumber) {
-	return servos[servoNumber]->min_ms_value;
+	return servos[servoNumber-1]->max_ms_value;
 }
 
-static void FAC_servo_SET_max_ms_value(uint8_t servoNumber, uint16_t minMsValue) {
-	servos[servoNumber]->min_ms_value = minMsValue;
+static void FAC_servo_SET_max_ms_value(uint8_t servoNumber, uint16_t maxMsValue) {
+	servos[servoNumber-1]->max_ms_value = maxMsValue;
 }
 /**
  * @brief	Set the new PWM frequency to all channels
@@ -178,16 +179,14 @@ void FAC_servo_init() {
 	servos[0] = &servo1;
 	servos[1] = &servo2;
 
-	for (int i = 0; i < SERVOS_NUMBER; i++) {
-		servos[i]->is_enable = FALSE;
-		servos[i]->is_reversed = FALSE;
-		servos[i]->position = 0;
-		servos[i]->servo_freq = 50;
-		servos[i]->min_ms_value = 500;
-		servos[i]->max_ms_value = 2500;
-	}
+	FAC_servo_SET_freq(FAC_settings_GET_value(FAC_SETTINGS_CODE_SERVOS_FREQ));
 	FAC_servo_apply_new_freq();
-
+	for (int i = 0; i < SERVOS_NUMBER; i++) {
+		FAC_servo_SET_is_reversed(i+1, FAC_settings_GET_value(FAC_SETTINGS_CODE_S1_REVERSED+i));
+		FAC_servo_SET_min_ms_value(i+1, FAC_settings_GET_value(FAC_SETTINGS_CODE_S1_MIN_US_VALUE+i));
+		FAC_servo_SET_max_ms_value(i+1, FAC_settings_GET_value(FAC_SETTINGS_CODE_S1_MAX_US_VALUE+i));
+		//FAC_servo_SET_position(i+1, 0);
+	}
 	/* SAFETY PRECAUTION */
 	FAC_servo_disable(1);		// disabled to prevent any unwanted movement
 	FAC_servo_disable(2);

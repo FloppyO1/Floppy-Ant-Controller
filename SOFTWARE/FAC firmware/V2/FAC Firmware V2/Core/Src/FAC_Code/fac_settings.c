@@ -14,6 +14,7 @@
 #include "FAC_Code/fac_battery.h"
 #include "FAC_Code/mixes_functions/fac_mixes.h"
 #include "FAC_Code/config.h"
+#include "FAC_Code/fac_app.h"
 
 uint8_t comSerialBuffer[64];			// buffer for received data from serial com
 
@@ -28,16 +29,16 @@ static Setting settings[FAC_SETTINGS_CODE_LAST] = {	// insert every single setti
 	{ FAC_SETTINGS_CODE_M1_REVERSED, FALSE, FALSE, TRUE },
 	{ FAC_SETTINGS_CODE_M2_REVERSED, FALSE, FALSE, TRUE },
 	{ FAC_SETTINGS_CODE_M3_REVERSED, FALSE, FALSE, TRUE },
-	{ FAC_SETTINGS_CODE_M1_BREAKE_EN, FALSE, FALSE, TRUE },
-	{ FAC_SETTINGS_CODE_M2_BREAKE_EN, FALSE, FALSE, TRUE },
-	{ FAC_SETTINGS_CODE_M3_BREAKE_EN, FALSE, FALSE, TRUE },
+	{ FAC_SETTINGS_CODE_M1_BRAKE_EN, FALSE, FALSE, TRUE },
+	{ FAC_SETTINGS_CODE_M2_BRAKE_EN, FALSE, FALSE, TRUE },
+	{ FAC_SETTINGS_CODE_M3_BRAKE_EN, FALSE, FALSE, TRUE },
 	{ FAC_SETTINGS_CODE_MOTORS_FREQ, 500, 100, 10000 },			// min freq = 100 Hz, max freq = 10kHz
 	/* SERVO */
 	{ FAC_SETTINGS_CODE_S1_REVERSED, FALSE, FALSE, TRUE },
 	{ FAC_SETTINGS_CODE_S2_REVERSED, FALSE, FALSE, TRUE },
 	{ FAC_SETTINGS_CODE_S1_MIN_US_VALUE, 1000, 100, 1499 },			// min milliseconds value = 100us, max 1499us
-	{ FAC_SETTINGS_CODE_S1_MAX_US_VALUE, 2000, 1501, 2900 },		// min milliseconds value = 100us, max 1499us
 	{ FAC_SETTINGS_CODE_S2_MIN_US_VALUE, 1000, 100, 1499 },
+	{ FAC_SETTINGS_CODE_S1_MAX_US_VALUE, 2000, 1501, 2900 },		// min milliseconds value = 100us, max 1499us
 	{ FAC_SETTINGS_CODE_S2_MAX_US_VALUE, 2000, 1501, 2900 },
 	{ FAC_SETTINGS_CODE_SERVOS_FREQ, 50, 20, 300 },					// 20Hz min, 300 Hz max
 	/* BATTERY */
@@ -48,7 +49,6 @@ static Setting settings[FAC_SETTINGS_CODE_LAST] = {	// insert every single setti
 	{ FAC_SETTINGS_CODE_RECEIVER_TYPE, RECEIVER_TYPE_PPM, RECEIVER_TYPE_PWM, RECEIVER_TYPE_LAST-1 },
 	{ FAC_SETTINGS_CODE_CHANNELS_DEADZONE_PERCENTAGE, 2, 0, 50 },	// expressed in percentage of the max receiver resolution
 	{ FAC_SETTINGS_CODE_ARMING_CHANNEL, 5, 1, RECEIVER_CHANNELS_NUMBER },
-	{ FAC_SETTINGS_CODE_RECEIVER_RESOLUTION, 1000, 100, 2000 },	// not needed this settings will be deleted
 	/* MIXES */
 	{ FAC_SETTINGS_CODE_ACTIVE_MIX, FAC_MIX_SIMPLE_TANK, 0, FAC_MIX_LAST-1 },
 	{ FAC_SETTINGS_CODE_MIX_INPUT1_CHANNEL, 2, 1, RECEIVER_CHANNELS_NUMBER },
@@ -100,6 +100,9 @@ static Setting settings[FAC_SETTINGS_CODE_LAST] = {	// insert every single setti
 	{ FAC_SETTINGS_CODE_MAPPER_M3, 200+0, 0, 200+10 },
 	{ FAC_SETTINGS_CODE_MAPPER_S1, 200+0, 0, 200+10 },
 	{ FAC_SETTINGS_CODE_MAPPER_S2, 200+1, 0, 200+10 },
+
+	/* FIRMWARE VERSION */
+	{ FAC_SETTINGS_CODE_FIRMWARE_VERSION, 20000, 0, UINT16_MAX}	// 20513 -> 2.05.13 <major>,<minor>,<patch>
 };
 // @formatter:on
 
@@ -141,9 +144,18 @@ static void FAC_settings_STORE_ALL_to_eeprom() {
 	}
 }
 
+static void FAC_settings_STORE_new_firmware_version(uint8_t major, uint8_t minor, uint8_t patch) {
+	uint16_t newVersion = (major * 10000) + (minor * 100) + patch;	// 20513 -> 2.05.13 <major>,<minor>,<patch>
+	uint16_t currentVersion = FAC_settings_GET_value(FAC_SETTINGS_CODE_FIRMWARE_VERSION);
+	if (newVersion != currentVersion) {
+		FAC_eeprom_store_value(FAC_SETTINGS_CODE_FIRMWARE_VERSION, newVersion);
+	}
+}
+
 /**
- * @brief	Convert a uint16 into its two byte stored on a uint8_t array (second argoment)
- * @note	MSB first
+ * @brief		Convert a uint16 into its two byte stored on a uint8_t array (second argoment)
+ * @note		MSB first (big endian)
+ * @ATTENCTION	arm use little endian
  */
 static void FAC_settings_uint16_to_bytes(uint16_t value, uint8_t *array) {
 	array[1] = (uint8_t) (value & 0xFF);        // LSB
@@ -151,9 +163,10 @@ static void FAC_settings_uint16_to_bytes(uint16_t value, uint8_t *array) {
 }
 
 /**
- * @brief	Convert a uint8 array into the corrisponding uint16_t
- * @retval	Uint16_t converted form the byte array
- * @note	MSB first
+ * @brief		Convert a uint8 array into the corrisponding uint16_t
+ * @retval		Uint16_t converted form the byte array
+ * @note		MSB first (big endian)
+ * @ATTENCTION	arm use little endian
  */
 static uint16_t FAC_settings_bytes_to_uint16(const uint8_t *array) {
 	return (uint16_t) array[0] | ((uint16_t) array[1] << 8);
@@ -162,11 +175,11 @@ static uint16_t FAC_settings_bytes_to_uint16(const uint8_t *array) {
 /*
  * @brief	Send the telemetry via USB serial
  * @note	Telemetry message is composed by (21 bytes):
- * 			1B	Telemetry RES code									0
- * 			2B	ch1,2,3,4,5,6,7,8	(two byte each)					1-2, 3-4, 5-6, 7-8, 9-10, 11-12, 13-14, 15-16
- * 			2B	Vbat [mV]											17-18
- * 			1B	Battery type detected (see battery.h for values)	19
- * 			1B	Arm status											20
+ * 			1B	Telemetry RES code											0
+ * 			2B	ch1,2,3,4,5,6,7,8	(two byte each)							1-2, 3-4, 5-6, 7-8, 9-10, 11-12, 13-14, 15-16
+ * 			2B	Vbat [mV]													17-18
+ * 			1B	Battery type detected (0-5: USB, 1S, 2S, 3S, 4S, UNKNOWN)	19
+ * 			1B	FAC state (0-2: DISARMED, NORMAL, CUTOFF)					20
  */
 static void FAC_settings_USB_SEND_telemetry() {
 	uint8_t telemetryPocket[21];
@@ -187,8 +200,8 @@ static void FAC_settings_USB_SEND_telemetry() {
 	telemetryPocket[18] = vbat[1];
 	/* battery type detected */			// 0-5: USB, 1S, 2S, 3S, 4S, UNKNOWN
 	telemetryPocket[19] = FAC_battery_GET_type();
-	/* ARMIMG status */
-	telemetryPocket[20] = FALSE;	// add the arming value
+	/* fac state */					// 0-2: DISARMED, NORMAL, CUTOFF
+	telemetryPocket[20] = FAC_app_GET_current_state();	// add the arming value
 
 	/* TRANMIT POCKET */
 	CDC_Transmit_FS(telemetryPocket, sizeof(telemetryPocket));
@@ -217,17 +230,16 @@ uint8_t FAC_settings_command_response() {
 			commandUndestood = TRUE;
 			break;
 		case FAC_USB_COMMAND_WRITE:
-			uint8_t valueRaw[2] = {
-				comSerialBuffer[2],
-				comSerialBuffer[3] };
+			uint8_t valueRaw[2] = {	// first 3 than 2 because data is sent in big endian (first msB than lsB) arm use little endian
+				comSerialBuffer[3],
+				comSerialBuffer[2] };
 			uint16_t value = FAC_settings_bytes_to_uint16(valueRaw);
 			FAC_settings_SET_value(setting_code, value);
 			commandUndestood = TRUE;
 			break;
 		case FAC_USB_COMMAND_PING:
-			uint8_t ping[2];
-			FAC_settings_uint16_to_bytes(1234, ping);
-			CDC_Transmit_FS(ping, 2);	// da fare un solo byte
+			uint8_t ping = 73;	// the perfect number XD
+			CDC_Transmit_FS(&ping, 1);
 			commandUndestood = TRUE;
 			break;
 		case FAC_USB_COMMAND_TELEMETRY_REQUEST:
@@ -236,6 +248,10 @@ uint8_t FAC_settings_command_response() {
 			break;
 		case FAC_USB_COMMAND_SAVE_TO_EEPROM:
 			FAC_settings_STORE_ALL_to_eeprom();
+			commandUndestood = TRUE;
+			break;
+		case FAC_USB_COMMAND_APPLY_SETTINGS:
+			FAC_app_init_all_modules();	// reinitialize all the modules to apply the new settings
 			commandUndestood = TRUE;
 			break;
 	}
@@ -255,9 +271,9 @@ uint8_t FAC_settings_command_response() {
 void FAC_settings_USB_SEND_setting_value(uint8_t code) {
 	uint8_t data[3];
 	data[0] = code;
-	/* value */
-	data[1] = (uint8_t) (settings[code].value & 0xFF);        // LSB
-	data[2] = (uint8_t) ((settings[code].value >> 8) & 0xFF); // MSB
+	/* min */
+	data[2] = (uint8_t) (settings[code].value & 0xFF);        // LSB
+	data[1] = (uint8_t) ((settings[code].value >> 8) & 0xFF); // MSB
 
 	CDC_Transmit_FS(data, sizeof(data));
 }
@@ -270,15 +286,19 @@ void FAC_settings_USB_SEND_setting_ranges(uint8_t code) {
 	uint8_t data[5];
 	data[0] = code;
 	/* min */
-	data[1] = (uint8_t) (settings[code].min_value & 0xFF);        // LSB
-	data[2] = (uint8_t) ((settings[code].min_value >> 8) & 0xFF); // MSB
+	data[2] = (uint8_t) (settings[code].min_value & 0xFF);        // LSB
+	data[1] = (uint8_t) ((settings[code].min_value >> 8) & 0xFF); // MSB
 	/* max */
-	data[3] = (uint8_t) (settings[code].max_value & 0xFF);        // LSB
-	data[4] = (uint8_t) ((settings[code].max_value >> 8) & 0xFF); // MSB
+	data[4] = (uint8_t) (settings[code].max_value & 0xFF);        // LSB
+	data[3] = (uint8_t) ((settings[code].max_value >> 8) & 0xFF); // MSB
 	CDC_Transmit_FS(data, sizeof(data));
 }
 
 void FAC_settings_init(uint8_t bootValue) {
+	/* FIRMWARE VERSION UPDATE */
+	FAC_settings_STORE_new_firmware_version(FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR, FIRMWARE_VERSION_PATCH);
+
+	/* SETTINGS LOAD */
 	FAC_eeprom_init(bootValue);		// set the "first boot" value
 	if (FAC_eeprom_is_first_time()) {	// if the eeprom doesn´t contain any settings yet
 		// STORE TO THE DEFAULT SETTINGS TO THE EEPROM

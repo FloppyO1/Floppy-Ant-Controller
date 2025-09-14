@@ -1,4 +1,3 @@
-../Core/Src/FAC_Code/fac_battery.c:66:13:FAC_battery_calculate_voltage	1
 ../Core/Src/FAC_Code/fac_battery.c:40:10:FAC_battery_GET_voltage	1
 ../Core/Src/FAC_Code/fac_battery.c:48:10:FAC_battery_GET_cell_voltage	1
 ../Core/Src/FAC_Code/fac_battery.c:57:10:FAC_battery_GET_type	4

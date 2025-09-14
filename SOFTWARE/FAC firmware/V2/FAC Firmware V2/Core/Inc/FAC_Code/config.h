@@ -8,6 +8,11 @@
 #ifndef INC_FAC_CODE_CONFIG_H_
 #define INC_FAC_CODE_CONFIG_H_
 
+/* FIRMWARE VERSION */
+#define FIRMWARE_VERSION_MAJOR 2	// [MAX 9] 	add one here, if the changes are substantial and not backwards compatible
+#define FIRMWARE_VERSION_MINOR 0	// [MAX 99] add one here, if new backwards compatible features have been added
+#define FIRMWARE_VERSION_PATCH 0	// [MAX 99] add one here, if any issues have been fixed without adding any features
+
 /* RECEIVER */
 #define RECEIVER_CHANNEL_RESOLUTION 1000	// max 2000, because the timer tick is 0.5us (500ns)
 #define RECEIVER_CHANNELS_NUMBER 8

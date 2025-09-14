@@ -97,7 +97,7 @@ void FAC_mixes_update_mix_inputs() {
 		uint8_t chNumber = FAC_mixes_GET_input_channel_number(i);	// get channel number corresponding to the input evaluated
 
 		if (chNumber != 0) {	// if this channel is valid
-			uint16_t receiverResolution = FAC_settings_GET_value(FAC_SETTINGS_CODE_RECEIVER_RESOLUTION);
+			uint16_t receiverResolution = RECEIVER_CHANNEL_RESOLUTION;
 			uint16_t rxValue = FAC_std_receiver_GET_channel(chNumber);
 			float chValue = (float) (rxValue) / (float) (receiverResolution);	// get the receiver channel value
 			float inputValue = map_float(chValue, 0.0f, 1.0f, -1.0f, 1.0f); // map the channel value to make it standard [-1.0 to 1.0]

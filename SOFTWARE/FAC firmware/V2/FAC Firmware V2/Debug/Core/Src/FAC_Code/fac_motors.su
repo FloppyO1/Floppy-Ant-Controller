@@ -1,14 +1,12 @@
-../Core/Src/FAC_Code/fac_motors.c:50:13:FAC_motor_SET_direction	0	static
-../Core/Src/FAC_Code/fac_motors.c:29:13:FAC_set_pwm_duty	8	static
+../Core/Src/FAC_Code/fac_motors.c:77:13:FAC_motor_apply_settings	16	static
 ../Core/Src/FAC_Code/fac_motors.c:34:9:FAC_motor_GET_direction	0	static
 ../Core/Src/FAC_Code/fac_motors.c:38:10:FAC_motor_GET_speed	0	static
 ../Core/Src/FAC_Code/fac_motors.c:42:10:FAC_motor_GET_reverse	0	static
 ../Core/Src/FAC_Code/fac_motors.c:46:9:FAC_motor_GET_brake_en	0	static
-../Core/Src/FAC_Code/fac_motors.c:77:13:FAC_motor_apply_settings	16	static
 ../Core/Src/FAC_Code/fac_motors.c:120:6:FAC_motor_set_brake_status	0	static
 ../Core/Src/FAC_Code/fac_motors.c:129:6:FAC_motor_enable_brake	0	static
 ../Core/Src/FAC_Code/fac_motors.c:137:6:FAC_motor_disable_brake	0	static
 ../Core/Src/FAC_Code/fac_motors.c:146:6:FAC_motor_is_reversed	0	static
 ../Core/Src/FAC_Code/fac_motors.c:155:6:FAC_motor_set_speed_direction	16	static
 ../Core/Src/FAC_Code/fac_motors.c:165:6:FAC_motor_make_noise	32	static
-../Core/Src/FAC_Code/fac_motors.c:194:6:FAC_motor_Init	24	static
+../Core/Src/FAC_Code/fac_motors.c:194:6:FAC_motor_init	24	static

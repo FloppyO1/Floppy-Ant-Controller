@@ -34,6 +34,6 @@ void FAC_motor_disable_brake(uint8_t motorNumber);
 void FAC_motor_is_reversed(uint8_t motorNumber, uint8_t isReversed);
 void FAC_motor_set_speed_direction(uint8_t motorNumber, uint8_t dir, uint16_t speed);
 void FAC_motor_make_noise(uint16_t freq, uint16_t duration);
-void FAC_motor_Init();
+void FAC_motor_init();
 
 #endif /* INC_FAC_CODE_FAC_MOTORS_H_ */
