@@ -35,13 +35,14 @@
 #include "FAC_Code/mixes_functions/fac_mixes.h"
 #include "FAC_Code/fac_settings.h"
 
-/* CUSTOM INCLUDE */										// 8) of HOW TO MAKE A MIX
+/* CUSTOM INCLUDE */								// 8) of HOW TO MAKE A MIX
 //#include "FAC_Code/fac_adc.h"
-//#include "FAC_Code/fac_gyro.h"
+//#include "FAC_Code/fac_fac_imu.h"		// if get_status == HAL_ERROR NOT USE data!!
+#include "stdlib.h"
 /* PRIVATE FUNCTIONS AND VARIABLES */
-static const uint8_t mix_id = FAC_MIX_SIMPLE_TANK;						// 3) of HOW TO MAKE A MIX		(only to know witch mix is this)
+static const uint8_t mix_id = FAC_MIX_SIMPLE_TANK;// 3) of HOW TO MAKE A MIX		(only to know witch mix is this)
 
-/* WHAT THIS MIX DO */											// 7) of HOW TO MAKE A MIX
+/* WHAT THIS MIX DO */								// 7) of HOW TO MAKE A MIX
 /*
  * DESCRIPTION:
  * this mix makes the wheels to spin as a tank tracks, so implement a differential steering
@@ -88,27 +89,43 @@ static const uint8_t mix_id = FAC_MIX_SIMPLE_TANK;						// 3) of HOW TO MAKE A M
  * @brief	Calculate the mix output values
  *
  */
-void FAC_simple_tank_mix_update() {											 // 4) of HOW TO MAKE A MIX
+void FAC_simple_tank_mix_update() {					// 4) of HOW TO MAKE A MIX
 	// this code must be left as it is, DON'T TOUCH IT!
 	float outputs[MIXES_MAX_OUTPUTS_NUMBER];
 	float inputs[MIXES_MAX_INPUTS_NUMBER];
-	FAC_mixes_update_mix_inputs();	// update the mix input in base of the settings and rx channels
+	FAC_mixes_update_mix_inputs();// update the mix input in base of the settings and rx channels
 	for (int i = 0; i < MIXES_MAX_OUTPUTS_NUMBER; i++) {
 		outputs[i] = 0.0f;
-		}
+	}
 	for (int i = 0; i < MIXES_MAX_INPUTS_NUMBER; i++) {
 		inputs[i] = FAC_mixes_GET_input(i);
 	}
-	/* INSERT YOUR CODE HERE -START- */						// 9) of HOW TO MAKE A MIX
+	/* INSERT YOUR CODE HERE -START- */				// 9) of HOW TO MAKE A MIX
 	/* REMEMBER
 	 * - inputs array contains all values of the channel requested for this mix
 	 * - in the outputs array you have to write in the same order you written above all outputs for servos and motors
 	 * 		outputs values must stay in this range [-1.0, +1.0]
 	 */
 	// write here the code of your mix
+	int16_t inThrottle = (int16_t) (inputs[INPUT_THROTTLE] * 1000);// take in consideration 3 decimal digit (integer math is faster)
+	int16_t inSteering = (int16_t) (inputs[INPUT_STEERING] * 1000);
 
-	outputs[OUTPUT_MOTOR_RIGHT] = inputs[INPUT_THROTTLE] + inputs[INPUT_STEERING];
-	outputs[OUTPUT_MOTOR_LEFT] = inputs[INPUT_THROTTLE] - inputs[INPUT_STEERING];
+	int16_t left = inThrottle + inSteering;
+	int16_t right = inThrottle - inSteering;
+	int16_t diff = (uint16_t) (abs(inThrottle) - abs(inSteering));
+
+	if (left < 0)
+		left = left - abs(diff);
+	else
+		left = left + abs(diff);
+
+	if (right < 0)
+		right = right - abs(diff);
+	else
+		right = right + abs(diff);
+
+	outputs[OUTPUT_MOTOR_LEFT] = (float) (left) / (2.0f*1000.0f);	// also /2 because the rage with the mix became two times the max value
+	outputs[OUTPUT_MOTOR_RIGHT] = (float) (right) / (2.0f*1000.0f);
 
 	/* INSERT YOUR CODE HERE -END- */
 	// keep outputs in range

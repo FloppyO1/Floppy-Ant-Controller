@@ -1,0 +1,8 @@
+../Core/Src/Libraries/LSM6DS3.c:43:19:LSM6DS3_init	2
+../Core/Src/Libraries/LSM6DS3.c:58:19:LSM6DS3_init_accel	1
+../Core/Src/Libraries/LSM6DS3.c:67:19:LSM6DS3_init_gyro	1
+../Core/Src/Libraries/LSM6DS3.c:76:6:LSM6DS3_update_accelerometer_all_values	1
+../Core/Src/Libraries/LSM6DS3.c:81:6:LSM6DS3_update_accelerometer_single_value	4
+../Core/Src/Libraries/LSM6DS3.c:99:6:LSM6DS3_update_gyroscope_all_values	1
+../Core/Src/Libraries/LSM6DS3.c:103:6:LSM6DS3_update_gyroscope_single_value	4
+../Core/Src/Libraries/LSM6DS3.c:124:6:LSM6DS3_calculate_offset	2

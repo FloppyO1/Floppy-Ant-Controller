@@ -44,7 +44,7 @@
 
 /* CUSTOM INCLUDE */										// 8) of HOW TO MAKE A SPECIAL FUNCTION
 //#include "FAC_Code/fac_adc.h"
-//#include "FAC_Code/fac_gyro.h"
+//#include "FAC_Code/fac_fac_imu.h"		// if get_status == HAL_ERROR NOT USE data!!
 
 /* PRIVATE FUNCTIONS AND VARIABLES */
 static const uint8_t first_special_function_id = FAC_SPECIAL_FUNCTION_DIRECT_LINK_TO_CHANNEL_1ST;	// 3) of HOW TO MAKE A SPECIAL FUNCTION		(only to know witch mix is this) in case of multiple usage, use the first ID

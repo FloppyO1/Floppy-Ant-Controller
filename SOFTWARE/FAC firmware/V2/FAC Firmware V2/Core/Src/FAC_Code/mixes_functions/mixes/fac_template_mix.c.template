@@ -37,7 +37,7 @@
 
 /* CUSTOM INCLUDE */										// 8) of HOW TO MAKE A MIX
 //#include "FAC_Code/fac_adc.h"
-//#include "FAC_Code/fac_gyro.h"
+//#include "FAC_Code/fac_fac_imu.h"		// if get_status == HAL_ERROR NOT USE data!!
 
 
 /* PRIVATE FUNCTIONS AND VARIABLES */

@@ -5,13 +5,16 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-../Core/Src/Libraries/DMApwm.c 
+../Core/Src/Libraries/DMApwm.c \
+../Core/Src/Libraries/LSM6DS3.c 
 
 OBJS += \
-./Core/Src/Libraries/DMApwm.o 
+./Core/Src/Libraries/DMApwm.o \
+./Core/Src/Libraries/LSM6DS3.o 
 
 C_DEPS += \
-./Core/Src/Libraries/DMApwm.d 
+./Core/Src/Libraries/DMApwm.d \
+./Core/Src/Libraries/LSM6DS3.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -21,7 +24,7 @@ Core/Src/Libraries/%.o Core/Src/Libraries/%.su Core/Src/Libraries/%.cyclo: ../Co
 clean: clean-Core-2f-Src-2f-Libraries
 
 clean-Core-2f-Src-2f-Libraries:
-	-$(RM) ./Core/Src/Libraries/DMApwm.cyclo ./Core/Src/Libraries/DMApwm.d ./Core/Src/Libraries/DMApwm.o ./Core/Src/Libraries/DMApwm.su
+	-$(RM) ./Core/Src/Libraries/DMApwm.cyclo ./Core/Src/Libraries/DMApwm.d ./Core/Src/Libraries/DMApwm.o ./Core/Src/Libraries/DMApwm.su ./Core/Src/Libraries/LSM6DS3.cyclo ./Core/Src/Libraries/LSM6DS3.d ./Core/Src/Libraries/LSM6DS3.o ./Core/Src/Libraries/LSM6DS3.su
 
 .PHONY: clean-Core-2f-Src-2f-Libraries
 

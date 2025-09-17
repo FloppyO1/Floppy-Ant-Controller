@@ -17,6 +17,7 @@
 #include "FAC_Code/fac_servo.h"
 #include "FAC_Code/fac_settings.h"
 #include "jingles/fac_jingles.h"
+#include "FAC_Code/fac_imu.h"
 
 static FAC_App fac_application;
 uint8_t newComSerialReceived = FALSE;	// turn true when something is received
@@ -154,6 +155,13 @@ void FAC_app_main_loop() {
 		/* WRITE HERE YOUR CODE */
 
 	}
+
+	FAC_IMU_GET_accel_X();
+	FAC_IMU_GET_accel_Y();
+	FAC_IMU_GET_accel_Z();
+	FAC_IMU_GET_gyro_X();
+	FAC_IMU_GET_gyro_Y();
+	FAC_IMU_GET_gyro_Z();
 }
 
 /*
@@ -166,7 +174,14 @@ void FAC_app_init() {
 
 	FAC_adc_Init();
 	FAC_battery_init();
+	/* INERTIAL MESUREMENT UNIT INIT */
+	FAC_IMU_init();
+	FAC_IMU_init_accelerometer();
+	FAC_IMU_init_gyroscope();
+
 	FAC_app_init_all_modules();
+
+	FAC_IMU_compute_gyro_offset();
 
 
 	fac_application.is_low_battery = FALSE;
