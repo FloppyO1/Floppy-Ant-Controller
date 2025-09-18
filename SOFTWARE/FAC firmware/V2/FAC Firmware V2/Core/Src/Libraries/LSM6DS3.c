@@ -132,6 +132,7 @@ void LSM6DS3_calculate_offset(LSM6DS3 *LSM6DS3object) {
 		avgOffsetX = avgOffsetX / 2;
 		avgOffsetY = avgOffsetY / 2;
 		avgOffsetZ = avgOffsetZ / 2;
+		HAL_Delay(5);
 	}
 	LSM6DS3object->gyro_offsets[0] = -avgOffsetX;
 	LSM6DS3object->gyro_offsets[1] = -avgOffsetY;

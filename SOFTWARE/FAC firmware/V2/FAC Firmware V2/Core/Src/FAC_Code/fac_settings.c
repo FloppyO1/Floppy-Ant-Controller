@@ -15,6 +15,7 @@
 #include "FAC_Code/mixes_functions/fac_mixes.h"
 #include "FAC_Code/config.h"
 #include "FAC_Code/fac_app.h"
+#include "FAC_Code/fac_imu.h"
 
 uint8_t comSerialBuffer[64];			// buffer for received data from serial com
 
@@ -180,9 +181,12 @@ static uint16_t FAC_settings_bytes_to_uint16(const uint8_t *array) {
  * 			2B	Vbat [mV]													17-18
  * 			1B	Battery type detected (0-5: USB, 1S, 2S, 3S, 4S, UNKNOWN)	19
  * 			1B	FAC state (0-2: DISARMED, NORMAL, CUTOFF)					20
+ * 			2B	accel X	[mg]												21-22
+ * 			2B	accel Y	[mg]												23-24
+ * 			2B	accel Z	[mg]												25-26
  */
 static void FAC_settings_USB_SEND_telemetry() {
-	uint8_t telemetryPocket[21];
+	uint8_t telemetryPocket[27];
 	/* telemetry res code */
 	telemetryPocket[0] = FAC_USB_COMMAND_TELEMETRY_RESPONSE;
 	/* receiver channels */
@@ -202,7 +206,23 @@ static void FAC_settings_USB_SEND_telemetry() {
 	telemetryPocket[19] = FAC_battery_GET_type();
 	/* fac state */					// 0-2: DISARMED, NORMAL, CUTOFF
 	telemetryPocket[20] = FAC_app_GET_current_state();	// add the arming value
-
+	/* accelerometer */
+	uint8_t accel[2];
+	// X
+	int16_t accelTemp = (int16_t) (FAC_IMU_GET_accel_X() * 1000.0f);
+	FAC_settings_uint16_to_bytes(accelTemp, accel);
+	telemetryPocket[21] = accel[0];
+	telemetryPocket[22] = accel[1];
+	// Y
+	accelTemp = (int16_t) (FAC_IMU_GET_accel_Y() * 1000.0f);
+	FAC_settings_uint16_to_bytes(accelTemp, accel);
+	telemetryPocket[23] = accel[0];
+	telemetryPocket[24] = accel[1];
+	// Z
+	accelTemp = (int16_t) (FAC_IMU_GET_accel_Z() * 1000.0f);
+	FAC_settings_uint16_to_bytes(accelTemp, accel);
+	telemetryPocket[25] = accel[0];
+	telemetryPocket[26] = accel[1];
 	/* TRANMIT POCKET */
 	CDC_Transmit_FS(telemetryPocket, sizeof(telemetryPocket));
 }

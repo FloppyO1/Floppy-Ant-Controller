@@ -25,6 +25,7 @@ enum FAC_STATES {
 uint8_t FAC_app_GET_current_state();
 void FAC_app_init_all_modules();
 void FAC_app_init();
+void FAC_app_main_loop();
 uint32_t map_uint32(uint32_t x, uint32_t in_min, uint32_t in_max, uint32_t out_min, uint32_t out_max);
 int32_t map_int32(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max);
 float map_float(float x, float in_min, float in_max, float out_min, float out_max);

@@ -63,6 +63,7 @@ float FAC_IMU_GET_gyro_Z(){
 void FAC_IMU_init_accelerometer(){
 	if(FAC_IMU_GET_status() != HAL_ERROR){
 		LSM6DS3_init_accel(FAC_IMU_GET_LSM6DS3_object());
+		HAL_Delay(100);
 	}
 }
 
@@ -72,6 +73,7 @@ void FAC_IMU_init_accelerometer(){
 void FAC_IMU_init_gyroscope(){
 	if(FAC_IMU_GET_status() != HAL_ERROR){
 		LSM6DS3_init_gyro(FAC_IMU_GET_LSM6DS3_object());
+		HAL_Delay(100);
 	}
 }
 
@@ -79,7 +81,9 @@ void FAC_IMU_init_gyroscope(){
  * @brief	Compute new gyro offsets
  */
 void FAC_IMU_compute_gyro_offset(){
+	HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 	LSM6DS3_calculate_offset(FAC_IMU_GET_LSM6DS3_object());
+	HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 }
 
 /*
@@ -87,6 +91,7 @@ void FAC_IMU_compute_gyro_offset(){
  * @IMPORTANT	If status is HAL_ERROR the mix or special function must manage this problem
  */
 void FAC_IMU_init(){
+	HAL_Delay(200);	// wait for the imu startup
 	HAL_StatusTypeDef gyro_status = LSM6DS3_init(FAC_IMU_GET_LSM6DS3_object(), &hi2c1);
 	if(gyro_status == HAL_ERROR)
 		FAC_IMU_SET_status(gyro_status);

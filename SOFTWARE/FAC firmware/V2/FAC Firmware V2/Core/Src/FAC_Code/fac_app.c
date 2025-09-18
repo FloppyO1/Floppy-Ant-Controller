@@ -43,8 +43,9 @@ static uint8_t FAC_app_GET_is_low_battery() {
 }
 
 /* FUNCTION DEFINITION */
-void FAC_app_main_loop() {
-	if (newComSerialReceived) {
+void FAC_app_main_loop() {	// one cycle every 13ms [about 76Hz] (with simple tank mix on and two other direct link function)
+//	HAL_GPIO_TogglePin(DIGITAL_AUX1_GPIO_Port, DIGITAL_AUX1_Pin);	// used to see the time of execution
+	if (newComSerialReceived) {		//	1us
 		// understand the comand received and do what you have to do
 //		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 		FAC_settings_command_response();
@@ -53,7 +54,7 @@ void FAC_app_main_loop() {
 		newComSerialReceived = FALSE;
 	}
 
-	/* MAIN FUNCTIONS OF THE APP - STATES OF OPERATION */
+	/* MAIN FUNCTIONS OF THE APP - STATES OF OPERATION */	// 13ms
 	switch (FAC_app_GET_current_state()) {
 		case FAC_STATE_DISARMED: {
 			/* DISABLE ALL DEVICES (MOTORS AND SERVOS) */
@@ -90,10 +91,10 @@ void FAC_app_main_loop() {
 			break;
 		}
 		case FAC_STATE_NORMAL: {
-			/* UPDATE THE MAPPED MOTORS AND SERVOS */
+			/* UPDATE THE MAPPED MOTORS AND SERVOS */   // 8ms max
 			FAC_mapper_apply_to_devices();
 
-			/* CHECK ARMING CHANNEL IF USED */
+			/* CHECK ARMING CHANNEL IF USED */	// 800us max
 			uint8_t armingCh = FAC_settings_GET_value(FAC_SETTINGS_CODE_ARMING_CHANNEL);
 			if (armingCh != 0) {
 				uint16_t armingValue = FAC_std_receiver_GET_channel(armingCh);
@@ -102,7 +103,8 @@ void FAC_app_main_loop() {
 				}
 			}
 
-			/* LOW BATTERY DETECTOR */
+
+			/* LOW BATTERY DETECTOR */		// 200us
 			uint16_t vbat = FAC_battery_GET_cell_voltage();
 			uint8_t batteryType = FAC_battery_GET_type();
 			if (batteryType != BATTERY_TYPE_NONE && batteryType != BATTERY_TYPE_USB) {	// a known battery must be connected
@@ -110,7 +112,7 @@ void FAC_app_main_loop() {
 					FAC_app_SET_is_low_battery(TRUE);
 			}
 
-			/* CUT OFF DETECTION */
+			/* CUT OFF DETECTION */		// 8us
 			static uint32_t timerCutOff = 0;
 			if (vbat > FAC_settings_GET_value(FAC_SETTINGS_CODE_CUTOFF_VOLTAGE_MV))
 				timerCutOff = HAL_GetTick();	// if the vbat is grater than the cutoff threshold the timer will be resetted
@@ -156,12 +158,12 @@ void FAC_app_main_loop() {
 
 	}
 
-	FAC_IMU_GET_accel_X();
-	FAC_IMU_GET_accel_Y();
-	FAC_IMU_GET_accel_Z();
-	FAC_IMU_GET_gyro_X();
-	FAC_IMU_GET_gyro_Y();
-	FAC_IMU_GET_gyro_Z();
+//	FAC_IMU_GET_accel_X();
+//	FAC_IMU_GET_accel_Y();
+//	FAC_IMU_GET_accel_Z();
+//	FAC_IMU_GET_gyro_X();
+//	FAC_IMU_GET_gyro_Y();
+//	FAC_IMU_GET_gyro_Z();
 }
 
 /*
@@ -169,38 +171,43 @@ void FAC_app_main_loop() {
  *
  */
 void FAC_app_init() {
-	/* ALL INIT CODE HERE */
 	FAC_settings_init(1);	/// first load all settings than initialize all modules
 
 	FAC_adc_Init();
 	FAC_battery_init();
 	/* INERTIAL MESUREMENT UNIT INIT */
+	HAL_Delay(3000);
 	FAC_IMU_init();
 	FAC_IMU_init_accelerometer();
 	FAC_IMU_init_gyroscope();
+	if (FAC_IMU_GET_status() == HAL_ERROR) {
+		for (int i = 0; i < 20; i++) {
+			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+			HAL_Delay(100);
+		}
+	} else {
+		FAC_IMU_compute_gyro_offset();
+	}
 
+	/* INIT SETTING RELATED MODULES */
 	FAC_app_init_all_modules();
 
-	FAC_IMU_compute_gyro_offset();
-
-
+	/* INITIALIZE APP STRUCT */
 	fac_application.is_low_battery = FALSE;
 	FAC_app_SET_current_state(FAC_STATE_DISARMED);
 
 	/* INIT END */
 //	FAC_jingle_Tequila_long();
-//	FAC_jingle_neverGiveYouUp();
-
+	FAC_jingle_neverGiveYouUp();
 
 }
-
 
 /*
  * @brief	Initialize all modules dependent to setting values
  * @note	EEPROM is not initialized
  *
  */
-void FAC_app_init_all_modules(){
+void FAC_app_init_all_modules() {
 	FAC_motor_init();
 	FAC_std_reciever_init(FAC_settings_GET_value(FAC_SETTINGS_CODE_RECEIVER_TYPE));	// must be changed in base of settings
 	FAC_servo_init();

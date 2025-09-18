@@ -32,14 +32,14 @@
 #include "FAC_Code/fac_app.h"
 
 /* FOR DEBUG AND TESTS */
-#include "FAC_Code/fac_adc.h"
-#include "FAC_Code/fac_motors.h"
-#include "FAC_Code/fac_battery.h"
-#include "FAC_Code/fac_std_receiver.h"
-#include "FAC_Code/fac_servo.h"
-#include "FAC_Code/fac_eeprom.h"
-#include "jingles/notes.h"
-#include "jingles/fac_jingles.h"
+//#include "FAC_Code/fac_adc.h"
+//#include "FAC_Code/fac_motors.h"
+//#include "FAC_Code/fac_battery.h"
+//#include "FAC_Code/fac_std_receiver.h"
+//#include "FAC_Code/fac_servo.h"
+//#include "FAC_Code/fac_eeprom.h"
+//#include "jingles/notes.h"
+//#include "jingles/fac_jingles.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -129,17 +129,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 	while (1) {
 		FAC_app_main_loop();
-
-		for (int i = 0; i < 8; i++) {
-			chs[i] = FAC_std_receiver_GET_channel(i + 1);
-		}
-
-		//FAC_motor_make_noise(1, 200, 1000);
-
-
-
-//		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-//		HAL_Delay(50);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -167,7 +156,10 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSI14State = RCC_HSI14_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.HSI14CalibrationValue = 16;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL6;
+  RCC_OscInitStruct.PLL.PREDIV = RCC_PREDIV_DIV1;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -177,9 +169,9 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI48;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
   {

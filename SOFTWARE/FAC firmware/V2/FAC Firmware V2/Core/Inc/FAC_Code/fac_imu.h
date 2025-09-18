@@ -16,6 +16,7 @@ typedef struct Gyro {
 	HAL_StatusTypeDef gyro_status;	// HAL_OK, or HAL_ERROR	(in case of error the mix or function using it must manage the problem)
 } Gyro;
 
+HAL_StatusTypeDef FAC_IMU_GET_status();
 float FAC_IMU_GET_accel_X();
 float FAC_IMU_GET_accel_Y();
 float FAC_IMU_GET_accel_Z();

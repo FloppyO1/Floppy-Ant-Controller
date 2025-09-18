@@ -6,6 +6,6 @@
 ../Core/Src/FAC_Code/fac_imu.c:50:7:FAC_IMU_GET_gyro_Y	8	static
 ../Core/Src/FAC_Code/fac_imu.c:55:7:FAC_IMU_GET_gyro_Z	8	static
 ../Core/Src/FAC_Code/fac_imu.c:63:6:FAC_IMU_init_accelerometer	8	static
-../Core/Src/FAC_Code/fac_imu.c:72:6:FAC_IMU_init_gyroscope	8	static
-../Core/Src/FAC_Code/fac_imu.c:81:6:FAC_IMU_compute_gyro_offset	8	static
-../Core/Src/FAC_Code/fac_imu.c:89:6:FAC_IMU_init	8	static
+../Core/Src/FAC_Code/fac_imu.c:73:6:FAC_IMU_init_gyroscope	8	static
+../Core/Src/FAC_Code/fac_imu.c:83:6:FAC_IMU_compute_gyro_offset	16	static
+../Core/Src/FAC_Code/fac_imu.c:93:6:FAC_IMU_init	8	static
