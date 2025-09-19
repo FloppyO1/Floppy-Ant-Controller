@@ -6,7 +6,7 @@
 	(paper "A4")
 	(title_block
 		(title "Ant Robot control board")
-		(date "2025-05-05")
+		(date "2025-09-18")
 		(rev "2.0")
 		(company "Filippo Castellan")
 	)
@@ -1994,7 +1994,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "1455d691-25bb-47e9-a785-0405ef86f2aa")
-		(property "Reference" "U8"
+		(property "Reference" "U5"
 			(at 117.9232 138.8908 0)
 			(effects
 				(font
@@ -2094,7 +2094,7 @@
 		(instances
 			(project ""
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "U8")
+					(reference "U5")
 					(unit 1)
 				)
 			)
@@ -2110,7 +2110,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "245ae7fe-28ef-454f-940b-165000699b15")
-		(property "Reference" "#PWR047"
+		(property "Reference" "#PWR034"
 			(at 124.46 97.79 0)
 			(effects
 				(font
@@ -2160,7 +2160,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "#PWR047")
+					(reference "#PWR034")
 					(unit 1)
 				)
 			)
@@ -2176,7 +2176,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "2b0b4dca-8ff2-40a2-b221-675f6ad8f3bc")
-		(property "Reference" "#PWR044"
+		(property "Reference" "#PWR031"
 			(at 109.22 97.79 0)
 			(effects
 				(font
@@ -2226,7 +2226,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "#PWR044")
+					(reference "#PWR031")
 					(unit 1)
 				)
 			)
@@ -2242,7 +2242,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "42dd68c9-5ed9-4b4d-aaab-216fbdbe6bac")
-		(property "Reference" "#PWR048"
+		(property "Reference" "#PWR035"
 			(at 124.46 111.76 0)
 			(effects
 				(font
@@ -2292,7 +2292,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "#PWR048")
+					(reference "#PWR035")
 					(unit 1)
 				)
 			)
@@ -2308,7 +2308,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "44e91e68-8e00-4173-b1a7-6f71082d81d7")
-		(property "Reference" "#PWR046"
+		(property "Reference" "#PWR033"
 			(at 115.57 147.32 0)
 			(effects
 				(font
@@ -2358,7 +2358,7 @@
 		(instances
 			(project ""
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "#PWR046")
+					(reference "#PWR033")
 					(unit 1)
 				)
 			)
@@ -2373,8 +2373,8 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "4e437686-ab71-427b-bd4c-9eb9b35e030b")
-		(property "Reference" "R3"
-			(at 97.79 55.88 90)
+		(property "Reference" "R5"
+			(at 98.298 55.88 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2391,7 +2391,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
 			(at 95.25 60.198 90)
 			(effects
 				(font
@@ -2418,7 +2418,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C103199"
+		(property "LCSC" "C60490"
 			(at 95.25 58.42 0)
 			(effects
 				(font
@@ -2436,7 +2436,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "R3")
+					(reference "R5")
 					(unit 1)
 				)
 			)
@@ -2452,7 +2452,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "55a74cf2-7ead-4af3-b5b6-8e3017c07280")
-		(property "Reference" "J8"
+		(property "Reference" "J9"
 			(at 203.962 52.1172 0)
 			(effects
 				(font
@@ -2470,7 +2470,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "_MY_connectors:Pad 03x01"
+		(property "Footprint" "_MY_connectors:01x03_TH_pad_renforced_small"
 			(at 201.93 53.34 0)
 			(effects
 				(font
@@ -2509,7 +2509,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "J8")
+					(reference "J9")
 					(unit 1)
 				)
 			)
@@ -2525,7 +2525,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "67b261bc-9f55-4557-8df1-dbc99ab65e1c")
-		(property "Reference" "J9"
+		(property "Reference" "J10"
 			(at 203.962 78.7872 0)
 			(effects
 				(font
@@ -2543,7 +2543,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "_MY_connectors:Pad 02x01"
+		(property "Footprint" "_MY_connectors:01x02_TH_pad_renforced_small"
 			(at 201.93 78.74 0)
 			(effects
 				(font
@@ -2579,7 +2579,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "J9")
+					(reference "J10")
 					(unit 1)
 				)
 			)
@@ -2595,7 +2595,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "6871ce17-df33-4bee-bf6e-b0bfee9c3f8a")
-		(property "Reference" "C10"
+		(property "Reference" "C8"
 			(at 103.251 62.2772 0)
 			(effects
 				(font
@@ -2613,7 +2613,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 			(at 99.3648 59.69 0)
 			(effects
 				(font
@@ -2658,7 +2658,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "C10")
+					(reference "C8")
 					(unit 1)
 				)
 			)
@@ -2674,7 +2674,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "6d78ecab-4416-45c2-b9be-383bda32a79c")
-		(property "Reference" "#PWR039"
+		(property "Reference" "#PWR026"
 			(at 82.55 129.54 0)
 			(effects
 				(font
@@ -2724,7 +2724,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "#PWR039")
+					(reference "#PWR026")
 					(unit 1)
 				)
 			)
@@ -2739,7 +2739,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "78f4d029-b1e9-49f9-af91-ff3840e62030")
-		(property "Reference" "#PWR043"
+		(property "Reference" "#PWR030"
 			(at 100.33 74.93 0)
 			(effects
 				(font
@@ -2790,7 +2790,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "#PWR043")
+					(reference "#PWR030")
 					(unit 1)
 				)
 			)
@@ -2806,7 +2806,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "7f27e388-fcf0-40ee-85a2-f24c58a44bb6")
-		(property "Reference" "R2"
+		(property "Reference" "R4"
 			(at 85.852 62.2673 0)
 			(effects
 				(font
@@ -2824,7 +2824,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
 			(at 89.408 63.5 90)
 			(effects
 				(font
@@ -2851,7 +2851,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C23186"
+		(property "LCSC" "C25867"
 			(at 87.63 63.5 0)
 			(effects
 				(font
@@ -2869,7 +2869,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "R2")
+					(reference "R4")
 					(unit 1)
 				)
 			)
@@ -2885,7 +2885,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "84756e69-071e-403b-aeb9-ca940985cd18")
-		(property "Reference" "#PWR049"
+		(property "Reference" "#PWR036"
 			(at 185.42 69.85 0)
 			(effects
 				(font
@@ -2935,7 +2935,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "#PWR049")
+					(reference "#PWR036")
 					(unit 1)
 				)
 			)
@@ -2951,8 +2951,8 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "85c40535-d905-48fc-b5f3-e4ea2a8647e6")
-		(property "Reference" "R4"
-			(at 189.23 50.8 90)
+		(property "Reference" "R6"
+			(at 189.23 51.054 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2961,7 +2961,7 @@
 			)
 		)
 		(property "Value" "5.1k"
-			(at 187.96 48.26 90)
+			(at 188.722 49.022 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2969,7 +2969,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
 			(at 190.5 55.118 90)
 			(effects
 				(font
@@ -2996,7 +2996,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C23186"
+		(property "LCSC" "C25905"
 			(at 190.5 53.34 0)
 			(effects
 				(font
@@ -3014,7 +3014,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "R4")
+					(reference "R6")
 					(unit 1)
 				)
 			)
@@ -3029,7 +3029,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "8bc4cda2-7f16-48f9-9c45-59fdb5394e42")
-		(property "Reference" "C12"
+		(property "Reference" "C10"
 			(at 127 99.06 0)
 			(effects
 				(font
@@ -3047,7 +3047,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 			(at 125.4252 104.14 0)
 			(effects
 				(font
@@ -3074,7 +3074,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" " C282519"
+		(property "LCSC" "C1525"
 			(at 124.46 100.33 0)
 			(effects
 				(font
@@ -3092,7 +3092,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "C12")
+					(reference "C10")
 					(unit 1)
 				)
 			)
@@ -3107,7 +3107,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "8caced70-49e2-4f6f-9a07-66008ccbe9bc")
-		(property "Reference" "C13"
+		(property "Reference" "C11"
 			(at 182.88 59.69 0)
 			(effects
 				(font
@@ -3125,7 +3125,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 			(at 184.4548 54.61 0)
 			(effects
 				(font
@@ -3152,7 +3152,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" " C282519"
+		(property "LCSC" "C1525"
 			(at 185.42 58.42 0)
 			(effects
 				(font
@@ -3170,7 +3170,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "C13")
+					(reference "C11")
 					(unit 1)
 				)
 			)
@@ -3186,7 +3186,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "9c82006d-8339-4967-bb0c-0c5d12e76f8e")
-		(property "Reference" "R1"
+		(property "Reference" "R3"
 			(at 85.852 52.1073 0)
 			(effects
 				(font
@@ -3204,7 +3204,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
 			(at 89.408 53.34 90)
 			(effects
 				(font
@@ -3231,7 +3231,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C103199"
+		(property "LCSC" "C60490"
 			(at 87.63 53.34 0)
 			(effects
 				(font
@@ -3249,7 +3249,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "R1")
+					(reference "R3")
 					(unit 1)
 				)
 			)
@@ -3265,7 +3265,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "a2250eb3-b807-4e32-b716-b785f314614b")
-		(property "Reference" "#PWR045"
+		(property "Reference" "#PWR032"
 			(at 109.22 111.76 0)
 			(effects
 				(font
@@ -3315,7 +3315,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "#PWR045")
+					(reference "#PWR032")
 					(unit 1)
 				)
 			)
@@ -3331,7 +3331,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "ae37d9d1-d717-4afb-88e5-62024bdb9f71")
-		(property "Reference" "#PWR050"
+		(property "Reference" "#PWR037"
 			(at 195.58 53.34 0)
 			(effects
 				(font
@@ -3381,7 +3381,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "#PWR050")
+					(reference "#PWR037")
 					(unit 1)
 				)
 			)
@@ -3397,7 +3397,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "aebaaf28-c1f3-4404-a00d-561cd21ada79")
-		(property "Reference" "#PWR051"
+		(property "Reference" "#PWR038"
 			(at 195.58 63.5 0)
 			(effects
 				(font
@@ -3447,7 +3447,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "#PWR051")
+					(reference "#PWR038")
 					(unit 1)
 				)
 			)
@@ -3462,7 +3462,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "cfa144b5-ed4d-433b-a797-ae59c7275882")
-		(property "Reference" "#PWR041"
+		(property "Reference" "#PWR028"
 			(at 87.63 74.93 0)
 			(effects
 				(font
@@ -3512,7 +3512,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "#PWR041")
+					(reference "#PWR028")
 					(unit 1)
 				)
 			)
@@ -3529,7 +3529,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "d9d4e69a-691e-41e7-90d9-a45e2aa5668c")
-		(property "Reference" "#PWR042"
+		(property "Reference" "#PWR029"
 			(at 96.52 129.54 0)
 			(effects
 				(font
@@ -3579,7 +3579,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "#PWR042")
+					(reference "#PWR029")
 					(unit 1)
 				)
 			)
@@ -3595,7 +3595,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "fa86a69a-d88f-4fe1-a3b2-23a5e4ef968c")
-		(property "Reference" "#PWR040"
+		(property "Reference" "#PWR027"
 			(at 87.63 52.07 0)
 			(effects
 				(font
@@ -3645,7 +3645,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "#PWR040")
+					(reference "#PWR027")
 					(unit 1)
 				)
 			)
@@ -3661,7 +3661,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "fe05e2a6-a0cc-4db5-bc76-914096e177d3")
-		(property "Reference" "C11"
+		(property "Reference" "C9"
 			(at 106.68 99.06 0)
 			(effects
 				(font
@@ -3679,7 +3679,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 			(at 108.2548 104.14 0)
 			(effects
 				(font
@@ -3706,7 +3706,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" " C282519"
+		(property "LCSC" "C1525"
 			(at 109.22 100.33 0)
 			(effects
 				(font
@@ -3724,7 +3724,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/49a5e203-968c-4031-9c53-bf1710310062"
-					(reference "C11")
+					(reference "C9")
 					(unit 1)
 				)
 			)

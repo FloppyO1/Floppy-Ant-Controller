@@ -1,0 +1,41 @@
+### Footprint positions - created on 2025-09-19T18:16:45+0200 ###
+### Printed by KiCad version 9.0.3-9.0.3-0~ubuntu24.04.1
+## Unit = mm, Angle = deg.
+## Side : top
+# Ref     Val                Package                                   PosX       PosY       Rot  Side
+C5        4.7u               C_0402_1005Metric                     104.3700  -132.3000    0.0000  top
+C6        4.7u               C_0402_1005Metric                     107.1900  -134.2000   90.0000  top
+C7        4.7u               C_0402_1005Metric                     111.1900  -134.2000   90.0000  top
+C11       100n               C_0402_1005Metric                     103.0000  -127.8000    0.0000  top
+C13       4.7u               C_0402_1005Metric                     104.6900  -120.2500   90.0000  top
+C14       100n               C_0402_1005Metric                     104.4400  -121.7500  180.0000  top
+C15       100n               C_0402_1005Metric                     105.6900  -120.2500   90.0000  top
+C16       100n               C_0402_1005Metric                     114.2900  -121.8500    0.0000  top
+C17       100n               C_0402_1005Metric                     113.2200  -130.2500  -90.0000  top
+C18       100n               C_0402_1005Metric                     103.6900  -126.2500   90.0000  top
+D1        1N5819WS           D_SOD-323                             118.8900  -119.5000   90.0000  top
+D2        STATUS             LED_1206_3216Metric                   115.6900  -138.5000  -90.0000  top
+J1        SWITCH             01x02_TH_pad_renforced                118.3900  -128.3400  -90.0000  top
+J2        2s_Battery         01x02_TH_pad_renforced                118.3900  -123.2600  -90.0000  top
+J3        USB-C_304A-ACP16X  USB_C_304A-ACP16X                     115.0000  -112.0000  180.0000  top
+J4        M1                 01x02_TH_pad_renforced                100.6100  -139.5000    0.0000  top
+J5        M2                 01x02_TH_pad_renforced                105.6900  -139.5000    0.0000  top
+J6        M3                 01x02_TH_pad_renforced                110.7700  -139.5000    0.0000  top
+J7        servo_1            01x03_TH_pad_renforced                100.6100  -134.4200   90.0000  top
+J8        servo_2            01x03_TH_pad_renforced                118.3900  -139.5000   90.0000  top
+J9        ADC_AUX            01x03_TH_pad_renforced_small          100.2700  -121.3981  -90.0000  top
+J10       DIGITAL_AUX        01x02_TH_pad_renforced_small          102.1900  -119.0000  180.0000  top
+Q1        NMOS               Diodes_DFN1006-3                      115.6900  -135.3000    0.0000  top
+R6        5.1k               R_0402_1005Metric                     102.6700  -126.2500  -90.0000  top
+R7        5.1k               R_0402_1005Metric                     112.2900  -119.3000  -90.0000  top
+R8        5.1k               R_0402_1005Metric                     107.1700  -119.7000  180.0000  top
+R9        5.1k               R_0402_1005Metric                     107.1700  -118.7000  180.0000  top
+R10       5.1k               R_0402_1005Metric                     115.6900  -134.1000    0.0000  top
+R11       1.5k               R_0402_1005Metric                     116.2000  -132.4000   90.0000  top
+SW1       BOOT               SW_SPST_B3U-1000P                     115.2900  -119.6500  180.0000  top
+U2        DRV8837            WSON-8-1EP_2x2mm_P0.5mm_EP0.9x1.6mm   105.1900  -134.7000   90.0000  top
+U3        DRV8837            WSON-8-1EP_2x2mm_P0.5mm_EP0.9x1.6mm   109.1900  -134.7000   90.0000  top
+U4        DRV8837            WSON-8-1EP_2x2mm_P0.5mm_EP0.9x1.6mm   113.1900  -134.7000   90.0000  top
+U6        STM32F072CBTx      LQFP-48_7x7mm_P0.5mm                  109.5000  -125.5000    0.0000  top
+U7        FS2A_4CH_reciever  FS2A_4CH_reciever                     108.2030  -111.3370  180.0000  top
+## End

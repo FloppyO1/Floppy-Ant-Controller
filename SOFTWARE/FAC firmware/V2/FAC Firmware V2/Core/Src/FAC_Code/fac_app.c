@@ -46,7 +46,7 @@ static uint8_t FAC_app_GET_is_low_battery() {
 void FAC_app_main_loop() {	// one cycle every 13ms [about 76Hz] (with simple tank mix on and two other direct link function)
 //	HAL_GPIO_TogglePin(DIGITAL_AUX1_GPIO_Port, DIGITAL_AUX1_Pin);	// used to see the time of execution
 	if (newComSerialReceived) {		//	1us
-		// understand the comand received and do what you have to do
+		// understand the command received and do what you have to do
 //		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 		FAC_settings_command_response();
 //		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);

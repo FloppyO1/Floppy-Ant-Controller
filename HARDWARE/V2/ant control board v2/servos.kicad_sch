@@ -6,7 +6,7 @@
 	(paper "A4")
 	(title_block
 		(title "Ant Robot control board")
-		(date "2025-05-05")
+		(date "2025-09-18")
 		(rev "2.0")
 		(company "Filippo Castellan")
 	)
@@ -566,7 +566,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "08a8d30f-f408-48f9-8ca4-08dd38c2119c")
-		(property "Reference" "J6"
+		(property "Reference" "J7"
 			(at 150.622 82.5972 0)
 			(effects
 				(font
@@ -584,7 +584,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "_MY_connectors:Pad 03x01"
+		(property "Footprint" "_MY_connectors:01x03_TH_pad_renforced"
 			(at 148.59 83.82 0)
 			(effects
 				(font
@@ -623,7 +623,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/11638847-2904-4dcc-b1cc-a24fa7661082"
-					(reference "J6")
+					(reference "J7")
 					(unit 1)
 				)
 			)
@@ -639,7 +639,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "0db944b2-eec4-41dc-af10-b8d1bff9b0fe")
-		(property "Reference" "#PWR035"
+		(property "Reference" "#PWR022"
 			(at 125.73 85.09 0)
 			(effects
 				(font
@@ -690,7 +690,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/11638847-2904-4dcc-b1cc-a24fa7661082"
-					(reference "#PWR035")
+					(reference "#PWR022")
 					(unit 1)
 				)
 			)
@@ -705,7 +705,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "2f2bfce3-6f26-48d2-b469-7d6a36ed4cea")
-		(property "Reference" "#PWR036"
+		(property "Reference" "#PWR023"
 			(at 125.73 93.98 0)
 			(effects
 				(font
@@ -755,7 +755,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/11638847-2904-4dcc-b1cc-a24fa7661082"
-					(reference "#PWR036")
+					(reference "#PWR023")
 					(unit 1)
 				)
 			)
@@ -770,7 +770,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "6043be70-436c-4e71-a6a1-4c7047333b3c")
-		(property "Reference" "#PWR038"
+		(property "Reference" "#PWR025"
 			(at 125.73 116.84 0)
 			(effects
 				(font
@@ -820,7 +820,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/11638847-2904-4dcc-b1cc-a24fa7661082"
-					(reference "#PWR038")
+					(reference "#PWR025")
 					(unit 1)
 				)
 			)
@@ -836,7 +836,7 @@
 		(on_board yes)
 		(dnp no)
 		(uuid "84a49fd9-367f-4da7-9a8b-b961cfb03eba")
-		(property "Reference" "#PWR037"
+		(property "Reference" "#PWR024"
 			(at 125.73 107.95 0)
 			(effects
 				(font
@@ -887,7 +887,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/11638847-2904-4dcc-b1cc-a24fa7661082"
-					(reference "#PWR037")
+					(reference "#PWR024")
 					(unit 1)
 				)
 			)
@@ -903,7 +903,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "b87713fe-e7a6-46b2-b833-ea2dd1a1dce7")
-		(property "Reference" "J7"
+		(property "Reference" "J8"
 			(at 150.622 105.4572 0)
 			(effects
 				(font
@@ -921,7 +921,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "_MY_connectors:Pad 03x01"
+		(property "Footprint" "_MY_connectors:01x03_TH_pad_renforced"
 			(at 148.59 106.68 0)
 			(effects
 				(font
@@ -960,7 +960,7 @@
 		(instances
 			(project "ant control board v2"
 				(path "/53484dc5-354c-4967-b00e-d73de62a4245/11638847-2904-4dcc-b1cc-a24fa7661082"
-					(reference "J7")
+					(reference "J8")
 					(unit 1)
 				)
 			)
