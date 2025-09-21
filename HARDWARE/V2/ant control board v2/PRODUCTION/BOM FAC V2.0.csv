@@ -1,0 +1,17 @@
+"Id";"Riferimento";"Impronta";"Quantità";"Valore";"Produttore";
+1;"C15,C18,C16,C17,C11,C14,C10,C19,C9";"C_0402_1005Metric";9;"100n";;;
+2;"C13,C6,C5,C7,C3,C2,C4,C8,C1";"C_0402_1005Metric";9;"4.7u";;;
+3;"R9,R6,R8,R10,R7,R1,R2";"R_0402_1005Metric";7;"5.1k";;;
+4;"Q1";"Diodes_DFN1006-3";1;"NMOS";;;
+5;"R11,R4";"R_0402_1005Metric";2;"1.5k";;;
+6;"J3";"USB_C_304A-ACP16X";1;"USB-C_304A-ACP16X";;;
+7;"D1";"D_SOD-323";1;"1N5819WS";;;
+8;"SW1";"SW_SPST_B3U-1000P";1;"BOOT";;;
+9;"U6";"LQFP-48_7x7mm_P0.5mm";1;"STM32F072CBTx";;;
+10;"U2,U3,U4";"WSON-8-1EP_2x2mm_P0.5mm_EP0.9x1.6mm";3;"DRV8837";;;
+11;"D2";"LED_1206_3216Metric";1;"STATUS";;;
+12;"R5,R3";"R_0402_1005Metric";2;"10k";;;
+13;"U8";"SOT-23-5";1;"AT24C02C";;;
+14;"U1";"SOT-89-3";1;"GM7333";;;
+15;"U5";"LGA-14_3x2.5mm_P0.5mm_LayoutBorder3x4y";1;"LSM6DS3";;;
+16;"J12";"Pad 01x04 small";1;"ELRS";;;

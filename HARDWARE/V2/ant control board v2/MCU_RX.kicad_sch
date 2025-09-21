@@ -3285,7 +3285,7 @@
 	)
 	(rectangle
 		(start 207.01 109.22)
-		(end 250.19 153.67)
+		(end 257.81 153.67)
 		(stroke
 			(width 0)
 			(type default)
@@ -3370,7 +3370,7 @@
 	)
 	(text "STATUS LED"
 		(exclude_from_sim no)
-		(at 250.19 107.95 0)
+		(at 257.81 107.95 0)
 		(effects
 			(font
 				(size 2 2)
