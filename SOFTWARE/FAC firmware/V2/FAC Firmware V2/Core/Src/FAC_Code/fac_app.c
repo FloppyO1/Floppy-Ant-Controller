@@ -47,9 +47,7 @@ void FAC_app_main_loop() {	// one cycle every 13ms [about 76Hz] (with simple tan
 //	HAL_GPIO_TogglePin(DIGITAL_AUX1_GPIO_Port, DIGITAL_AUX1_Pin);	// used to see the time of execution
 	if (newComSerialReceived) {		//	1us
 		// understand the command received and do what you have to do
-//		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 		FAC_settings_command_response();
-//		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 
 		newComSerialReceived = FALSE;
 	}
@@ -157,13 +155,6 @@ void FAC_app_main_loop() {	// one cycle every 13ms [about 76Hz] (with simple tan
 		/* WRITE HERE YOUR CODE */
 
 	}
-
-//	FAC_IMU_GET_accel_X();
-//	FAC_IMU_GET_accel_Y();
-//	FAC_IMU_GET_accel_Z();
-//	FAC_IMU_GET_gyro_X();
-//	FAC_IMU_GET_gyro_Y();
-//	FAC_IMU_GET_gyro_Z();
 }
 
 /*

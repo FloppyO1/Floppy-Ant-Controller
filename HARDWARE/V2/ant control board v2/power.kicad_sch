@@ -1583,6 +1583,18 @@
 		)
 		(uuid c9424b0b-9503-4ffb-a1f8-b08eac2170dd)
 	)
+	(rectangle
+		(start 106.68 155.702)
+		(end 147.32 165.1)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(fill
+			(type none)
+		)
+		(uuid e550a9cc-d4da-4fc4-8cd4-91f0b594402d)
+	)
 	(text "BATTERY CONNECTOR"
 		(exclude_from_sim no)
 		(at 118.11 115.57 0)
@@ -1621,6 +1633,16 @@
 			(justify right)
 		)
 		(uuid "7a714632-03ea-4bc8-9c48-bfef9b795294")
+	)
+	(text "Not populated to reduce component\nnumber to 40 and enable to have\n29$ PCBA offer (PCBWay) for 15 PCBs\nDOSE NOT AFFECT THE CORRECT WORKING"
+		(exclude_from_sim no)
+		(at 127 160.782 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "ae7f1c46-3bc3-4ef1-b6bd-8d9917d7f226")
 	)
 	(junction
 		(at 113.03 74.93)
@@ -2251,6 +2273,16 @@
 			(type default)
 		)
 		(uuid "f1990741-7da4-47ef-ac48-39dcd3094188")
+	)
+	(polyline
+		(pts
+			(xy 132.08 138.43) (xy 127 156.21)
+		)
+		(stroke
+			(width 0)
+			(type dot)
+		)
+		(uuid "fa843cdb-7cc0-49c8-872a-b2a885a1a462")
 	)
 	(wire
 		(pts
@@ -3000,7 +3032,7 @@
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
-		(dnp no)
+		(dnp yes)
 		(uuid "5f7a73b7-fa6b-465f-a902-5b4e33d6a7bf")
 		(property "Reference" "C1"
 			(at 134.62 130.81 0)
