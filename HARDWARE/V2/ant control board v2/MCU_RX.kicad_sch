@@ -5143,7 +5143,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board no)
-		(dnp no)
+		(dnp yes)
 		(uuid "16319d29-9dec-4026-884d-2d4b9ab4eed2")
 		(property "Reference" "C20"
 			(at 209.55 53.4146 0)
@@ -5431,7 +5431,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board no)
-		(dnp no)
+		(dnp yes)
 		(fields_autoplaced yes)
 		(uuid "281a3cbb-f2e1-48be-8f65-71016f36725c")
 		(property "Reference" "U9"
