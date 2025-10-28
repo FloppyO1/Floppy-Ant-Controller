@@ -80,9 +80,12 @@ void FAC_eeprom_WRITE_frist_boot_value_in_eeprom(){
 
 /**
  * @brief	Store into eeprom memory a two byte (uint16) value
- * @note	It consist in a multiple byte write operation
+ * @note	It consist in a multiple byte write operation, if the value is not changed don't do anything
  */
 void FAC_eeprom_store_value(uint8_t position, uint16_t value) {
+	if(FAC_eeprom_read_value(position) == value){
+		return;
+	}
 	uint8_t array[2];
 	FAC_eeprom_uint16_to_bytes(value, array);
 	for (int i = 0; i < sizeof(uint16_t); i++) {

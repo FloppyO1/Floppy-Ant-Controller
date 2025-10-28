@@ -70,6 +70,8 @@ void FAC_app_main_loop() {	// one cycle every 13ms [about 76Hz] (with simple tan
 				if (armingValue >= (RECEIVER_CHANNEL_RESOLUTION / 100) * ARMING_THRESHOLD) {	// value above the threschold
 					FAC_app_SET_current_state(FAC_STATE_NORMAL);
 				}
+			}else{
+				FAC_app_SET_current_state(FAC_STATE_NORMAL);	// always armed if no arming channel active
 			}
 
 			/* DISARMED TONE */
