@@ -1,7 +1,7 @@
 ../Core/Src/FAC_Code/fac_app.c:34:9:FAC_app_GET_current_state	0	static
-../Core/Src/FAC_Code/fac_app.c:47:6:FAC_app_main_loop	16	static
-../Core/Src/FAC_Code/fac_app.c:170:6:FAC_app_init	16	static
-../Core/Src/FAC_Code/fac_app.c:211:6:FAC_app_init_all_modules	8	static
-../Core/Src/FAC_Code/fac_app.c:225:10:map_uint32	16	static
-../Core/Src/FAC_Code/fac_app.c:236:9:map_int32	16	static
-../Core/Src/FAC_Code/fac_app.c:247:7:map_float	24	static
+../Core/Src/FAC_Code/fac_app.c:47:6:FAC_app_main_loop	8	static
+../Core/Src/FAC_Code/fac_app.c:176:6:FAC_app_init	16	static
+../Core/Src/FAC_Code/fac_app.c:217:6:FAC_app_init_all_modules	8	static
+../Core/Src/FAC_Code/fac_app.c:231:10:map_uint32	16	static
+../Core/Src/FAC_Code/fac_app.c:242:9:map_int32	16	static
+../Core/Src/FAC_Code/fac_app.c:253:7:map_float	24	static
