@@ -8,6 +8,7 @@
 #include "FAC_Code/fac_settings.h"
 //#include "usb_device.h"
 #include "usbd_cdc_if.h"
+#include "iwdg.h"
 
 #include "FAC_Code/fac_eeprom.h"
 #include "FAC_Code/fac_std_receiver.h"
@@ -327,6 +328,7 @@ void FAC_settings_init(uint8_t bootValue) {
 		FAC_settings_STORE_ALL_to_eeprom();
 		/* A LOTS OF BLINK TO INDICARTE AN MASSIVE EEPROM WRITE */
 		for (int i = 0; i < 10; i++) {
+			HAL_IWDG_Refresh(&hiwdg);	// refresh the watchdog	(500ms) LONG TO MAKE
 			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 			HAL_Delay(50);
 			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
@@ -340,6 +342,7 @@ void FAC_settings_init(uint8_t bootValue) {
 
 		/* SOME BLINKS TO INDICATE A NORMAL EEPROM READ */
 		for (int i = 0; i < 3; i++) {
+			HAL_IWDG_Refresh(&hiwdg);	// refresh the watchdog	(500ms) LONG TO MAKE
 			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 			HAL_Delay(50);
 			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);

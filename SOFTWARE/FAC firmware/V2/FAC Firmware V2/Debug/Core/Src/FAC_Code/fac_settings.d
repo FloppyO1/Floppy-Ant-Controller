@@ -25,6 +25,7 @@ Core/Src/FAC_Code/fac_settings.o: ../Core/Src/FAC_Code/fac_settings.c \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_flash_ex.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_i2c.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_i2c_ex.h \
+ ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_iwdg.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_pcd.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_ll_usb.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_pcd_ex.h \
@@ -44,7 +45,7 @@ Core/Src/FAC_Code/fac_settings.o: ../Core/Src/FAC_Code/fac_settings.c \
  ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_core.h \
  ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_ioreq.h \
  ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_ctlreq.h \
- ../Core/Inc/FAC_Code/fac_eeprom.h \
+ ../Core/Inc/iwdg.h ../Core/Inc/main.h ../Core/Inc/FAC_Code/fac_eeprom.h \
  ../Core/Inc/FAC_Code/fac_std_receiver.h \
  ../Core/Inc/FAC_Code/fac_battery.h \
  ../Core/Inc/FAC_Code/mixes_functions/fac_mixes.h \
@@ -76,6 +77,7 @@ Core/Src/FAC_Code/fac_settings.o: ../Core/Src/FAC_Code/fac_settings.c \
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_flash_ex.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_i2c.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_i2c_ex.h:
+../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_iwdg.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_pcd.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_ll_usb.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_pcd_ex.h:
@@ -97,6 +99,8 @@ Core/Src/FAC_Code/fac_settings.o: ../Core/Src/FAC_Code/fac_settings.c \
 ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_core.h:
 ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_ioreq.h:
 ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_ctlreq.h:
+../Core/Inc/iwdg.h:
+../Core/Inc/main.h:
 ../Core/Inc/FAC_Code/fac_eeprom.h:
 ../Core/Inc/FAC_Code/fac_std_receiver.h:
 ../Core/Inc/FAC_Code/fac_battery.h:

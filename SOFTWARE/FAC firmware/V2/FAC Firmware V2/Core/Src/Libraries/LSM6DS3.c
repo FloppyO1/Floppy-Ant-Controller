@@ -7,6 +7,7 @@
 
 #include "stm32f0xx_hal.h"
 #include "Libraries/LSM6DS3.h"
+#include "iwdg.h"
 
 static const uint8_t DevAddress = 0xD4;	// 0x6A if SA0 = LOW, 0x6B if SA0 = HIGH
 
@@ -133,6 +134,7 @@ void LSM6DS3_calculate_offset(LSM6DS3 *LSM6DS3object) {
 		avgOffsetY = avgOffsetY / 2;
 		avgOffsetZ = avgOffsetZ / 2;
 		HAL_Delay(5);
+		HAL_IWDG_Refresh(&hiwdg);	// refresh the watchdog	(500ms)
 	}
 	LSM6DS3object->gyro_offsets[0] = -avgOffsetX;
 	LSM6DS3object->gyro_offsets[1] = -avgOffsetY;

@@ -25,6 +25,7 @@ Core/Src/FAC_Code/fac_app.o: ../Core/Src/FAC_Code/fac_app.c \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_flash_ex.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_i2c.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_i2c_ex.h \
+ ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_iwdg.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_pcd.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_ll_usb.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_pcd_ex.h \
@@ -36,7 +37,7 @@ Core/Src/FAC_Code/fac_app.o: ../Core/Src/FAC_Code/fac_app.c \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim_ex.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h \
- ../Core/Inc/FAC_Code/config.h \
+ ../Core/Inc/FAC_Code/config.h ../Core/Inc/iwdg.h ../Core/Inc/main.h \
  ../Core/Inc/FAC_Code/mixes_functions/fac_mixes.h \
  ../Core/Inc/FAC_Code/mixes_functions/fac_functions.h \
  ../Core/Inc/FAC_Code/fac_mapper.h ../Core/Inc/FAC_Code/fac_adc.h \
@@ -71,6 +72,7 @@ Core/Src/FAC_Code/fac_app.o: ../Core/Src/FAC_Code/fac_app.c \
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_flash_ex.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_i2c.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_i2c_ex.h:
+../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_iwdg.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_pcd.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_ll_usb.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_pcd_ex.h:
@@ -83,6 +85,8 @@ Core/Src/FAC_Code/fac_app.o: ../Core/Src/FAC_Code/fac_app.c \
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h:
 ../Core/Inc/FAC_Code/config.h:
+../Core/Inc/iwdg.h:
+../Core/Inc/main.h:
 ../Core/Inc/FAC_Code/mixes_functions/fac_mixes.h:
 ../Core/Inc/FAC_Code/mixes_functions/fac_functions.h:
 ../Core/Inc/FAC_Code/fac_mapper.h:

@@ -6,6 +6,7 @@
  */
 #include "FAC_Code/fac_app.h"
 #include "FAC_Code/config.h"
+#include "iwdg.h"
 
 #include "FAC_Code/mixes_functions/fac_mixes.h"
 #include "FAC_Code/mixes_functions/fac_functions.h"
@@ -53,6 +54,7 @@ void FAC_app_main_loop() {	// one cycle every 13ms [about 76Hz] (with simple tan
 	}
 #ifndef ONLY_MCU_AND_EEPROM
 	/* MAIN FUNCTIONS OF THE APP - STATES OF OPERATION */	// 13ms
+	HAL_IWDG_Refresh(&hiwdg);	// refresh the watchdog	(500ms)
 	switch (FAC_app_GET_current_state()) {
 		case FAC_STATE_DISARMED: {
 			/* DISABLE ALL DEVICES (MOTORS AND SERVOS) */
@@ -70,7 +72,7 @@ void FAC_app_main_loop() {	// one cycle every 13ms [about 76Hz] (with simple tan
 				if (armingValue >= (RECEIVER_CHANNEL_RESOLUTION / 100) * ARMING_THRESHOLD) {	// value above the threschold
 					FAC_app_SET_current_state(FAC_STATE_NORMAL);
 				}
-			}else{
+			} else {
 				FAC_app_SET_current_state(FAC_STATE_NORMAL);	// always armed if no arming channel active
 			}
 
@@ -102,7 +104,6 @@ void FAC_app_main_loop() {	// one cycle every 13ms [about 76Hz] (with simple tan
 					FAC_app_SET_current_state(FAC_STATE_DISARMED);
 				}
 			}
-
 
 			/* LOW BATTERY DETECTOR */		// 200us
 			uint16_t vbat = FAC_battery_GET_cell_voltage();
@@ -156,8 +157,9 @@ void FAC_app_main_loop() {	// one cycle every 13ms [about 76Hz] (with simple tan
 	if (HAL_GetTick() - time >= 1000) {
 		time = HAL_GetTick();
 		/* WRITE HERE YOUR CODE */
-		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-
+		if (FAC_app_GET_current_state() == FAC_STATE_NORMAL) {
+			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+		}
 	}
 }
 
@@ -166,24 +168,29 @@ void FAC_app_main_loop() {	// one cycle every 13ms [about 76Hz] (with simple tan
  *
  */
 void FAC_app_init() {
+	HAL_IWDG_Refresh(&hiwdg);	// refresh the watchdog	(500ms)
 	FAC_settings_init(1);	/// first load all settings than initialize all modules
 
 	FAC_adc_Init();
 	FAC_battery_init();
 	/* INERTIAL MESUREMENT UNIT INIT */
-	HAL_Delay(3000);
+	for(int i= 0; i<100; i++){	// wait for 3000ms
+		HAL_IWDG_Refresh(&hiwdg);	// refresh the watchdog	(500ms)
+		HAL_Delay(10);
+	}
 	FAC_IMU_init();
+	HAL_IWDG_Refresh(&hiwdg);	// refresh the watchdog	(500ms) NEXT TWO ARE A BIT LONG TO EXECUTE
 	FAC_IMU_init_accelerometer();
 	FAC_IMU_init_gyroscope();
 	if (FAC_IMU_GET_status() == HAL_ERROR) {
 		for (int i = 0; i < 20; i++) {
 			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-			HAL_Delay(100);
+			HAL_IWDG_Refresh(&hiwdg);	// refresh the watchdog	(500ms)
+			HAL_Delay(50);
 		}
 	} else {
 		FAC_IMU_compute_gyro_offset();
 	}
-
 	/* INIT SETTING RELATED MODULES */
 	FAC_app_init_all_modules();
 
@@ -192,9 +199,8 @@ void FAC_app_init() {
 	FAC_app_SET_current_state(FAC_STATE_DISARMED);
 
 	/* INIT END */
-//	FAC_jingle_Tequila_long();
-	FAC_jingle_neverGiveYouUp();
-
+	FAC_jingle_Tequila_long();
+//	FAC_jingle_neverGiveYouUp();
 }
 
 /*

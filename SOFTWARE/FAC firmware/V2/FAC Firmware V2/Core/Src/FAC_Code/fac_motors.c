@@ -7,6 +7,7 @@
 
 #include "FAC_Code/fac_motors.h"
 #include "Libraries/DMApwm.h"
+#include "iwdg.h"
 
 #include "FAC_Code/fac_settings.h"
 #include "FAC_Code/config.h"
@@ -169,7 +170,10 @@ void FAC_motor_make_noise(uint16_t freq, uint16_t duration) {
 		FAC_motor_apply_settings(i);
 	}
 	uint32_t timerSound = HAL_GetTick();
-	HAL_Delay(duration);
+	for (int i = 0; i < duration; i++) {
+		HAL_IWDG_Refresh(&hiwdg);
+		HAL_Delay(0);
+	}
 
 	while (HAL_GetTick() - timerSound <= duration) {
 		for (int i = 1; i < MOTORS_NUMBER + 1; i++) {
@@ -208,8 +212,8 @@ void FAC_motor_init() {
 	motors[2]->pinB = M3_B_Pin;
 
 	for (int i = 1; i <= MOTORS_NUMBER; i++) {	// for safety reason and apply the settings
-		FAC_motor_SET_reverse(i, FAC_settings_GET_value(FAC_SETTINGS_CODE_M1_REVERSED+i));
-		FAC_motor_SET_break_en(i, FAC_settings_GET_value(FAC_SETTINGS_CODE_M1_BRAKE_EN+i));	// motor will brake_en if speed = 0
+		FAC_motor_SET_reverse(i, FAC_settings_GET_value(FAC_SETTINGS_CODE_M1_REVERSED + (i-1)));
+		FAC_motor_SET_break_en(i, FAC_settings_GET_value(FAC_SETTINGS_CODE_M1_BRAKE_EN + (i-1)));	// motor will brake_en if speed = 0
 		FAC_motor_SET_direction(i, FORWARD);	// motor forward (doesn't care if speed = 0)
 		FAC_motor_SET_speed(i, 0);	// motor not spinning
 	}

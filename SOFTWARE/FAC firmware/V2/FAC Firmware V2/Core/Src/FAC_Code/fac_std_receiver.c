@@ -15,6 +15,7 @@
  */
 
 #include "main.h"
+#include "iwdg.h"
 
 #include "FAC_Code/fac_std_receiver.h"
 #include "FAC_Code/fac_app.h"
@@ -164,6 +165,7 @@ void FAC_std_reciever_init(uint8_t type) {
 	uint8_t receiverConnected = FALSE;
 	uint8_t channelToCheck = 0;
 	do {
+		HAL_IWDG_Refresh(&hiwdg);	// update the watchdog, to evitate it starts a reset here if no trasmitter are connected
 		if(channelToCheck == 0) channelToCheck++;
 		else channelToCheck = ((channelToCheck+1) % (RECEIVER_CHANNELS_NUMBER+1));
 		if (FAC_std_receiver_GET_channel(channelToCheck) != 0)
