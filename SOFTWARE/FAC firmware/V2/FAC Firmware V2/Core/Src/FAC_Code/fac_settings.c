@@ -258,7 +258,7 @@ uint8_t FAC_settings_command_response() {
 			commandUndestood = TRUE;
 			break;
 		case FAC_USB_COMMAND_PING:
-			uint8_t ping = 73;	// the perfect number XD
+			uint8_t ping = 73;	// the perfect number XD (0x49)
 			CDC_Transmit_FS(&ping, 1);
 			commandUndestood = TRUE;
 			break;
@@ -277,9 +277,9 @@ uint8_t FAC_settings_command_response() {
 	}
 
 	if (commandUndestood) {	// blink led if command understood, also add the usb_timeout time to the trasmition
-		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		HAL_Delay(USB_SERIAL_TIMEOUT);
-		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+//		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+//		HAL_Delay(USB_SERIAL_TIMEOUT);
+//		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 	}
 	return commandUndestood;
 }
@@ -289,11 +289,12 @@ uint8_t FAC_settings_command_response() {
  * @note	Data format [code, valueLSB, valueMSB]
  */
 void FAC_settings_USB_SEND_setting_value(uint8_t code) {
-	uint8_t data[3];
-	data[0] = code;
+	uint8_t data[4];
+	data[0] = FAC_USB_COMMAND_READ_VALUE;
+	data[1] = code;
 	/* min */
-	data[2] = (uint8_t) (settings[code].value & 0xFF);        // LSB
-	data[1] = (uint8_t) ((settings[code].value >> 8) & 0xFF); // MSB
+	data[3] = (uint8_t) (settings[code].value & 0xFF);        // LSB
+	data[2] = (uint8_t) ((settings[code].value >> 8) & 0xFF); // MSB
 
 	CDC_Transmit_FS(data, sizeof(data));
 }
@@ -303,14 +304,15 @@ void FAC_settings_USB_SEND_setting_value(uint8_t code) {
  * @note	Data format [code, minLSB, minMSB, maxLSB, maxMSB]
  */
 void FAC_settings_USB_SEND_setting_ranges(uint8_t code) {
-	uint8_t data[5];
-	data[0] = code;
+	uint8_t data[6];
+	data[0] = FAC_USB_COMMAND_READ_RANGE;
+	data[1] = code;
 	/* min */
-	data[2] = (uint8_t) (settings[code].min_value & 0xFF);        // LSB
-	data[1] = (uint8_t) ((settings[code].min_value >> 8) & 0xFF); // MSB
+	data[3] = (uint8_t) (settings[code].min_value & 0xFF);        // LSB
+	data[2] = (uint8_t) ((settings[code].min_value >> 8) & 0xFF); // MSB
 	/* max */
-	data[4] = (uint8_t) (settings[code].max_value & 0xFF);        // LSB
-	data[3] = (uint8_t) ((settings[code].max_value >> 8) & 0xFF); // MSB
+	data[5] = (uint8_t) (settings[code].max_value & 0xFF);        // LSB
+	data[4] = (uint8_t) ((settings[code].max_value >> 8) & 0xFF); // MSB
 	CDC_Transmit_FS(data, sizeof(data));
 }
 

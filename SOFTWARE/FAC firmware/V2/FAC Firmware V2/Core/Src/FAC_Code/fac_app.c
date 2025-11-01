@@ -51,7 +51,7 @@ void FAC_app_main_loop() {	// one cycle every 13ms [about 76Hz] (with simple tan
 
 		newComSerialReceived = FALSE;
 	}
-
+#ifndef ONLY_MCU_AND_EEPROM
 	/* MAIN FUNCTIONS OF THE APP - STATES OF OPERATION */	// 13ms
 	switch (FAC_app_GET_current_state()) {
 		case FAC_STATE_DISARMED: {
@@ -150,11 +150,13 @@ void FAC_app_main_loop() {	// one cycle every 13ms [about 76Hz] (with simple tan
 		}
 	}
 
+#endif
 	/* ONE SECOND FUNCTION */
 	static uint32_t time = 0;
 	if (HAL_GetTick() - time >= 1000) {
 		time = HAL_GetTick();
 		/* WRITE HERE YOUR CODE */
+		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 
 	}
 }
@@ -202,7 +204,9 @@ void FAC_app_init() {
  */
 void FAC_app_init_all_modules() {
 	FAC_motor_init();
+#ifndef	ONLY_MCU_AND_EEPROM
 	FAC_std_reciever_init(FAC_settings_GET_value(FAC_SETTINGS_CODE_RECEIVER_TYPE));	// must be changed in base of settings
+#endif
 	FAC_servo_init();
 	FAC_mixes_init();
 	FAC_functions_init();
