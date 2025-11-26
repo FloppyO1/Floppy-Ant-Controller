@@ -207,23 +207,32 @@ static void FAC_settings_USB_SEND_telemetry() {
 	telemetryPocket[19] = FAC_battery_GET_type();
 	/* fac state */					// 0-2: DISARMED, NORMAL, CUTOFF
 	telemetryPocket[20] = FAC_app_GET_current_state();	// add the arming value
-	/* accelerometer */
-	uint8_t accel[2];
-	// X
-	int16_t accelTemp = (int16_t) (FAC_IMU_GET_accel_X() * 1000.0f);
-	FAC_settings_uint16_to_bytes(accelTemp, accel);
-	telemetryPocket[21] = accel[0];
-	telemetryPocket[22] = accel[1];
-	// Y
-	accelTemp = (int16_t) (FAC_IMU_GET_accel_Y() * 1000.0f);
-	FAC_settings_uint16_to_bytes(accelTemp, accel);
-	telemetryPocket[23] = accel[0];
-	telemetryPocket[24] = accel[1];
-	// Z
-	accelTemp = (int16_t) (FAC_IMU_GET_accel_Z() * 1000.0f);
-	FAC_settings_uint16_to_bytes(accelTemp, accel);
-	telemetryPocket[25] = accel[0];
-	telemetryPocket[26] = accel[1];
+	if (FAC_IMU_GET_status() == HAL_OK) {
+		/* accelerometer */
+		uint8_t accel[2];
+		// X
+		int16_t accelTemp = (int16_t) (FAC_IMU_GET_accel_X() * 1000.0f);
+		FAC_settings_uint16_to_bytes(accelTemp, accel);
+		telemetryPocket[21] = accel[0];
+		telemetryPocket[22] = accel[1];
+		// Y
+		accelTemp = (int16_t) (FAC_IMU_GET_accel_Y() * 1000.0f);
+		FAC_settings_uint16_to_bytes(accelTemp, accel);
+		telemetryPocket[23] = accel[0];
+		telemetryPocket[24] = accel[1];
+		// Z
+		accelTemp = (int16_t) (FAC_IMU_GET_accel_Z() * 1000.0f);
+		FAC_settings_uint16_to_bytes(accelTemp, accel);
+		telemetryPocket[25] = accel[0];
+		telemetryPocket[26] = accel[1];
+	} else {
+		telemetryPocket[21] = 0;
+		telemetryPocket[22] = 0;
+		telemetryPocket[23] = 0;
+		telemetryPocket[24] = 0;
+		telemetryPocket[25] = 0;
+		telemetryPocket[26] = 0;
+	}
 	/* TRANMIT POCKET */
 	CDC_Transmit_FS(telemetryPocket, sizeof(telemetryPocket));
 }

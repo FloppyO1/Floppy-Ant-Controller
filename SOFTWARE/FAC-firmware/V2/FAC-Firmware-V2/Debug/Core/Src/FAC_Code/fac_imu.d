@@ -37,7 +37,8 @@ Core/Src/FAC_Code/fac_imu.o: ../Core/Src/FAC_Code/fac_imu.c \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim_ex.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h \
- ../Core/Inc/Libraries/LSM6DS3.h ../Core/Inc/i2c.h ../Core/Inc/main.h
+ ../Core/Inc/Libraries/LSM6DS3.h ../Core/Inc/i2c.h ../Core/Inc/main.h \
+ ../Core/Inc/iwdg.h
 ../Core/Inc/FAC_Code/fac_imu.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h:
 ../Core/Inc/stm32f0xx_hal_conf.h:
@@ -79,3 +80,4 @@ Core/Src/FAC_Code/fac_imu.o: ../Core/Src/FAC_Code/fac_imu.c \
 ../Core/Inc/Libraries/LSM6DS3.h:
 ../Core/Inc/i2c.h:
 ../Core/Inc/main.h:
+../Core/Inc/iwdg.h:

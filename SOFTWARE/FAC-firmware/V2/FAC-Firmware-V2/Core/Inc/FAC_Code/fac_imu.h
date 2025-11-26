@@ -23,7 +23,7 @@ float FAC_IMU_GET_accel_Z();
 float FAC_IMU_GET_gyro_X();
 float FAC_IMU_GET_gyro_Y();
 float FAC_IMU_GET_gyro_Z();
-void FAC_IMU_init();
+HAL_StatusTypeDef FAC_IMU_init();
 void FAC_IMU_init_accelerometer();
 void FAC_IMU_init_gyroscope();
 void FAC_IMU_compute_gyro_offset();

@@ -109,15 +109,15 @@ void FAC_app_main_loop() {	// one cycle every 13ms [about 76Hz] (with simple tan
 			/* LOW BATTERY DETECTOR */		// 200us
 			uint16_t vbat = FAC_battery_GET_cell_voltage();
 			uint8_t batteryType = FAC_battery_GET_type();
-			if (batteryType != BATTERY_TYPE_NONE && batteryType != BATTERY_TYPE_USB) {	// a known battery must be connected
-				if (vbat < FAC_settings_GET_value(FAC_SETTINGS_CODE_LOW_BATTERY_VOLTAGE_MV))	// if the vbat is below the low battery thershold
+			if (batteryType != BATTERY_TYPE_NONE && batteryType != BATTERY_TYPE_USB) {		// a known battery must be connected
+				if (vbat < FAC_settings_GET_value(FAC_SETTINGS_CODE_LOW_BATTERY_VOLTAGE_MV))		// if the vbat is below the low battery thershold
 					FAC_app_SET_is_low_battery(TRUE);
 			}
 
 			/* CUT OFF DETECTION */		// 8us
 			static uint32_t timerCutOff = 0;
 			if (vbat > FAC_settings_GET_value(FAC_SETTINGS_CODE_CUTOFF_VOLTAGE_MV))
-				timerCutOff = HAL_GetTick();	// if the vbat is grater than the cutoff threshold the timer will be resetted
+				timerCutOff = HAL_GetTick();		// if the vbat is grater than the cutoff threshold the timer will be resetted
 			if (HAL_GetTick() - timerCutOff > FAC_settings_GET_value(FAC_SETTINGS_CODE_CUTOFF_DETECTION_TIME)) {
 				FAC_app_SET_current_state(FAC_STATE_CUTOFF);
 			}
@@ -130,7 +130,7 @@ void FAC_app_main_loop() {	// one cycle every 13ms [about 76Hz] (with simple tan
 					HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 				}
 			} else {
-				HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, 1);	// if no low battery detected the led will be always on
+				HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, 1);		// if no low battery detected the led will be always on
 			}
 
 			break;
@@ -175,12 +175,12 @@ void FAC_app_main_loop() {	// one cycle every 13ms [about 76Hz] (with simple tan
  */
 void FAC_app_init() {
 	HAL_IWDG_Refresh(&hiwdg);	// refresh the watchdog	(500ms)
-	FAC_settings_init(1);	/// first load all settings than initialize all modules
+	FAC_settings_init(5);	/// first load all settings than initialize all modules
 
 	FAC_adc_Init();
 	FAC_battery_init();
 	/* INERTIAL MESUREMENT UNIT INIT */
-	for(int i= 0; i<100; i++){	// wait for 3000ms
+	for (int i = 0; i < 100; i++) {	// wait for 3000ms
 		HAL_IWDG_Refresh(&hiwdg);	// refresh the watchdog	(500ms)
 		HAL_Delay(10);
 	}
@@ -188,11 +188,11 @@ void FAC_app_init() {
 	HAL_IWDG_Refresh(&hiwdg);	// refresh the watchdog	(500ms) NEXT TWO ARE A BIT LONG TO EXECUTE
 	FAC_IMU_init_accelerometer();
 	FAC_IMU_init_gyroscope();
-	if (FAC_IMU_GET_status() == HAL_ERROR) {
+	if (FAC_IMU_GET_status() != HAL_OK) {
 		for (int i = 0; i < 20; i++) {
 			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 			HAL_IWDG_Refresh(&hiwdg);	// refresh the watchdog	(500ms)
-			HAL_Delay(50);
+			HAL_Delay(200);
 		}
 	} else {
 		FAC_IMU_compute_gyro_offset();
@@ -205,7 +205,7 @@ void FAC_app_init() {
 	FAC_app_SET_current_state(FAC_STATE_DISARMED);
 
 	/* INIT END */
-	FAC_jingle_Tequila_long();
+	FAC_jingle_Tequila();
 //	FAC_jingle_neverGiveYouUp();
 }
 

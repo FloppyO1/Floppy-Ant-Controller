@@ -100,7 +100,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  __HAL_DBGMCU_FREEZE_IWDG();	// disable watchdog if core frozen (debug)
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -124,7 +124,6 @@ int main(void)
   MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
 	FAC_app_init();
-
   /* USER CODE END 2 */
 
   /* Infinite loop */

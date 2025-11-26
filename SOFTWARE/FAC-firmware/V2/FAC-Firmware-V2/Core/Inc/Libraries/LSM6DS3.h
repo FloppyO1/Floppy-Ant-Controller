@@ -110,8 +110,8 @@
 #define Z_OFS_USR           0x75  // Accelerometer Z-axis user offset
 
 // KNOWN VALUE
-//#define WHO_AM_I_VALUE 		0x6A	// see page 60 of the LSM6DS3 datasheet
-#define WHO_AM_I_VALUE 		0x69	// a Chinese clone gives me 0x69 ???
+#define WHO_AM_I_VALUE 		0x6A	// see page 60 of the LSM6DS3 datasheet
+//#define WHO_AM_I_VALUE 		0x69	// a Chinese clone gives me 0x69 ??? FIXME
 
 // SETTINGS
 #define TIMEOUT_I2C	100

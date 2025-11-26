@@ -9,29 +9,28 @@
 #include "Libraries/LSM6DS3.h"
 #include "iwdg.h"
 
-static const uint8_t DevAddress = 0xD4;	// 0x6A if SA0 = LOW, 0x6B if SA0 = HIGH
-
+static const uint8_t DevAddress = 0x6A;	// 0x6A if SA0 = LOW, 0x6B if SA0 = HIGH (shift to left by one bit: 0xD4 - 0xD6)
 
 static uint8_t read_single_register(LSM6DS3 *LSM6DS3object, uint8_t regAddress);
 static uint16_t read_two_consecutive_registers(LSM6DS3 *LSM6DS3object, uint8_t regfirstAddress);
-static HAL_StatusTypeDef write_register (LSM6DS3 *LSM6DS3object, uint8_t regAddress, uint8_t data);
+static HAL_StatusTypeDef write_register(LSM6DS3 *LSM6DS3object, uint8_t regAddress, uint8_t data);
 
 // FUNCTIONS FOR THE DRIVER
 static uint8_t read_single_register(LSM6DS3 *LSM6DS3object, uint8_t regAddress) {
 	uint8_t data = 0;
-	HAL_I2C_Mem_Read(LSM6DS3object->i2c, DevAddress, regAddress, 1, &data, 1, TIMEOUT_I2C);
+	HAL_I2C_Mem_Read(LSM6DS3object->i2c, DevAddress << 1, regAddress, 1, &data, 1, TIMEOUT_I2C);
 	return data;
 }
 
 static uint16_t read_two_consecutive_registers(LSM6DS3 *LSM6DS3object, uint8_t regfirstAddress) {
 	uint8_t data[2];
-	HAL_I2C_Mem_Read(LSM6DS3object->i2c, DevAddress, regfirstAddress, 1, data, 2, TIMEOUT_I2C);
+	HAL_I2C_Mem_Read(LSM6DS3object->i2c, DevAddress << 1, regfirstAddress, 1, data, 2, TIMEOUT_I2C);
 	uint16_t returnData = (uint16_t) (data[1] << 8 | data[0]);
 	return returnData;
 }
 
 static HAL_StatusTypeDef write_register(LSM6DS3 *LSM6DS3object, uint8_t regAddress, uint8_t data) {
-	return HAL_I2C_Mem_Write(LSM6DS3object->i2c, DevAddress, regAddress, 1, &data, 1, TIMEOUT_I2C);
+	return HAL_I2C_Mem_Write(LSM6DS3object->i2c, DevAddress << 1, regAddress, 1, &data, 1, TIMEOUT_I2C);
 }
 
 // FUNCTIONS

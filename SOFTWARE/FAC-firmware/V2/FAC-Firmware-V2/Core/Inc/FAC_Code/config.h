@@ -8,6 +8,8 @@
 #ifndef INC_FAC_CODE_CONFIG_H_
 #define INC_FAC_CODE_CONFIG_H_
 
+//#define SERIAL_DEBUG	// activate the serial debug prints
+
 /* FIRMWARE VERSION */
 #define FIRMWARE_VERSION_MAJOR 2	// [MAX 9] 	add one here, if the changes are substantial and not backwards compatible
 #define FIRMWARE_VERSION_MINOR 0	// [MAX 99] add one here, if new backwards compatible features have been added

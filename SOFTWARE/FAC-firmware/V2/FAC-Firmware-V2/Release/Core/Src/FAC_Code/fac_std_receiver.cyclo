@@ -1,0 +1,4 @@
+../Core/Src/FAC_Code/fac_std_receiver.c:106:10:FAC_std_receiver_GET_channel	5
+../Core/Src/FAC_Code/fac_std_receiver.c:131:9:FAC_std_receiver_new_channel_value	9
+../Core/Src/FAC_Code/fac_std_receiver.c:144:6:FAC_std_reciever_init	5
+../Core/Src/FAC_Code/fac_std_receiver.c:180:6:HAL_GPIO_EXTI_Callback	5
