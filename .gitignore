@@ -1,1 +1,74 @@
-HARDWARE/Documentazione Floppy Ant Controller v1.3.gdoc
+# ======================
+# Python general
+# ======================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyd
+*.swp
+*.swo
+
+# ======================
+# Virtual environments
+# ======================
+venv/
+env/
+ENV/
+.venv/
+
+# ======================
+# Build directories
+# ======================
+build/
+dist/
+*.spec
+
+# ======================
+# Packaging
+# ======================
+*.egg-info/
+.eggs/
+
+# ======================
+# PyInstaller temp
+# ======================
+*.manifest
+
+# ======================
+# Logs
+# ======================
+*.log
+
+# ======================
+# OS temp files
+# ======================
+.DS_Store
+Thumbs.db
+
+# ======================
+# STM32CubeIDE / Embedded projects
+# ======================
+Debug/
+Release/
+.build/
+.settings/
+.metadata/
+*.launch
+
+# ======================
+# STM32CubeIDE binary/temporary
+# ======================
+*.elf
+*.bin
+*.hex
+*.map
+*.o
+*.d
+
+# ======================
+# Backup files
+# ======================
+*.bak
+*.orig
+
