@@ -1,0 +1,8 @@
+../Core/Src/FAC_Code/fac_app.c:34:9:FAC_app_GET_current_state	0	static
+../Core/Src/FAC_Code/fac_app.c:50:9:FAC_app_GET_battery_type	0	static
+../Core/Src/FAC_Code/fac_app.c:54:6:FAC_app_main_loop	16	static
+../Core/Src/FAC_Code/fac_app.c:204:6:FAC_app_init	16	static
+../Core/Src/FAC_Code/fac_app.c:247:6:FAC_app_init_all_modules	8	static
+../Core/Src/FAC_Code/fac_app.c:262:10:map_uint32	16	static
+../Core/Src/FAC_Code/fac_app.c:275:9:map_int32	16	static
+../Core/Src/FAC_Code/fac_app.c:288:7:map_float	24	static

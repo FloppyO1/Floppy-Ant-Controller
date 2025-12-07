@@ -1,7 +1,0 @@
-../Core/Src/FAC_Code/fac_settings.c:143:13:FAC_settings_STORE_ALL_to_eeprom	16	static
-../Core/Src/FAC_Code/fac_settings.c:231:10:FAC_settings_GET_value	0	static
-../Core/Src/FAC_Code/fac_settings.c:292:6:FAC_settings_USB_SEND_setting_value	16	static
-../Core/Src/FAC_Code/fac_settings.c:307:6:FAC_settings_USB_SEND_setting_ranges	16	static
-../Core/Src/FAC_Code/fac_settings.c:239:9:FAC_settings_command_response	48	static
-../Core/Src/FAC_Code/fac_settings.c:320:6:FAC_settings_init	16	static
-../Core/Src/FAC_Code/fac_settings.c:358:6:FAC_settings_SEND_what_received	8	static

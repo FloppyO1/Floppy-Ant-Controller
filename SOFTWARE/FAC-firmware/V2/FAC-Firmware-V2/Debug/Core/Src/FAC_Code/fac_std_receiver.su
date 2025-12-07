@@ -1,4 +1,0 @@
-../Core/Src/FAC_Code/fac_std_receiver.c:106:10:FAC_std_receiver_GET_channel	16	static
-../Core/Src/FAC_Code/fac_std_receiver.c:131:9:FAC_std_receiver_new_channel_value	32	static
-../Core/Src/FAC_Code/fac_std_receiver.c:144:6:FAC_std_reciever_init	24	static
-../Core/Src/FAC_Code/fac_std_receiver.c:180:6:HAL_GPIO_EXTI_Callback	8	static

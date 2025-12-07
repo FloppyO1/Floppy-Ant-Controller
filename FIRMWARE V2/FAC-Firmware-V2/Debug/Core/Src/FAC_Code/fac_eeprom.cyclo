@@ -1,0 +1,6 @@
+../Core/Src/FAC_Code/fac_eeprom.c:70:9:FAC_eeprom_GET_is_first_boot_value	1
+../Core/Src/FAC_Code/fac_eeprom.c:77:6:FAC_eeprom_WRITE_frist_boot_value_in_eeprom	1
+../Core/Src/FAC_Code/fac_eeprom.c:85:6:FAC_eeprom_store_value	2
+../Core/Src/FAC_Code/fac_eeprom.c:102:10:FAC_eeprom_read_value	1
+../Core/Src/FAC_Code/fac_eeprom.c:114:9:FAC_eeprom_is_first_time	1
+../Core/Src/FAC_Code/fac_eeprom.c:124:6:FAC_eeprom_init	2

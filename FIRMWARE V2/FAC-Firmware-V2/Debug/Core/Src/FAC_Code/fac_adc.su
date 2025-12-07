@@ -1,0 +1,4 @@
+../Core/Src/FAC_Code/fac_adc.c:29:10:FAC_adc_GET_resolution	0	static
+../Core/Src/FAC_Code/fac_adc.c:37:10:FAC_adc_GET_Vref_in_uV	0	static
+../Core/Src/FAC_Code/fac_adc.c:45:19:FAC_adc_Init	8	static
+../Core/Src/FAC_Code/fac_adc.c:80:10:FAC_adc_get_raw_channel_value	0	static

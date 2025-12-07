@@ -1,0 +1,9 @@
+../Core/Src/FAC_Code/fac_servo.c:119:10:FAC_servo_GET_position	1
+../Core/Src/FAC_Code/fac_servo.c:123:9:FAC_servo_GET_is_enable	1
+../Core/Src/FAC_Code/fac_servo.c:127:9:FAC_servo_GET_is_reversed	1
+../Core/Src/FAC_Code/fac_servo.c:131:10:FAC_servo_GET_servo_freq	1
+../Core/Src/FAC_Code/fac_servo.c:139:6:FAC_servo_set_position	8
+../Core/Src/FAC_Code/fac_servo.c:148:6:FAC_servo_enable	3
+../Core/Src/FAC_Code/fac_servo.c:157:6:FAC_servo_disable	3
+../Core/Src/FAC_Code/fac_servo.c:166:6:FAC_servo_is_reversed	6
+../Core/Src/FAC_Code/fac_servo.c:175:6:FAC_servo_init	1

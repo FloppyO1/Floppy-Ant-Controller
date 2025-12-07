@@ -1,3 +1,0 @@
-../Core/Src/FAC_Code/fac_ppm_receiver.c:32:6:FAC_ppm_receiver_Callback	12	static
-../Core/Src/FAC_Code/fac_ppm_receiver.c:56:6:FAC_ppm_receiver_calculate_channels_values	32	static
-../Core/Src/FAC_Code/fac_ppm_receiver.c:74:6:FAC_ppm_receiver_init	8	static

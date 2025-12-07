@@ -1,9 +1,0 @@
-../Core/Src/FAC_Code/fac_servo.c:119:10:FAC_servo_GET_position	0	static
-../Core/Src/FAC_Code/fac_servo.c:123:9:FAC_servo_GET_is_enable	0	static
-../Core/Src/FAC_Code/fac_servo.c:127:9:FAC_servo_GET_is_reversed	0	static
-../Core/Src/FAC_Code/fac_servo.c:131:10:FAC_servo_GET_servo_freq	0	static
-../Core/Src/FAC_Code/fac_servo.c:139:6:FAC_servo_set_position	16	static
-../Core/Src/FAC_Code/fac_servo.c:148:6:FAC_servo_enable	16	static
-../Core/Src/FAC_Code/fac_servo.c:157:6:FAC_servo_disable	0	static
-../Core/Src/FAC_Code/fac_servo.c:166:6:FAC_servo_is_reversed	16	static
-../Core/Src/FAC_Code/fac_servo.c:175:6:FAC_servo_init	16	static

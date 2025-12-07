@@ -1,3 +1,0 @@
-../Core/Src/Libraries/DMApwm.c:61:6:FAC_DMA_pwm_change_freq	16	static
-../Core/Src/Libraries/DMApwm.c:67:6:initDMApwm	16	static
-../Core/Src/Libraries/DMApwm.c:90:9:setDMApwmDuty	20	static
