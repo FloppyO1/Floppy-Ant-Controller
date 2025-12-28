@@ -70,8 +70,8 @@ all: main-build
 main-build: FAC_Firmware_V2.elf secondary-outputs
 
 # Tool invocations
-FAC_Firmware_V2.elf FAC_Firmware_V2.map: $(OBJS) $(USER_OBJS) D:\GITHUB\Floppy-Ant-Controller\SOFTWARE\FAC-firmware\V2\FAC-Firmware-V2\STM32F072CBTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "FAC_Firmware_V2.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"D:\GITHUB\Floppy-Ant-Controller\SOFTWARE\FAC-firmware\V2\FAC-Firmware-V2\STM32F072CBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="FAC_Firmware_V2.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+FAC_Firmware_V2.elf FAC_Firmware_V2.map: $(OBJS) $(USER_OBJS) D:\GITHUB\Floppy-Ant-Controller\FIRMWARE\ V2\FAC-Firmware-V2\STM32F072CBTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "FAC_Firmware_V2.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"D:\GITHUB\Floppy-Ant-Controller\FIRMWARE V2\FAC-Firmware-V2\STM32F072CBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="FAC_Firmware_V2.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

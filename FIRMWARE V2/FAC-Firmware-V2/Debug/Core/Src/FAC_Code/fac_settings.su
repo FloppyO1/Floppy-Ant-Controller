@@ -1,6 +1,6 @@
-../Core/Src/FAC_Code/fac_settings.c:240:10:FAC_settings_GET_value	0	static
-../Core/Src/FAC_Code/fac_settings.c:248:9:FAC_settings_command_response	56	static
-../Core/Src/FAC_Code/fac_settings.c:309:6:FAC_settings_USB_SEND_setting_value	16	static
-../Core/Src/FAC_Code/fac_settings.c:324:6:FAC_settings_USB_SEND_setting_ranges	16	static
-../Core/Src/FAC_Code/fac_settings.c:337:6:FAC_settings_init	16	static
-../Core/Src/FAC_Code/fac_settings.c:375:6:FAC_settings_SEND_what_received	8	static
+../Core/Src/FAC_Code/fac_settings.c:298:10:FAC_settings_GET_value	0	static
+../Core/Src/FAC_Code/fac_settings.c:306:9:FAC_settings_command_response	56	static
+../Core/Src/FAC_Code/fac_settings.c:366:6:FAC_settings_USB_SEND_setting_value	16	static
+../Core/Src/FAC_Code/fac_settings.c:381:6:FAC_settings_USB_SEND_setting_ranges	16	static
+../Core/Src/FAC_Code/fac_settings.c:394:6:FAC_settings_init	16	static
+../Core/Src/FAC_Code/fac_settings.c:433:6:FAC_settings_SEND_what_received	8	static

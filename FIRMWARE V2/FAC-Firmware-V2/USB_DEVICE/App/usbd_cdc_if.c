@@ -23,6 +23,7 @@
 
 /* USER CODE BEGIN INCLUDE */
 #include "main.h"
+#include "FAC_Code/fac_settings.h"
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -50,7 +51,7 @@
 
 /* USER CODE BEGIN PRIVATE_TYPES */
 extern uint8_t comSerialBuffer[64];		// buffer for received data from serial com (sed in fa_settings.c file)
-extern uint8_t newComSerialReceived; 			// turn true when something is received
+extern uint8_t newComSerialReceived;
 /* USER CODE END PRIVATE_TYPES */
 
 /**
@@ -266,7 +267,9 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 	uint8_t len = (uint8_t) *Len;       		// 2) get the actual received length
 	memcpy(comSerialBuffer, Buf, len);          // 3) copy data from USB buffer to our buffer
 	memset(Buf, '\0', len);             		// 4) clear the USB buffer too (prevents stale data)
+
 	newComSerialReceived = TRUE;
+
 
 	return (USBD_OK);
   /* USER CODE END 6 */

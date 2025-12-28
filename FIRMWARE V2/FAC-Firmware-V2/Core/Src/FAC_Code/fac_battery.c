@@ -18,7 +18,6 @@ static void FAC_battery_SET_cell_voltage(uint16_t vcell);
 static void FAC_battery_SET_type(uint8_t type);
 static void FAC_battery_calculate_voltage();
 static void FAC_battery_calculate_cell_voltage();
-static void FAC_battery_calculate_type();
 
 /* FUNCTION DEFINITION */
 
@@ -51,14 +50,13 @@ uint16_t FAC_battery_GET_cell_voltage() {
 }
 
 /**
- * @bief 	Return the calculated Vbat
- * @retval 	Return the calculate Vbat with the format: 6.253V = 6253mV
+ * @bief 	Return the calculated battery type
+ * @retval 	Return the calculate battery type enum value (1,2,3,4S, USB, UNKNOWN)
  */
-uint16_t FAC_battery_GET_type() {
-	FAC_battery_calculate_type();
+uint16_t FAC_battery_GET_type(uint16_t vbat) {
+	FAC_battery_calculate_type(vbat);
 	return battery.type;
 }
-
 /**
  * @bief 	Calculate the voltage of the battery from the adc reading
  * @note 	Vbat with the format: 6.253V = 6253mV
@@ -84,21 +82,19 @@ static void FAC_battery_calculate_cell_voltage() {
 /**
  * @bief 	Calculate the battery type
  */
-static void FAC_battery_calculate_type() {
-	uint16_t v = FAC_battery_GET_voltage();
-	if (v >= NOMINAL_USB_VOLTAGE - TYPIC_DIODE_VOLTAGE_DROP - USB_POWER_TOLLERACE && v <= NOMINAL_USB_VOLTAGE + USB_POWER_TOLLERACE) {
+void FAC_battery_calculate_type(uint16_t vbat) {
+	if (vbat >= NOMINAL_USB_VOLTAGE - TYPIC_DIODE_VOLTAGE_DROP - USB_POWER_TOLLERACE && vbat <= NOMINAL_USB_VOLTAGE + USB_POWER_TOLLERACE) {
 		FAC_battery_SET_type(BATTERY_TYPE_USB);
 		return;
 	} else {
-		uint8_t temp = v / (NOMINAL_BATTERY_LEVEL - TYPIC_BATTERY_RANGE);
+		uint8_t temp = vbat / (NOMINAL_BATTERY_LEVEL - TYPIC_BATTERY_RANGE);
 		uint16_t bottomRange = temp * (NOMINAL_BATTERY_LEVEL - TYPIC_BATTERY_RANGE);
 		uint16_t topRange = temp * (NOMINAL_BATTERY_LEVEL + TYPIC_BATTERY_RANGE);
-		if (v >= bottomRange && v <= topRange) {
+		if (vbat >= bottomRange && vbat <= topRange) {
 			FAC_battery_SET_type(temp);
 		} else {
 			FAC_battery_SET_type(BATTERY_TYPE_NONE);
 		}
-
 	}
 }
 

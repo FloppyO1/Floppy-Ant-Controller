@@ -13,9 +13,9 @@
 /* FIRMWARE VERSION */
 #define FIRMWARE_VERSION_MAJOR 2	// [MAX 9] 	add one here, if the changes are substantial and not backwards compatible
 #define FIRMWARE_VERSION_MINOR 0	// [MAX 99] add one here, if new backwards compatible features have been added
-#define FIRMWARE_VERSION_PATCH 1	// [MAX 99] add one here, if any issues have been fixed without adding any features
+#define FIRMWARE_VERSION_PATCH 4	// [MAX 99] add one here, if any issues have been fixed without adding any features
 
-//#define ONLY_MCU_AND_EEPROM			// if this is defined the target use only the mcu and eeprom, used for testing settings and nothing else.
+//#define IM_TESTING_FAC_TOOL			// if this is defined the target use only the mcu and eeprom, used for testing settings and nothing else.
 
 /* RECEIVER */
 #define RECEIVER_CHANNEL_RESOLUTION 1000	// max 2000, because the timer tick is 0.5us (500ns)

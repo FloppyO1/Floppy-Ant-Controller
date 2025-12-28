@@ -61,7 +61,7 @@ void FAC_app_main_loop() {// one cycle every 13ms [about 76Hz] (with simple tank
 	}
 
 	HAL_IWDG_Refresh(&hiwdg);	// refresh the watchdog	(500ms)
-#ifndef ONLY_MCU_AND_EEPROM
+#ifndef IM_TESTING_FAC_TOOL
 	/* MAIN FUNCTIONS OF THE APP - STATES OF OPERATION */	// 13ms
 	switch (FAC_app_GET_current_state()) {
 	case FAC_STATE_DISARMED: {
@@ -186,10 +186,10 @@ void FAC_app_main_loop() {// one cycle every 13ms [about 76Hz] (with simple tank
 	if (HAL_GetTick() - time >= 1000) {
 		time = HAL_GetTick();
 		/* WRITE HERE YOUR CODE */
-#ifdef ONLY_MCU_AND_EEPROM
+#ifdef IM_TESTING_FAC_TOOL
 		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 #endif
-#ifndef ONLY_MCU_AND_EEPROM
+#ifndef IM_TESTING_FAC_TOOL
 		if (FAC_app_GET_current_state() == FAC_STATE_NORMAL) {
 			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 		}
@@ -231,7 +231,7 @@ void FAC_app_init() {
 	/* INITIALIZE APP STRUCT */
 	fac_application.is_low_battery = FALSE;
 	FAC_app_SET_current_state(FAC_STATE_DISARMED);
-	FAC_app_SET_battery_type(FAC_battery_GET_type());
+	FAC_app_SET_battery_type(FAC_battery_GET_type(FAC_battery_GET_voltage()));
 
 	/* INIT END */
 //	FAC_jingle_Tequila();
@@ -246,7 +246,7 @@ void FAC_app_init() {
  */
 void FAC_app_init_all_modules() {
 	FAC_motor_init();
-#ifndef	ONLY_MCU_AND_EEPROM
+#ifndef	IM_TESTING_FAC_TOOL
 	FAC_std_reciever_init(
 			FAC_settings_GET_value(FAC_SETTINGS_CODE_RECEIVER_TYPE));// must be changed in base of settings
 #endif

@@ -17,7 +17,7 @@
 
 /* BATTERY CELL DETECTION RANGES*/
 #define NOMINAL_BATTERY_LEVEL  3800	//3.8V to have 0.4V form 4.2V max and 3.4V theoretical min
-#define TYPIC_BATTERY_RANGE 450	// the 0.4V mentioned above + 50 mV of tollerance
+#define TYPIC_BATTERY_RANGE 425	// the 0.4V mentioned above + 50 mV of tollerance
 #define TYPIC_DIODE_VOLTAGE_DROP 300	// used to detect usb powered case
 #define NOMINAL_USB_VOLTAGE 5100
 #define USB_POWER_TOLLERACE	200	// used to detect usb powered case
@@ -44,7 +44,8 @@ void FAC_battery_init();
 uint16_t FAC_battery_GET_voltage ();
 uint16_t FAC_battery_GET_voltage();
 uint16_t FAC_battery_GET_cell_voltage();
-uint16_t FAC_battery_GET_type();
+uint16_t FAC_battery_GET_type(uint16_t vbat);
+void FAC_battery_calculate_type(uint16_t vbat);
 
 
 #endif /* INC_FAC_CODE_FAC_BATTERY_H_ */

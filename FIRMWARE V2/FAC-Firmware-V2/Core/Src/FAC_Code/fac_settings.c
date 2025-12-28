@@ -18,7 +18,11 @@
 #include "FAC_Code/fac_app.h"
 #include "FAC_Code/fac_imu.h"
 
-uint8_t comSerialBuffer[64];			// buffer for received data from serial com
+#ifdef IM_TESTING_FAC_TOOL
+#include "FAC_Code/fac_ppm_receiver.h"
+#endif
+
+uint8_t comSerialBuffer[64];		// buffer for received data from serial com
 
 // @formatter:off
 static Setting settings[FAC_SETTINGS_CODE_LAST] = {	// insert every single setting default values
@@ -146,9 +150,11 @@ static void FAC_settings_STORE_ALL_to_eeprom() {
 	}
 }
 
-static void FAC_settings_STORE_new_firmware_version(uint8_t major, uint8_t minor, uint8_t patch) {
-	uint16_t newVersion = (major * 10000) + (minor * 100) + patch;	// 20513 -> 2.05.13 <major>,<minor>,<patch>
-	uint16_t currentVersion = FAC_settings_GET_value(FAC_SETTINGS_CODE_FIRMWARE_VERSION);
+static void FAC_settings_STORE_new_firmware_version(uint8_t major,
+		uint8_t minor, uint8_t patch) {
+	uint16_t newVersion = (major * 10000) + (minor * 100) + patch;// 20513 -> 2.05.13 <major>,<minor>,<patch>
+	uint16_t currentVersion = FAC_settings_GET_value(
+			FAC_SETTINGS_CODE_FIRMWARE_VERSION);
 	if (newVersion != currentVersion) {
 		FAC_eeprom_store_value(FAC_SETTINGS_CODE_FIRMWARE_VERSION, newVersion);
 	}
@@ -187,54 +193,106 @@ static uint16_t FAC_settings_bytes_to_uint16(const uint8_t *array) {
  * 			2B	accel Z	[mg]												25-26
  */
 static void FAC_settings_USB_SEND_telemetry() {
-	uint8_t telemetryPocket[27];
+	uint8_t telemetryPacket[27];
 	/* telemetry res code */
-	telemetryPocket[0] = FAC_USB_COMMAND_TELEMETRY_RESPONSE;
+	telemetryPacket[0] = FAC_USB_COMMAND_TELEMETRY_RESPONSE;
 	/* receiver channels */
 	for (int i = 0; i < 8; i++) {
 		uint8_t ch[2];
+#ifndef IM_TESTING_FAC_TOOL
 		uint16_t chValue = FAC_std_receiver_GET_channel(i + 1);
-		FAC_settings_uint16_to_bytes(chValue, ch);
-		telemetryPocket[1 + (i * 2)] = ch[0];
-		telemetryPocket[1 + ((i * 2) + 1)] = ch[1];
+#else
+		// for simulating the remote stick motion at each channel request I will increase the channel value
+		static uint16_t channels[PPM_RECEIVER_CHANNELS_NUMBER];
+		channels[i] = (channels[i] + 10) % RECEIVER_CHANNEL_RESOLUTION;
+		uint16_t chValue = channels[i];
+#endif
+		FAC_settings_uint16_to_bytes(chValue, ch); // converting uint16 to two uint8 for serial packet
+		telemetryPacket[1 + (i * 2)] = ch[0];
+		telemetryPacket[1 + ((i * 2) + 1)] = ch[1];
 	}
 	/* battery voltage */
 	uint8_t vbat[2];
-	FAC_settings_uint16_to_bytes(FAC_battery_GET_voltage(), vbat);
-	telemetryPocket[17] = vbat[0];
-	telemetryPocket[18] = vbat[1];
-	/* battery type detected at the startup */			// 0-5: USB, 1S, 2S, 3S, 4S, UNKNOWN
-	telemetryPocket[19] = FAC_app_GET_battery_type();
+	uint16_t v = 0;
+#ifndef IM_TESTING_FAC_TOOL
+	v = FAC_battery_GET_voltage();
+#else
+	static uint32_t timer0 = 0;
+	static const uint16_t voltages[] = { 3700, 5000, 8400, 11100, 16800 };
+	static uint8_t j = 0;
+	if (HAL_GetTick() - timer0 >= 1500) {
+		timer0 = HAL_GetTick();
+		j = (j + 1) % 5;
+	}
+	v = voltages[j];
+#endif
+
+	FAC_settings_uint16_to_bytes(v, vbat);
+	telemetryPacket[17] = vbat[0];
+	telemetryPacket[18] = vbat[1];
+	/* battery type detected at the startup */ // 0-5: USB, 1S, 2S, 3S, 4S, UNKNOWN
+#ifndef IM_TESTING_FAC_TOOL
+	telemetryPacket[19] = FAC_app_GET_battery_type();
+#else
+	telemetryPacket[19] = FAC_battery_GET_type(v);
+#endif
 	/* fac state */					// 0-2: DISARMED, NORMAL, CUTOFF
-	telemetryPocket[20] = FAC_app_GET_current_state();	// add the arming value
-//	if (FAC_IMU_GET_status() == HAL_OK) {
-		/* accelerometer */
-		uint8_t accel[2];
-		// X
-		int16_t accelTemp = (int16_t) (FAC_IMU_GET_accel_X() * 1000.0f);
-		FAC_settings_uint16_to_bytes(accelTemp, accel);
-		telemetryPocket[21] = accel[0];
-		telemetryPocket[22] = accel[1];
-		// Y
-		accelTemp = (int16_t) (FAC_IMU_GET_accel_Y() * 1000.0f);
-		FAC_settings_uint16_to_bytes(accelTemp, accel);
-		telemetryPocket[23] = accel[0];
-		telemetryPocket[24] = accel[1];
-		// Z
-		accelTemp = (int16_t) (FAC_IMU_GET_accel_Z() * 1000.0f);
-		FAC_settings_uint16_to_bytes(accelTemp, accel);
-		telemetryPocket[25] = accel[0];
-		telemetryPocket[26] = accel[1];
-//	} else {
-//		telemetryPocket[21] = 0;
-//		telemetryPocket[22] = 0;
-//		telemetryPocket[23] = 0;
-//		telemetryPocket[24] = 0;
-//		telemetryPocket[25] = 0;
-//		telemetryPocket[26] = 0;
-//	}
+#ifndef IM_TESTING_FAC_TOOL
+		telemetryPacket[20] = FAC_app_GET_current_state();	// add the arming value
+#else
+	static uint8_t states = 0;
+	static uint32_t timer1 = 0;
+	if (HAL_GetTick() - timer1 >= 1500) {
+		timer1 = HAL_GetTick();
+		states = (states + 1) % 3;
+	}
+	telemetryPacket[20] = states;
+#endif
+
+	/* accelerometer */
+	uint8_t accel[2];
+#ifndef IM_TESTING_FAC_TOOL
+	// X
+int16_t accelTemp = (int16_t) (FAC_IMU_GET_accel_X() * 1000.0f);
+	FAC_settings_uint16_to_bytes(accelTemp, accel);
+	telemetryPacket[21] = accel[0];
+	telemetryPacket[22] = accel[1];
+	// Y
+	accelTemp = (int16_t) (FAC_IMU_GET_accel_Y() * 1000.0f);
+	FAC_settings_uint16_to_bytes(accelTemp, accel);
+	telemetryPacket[23] = accel[0];
+	telemetryPacket[24] = accel[1];
+	// Z
+	accelTemp = (int16_t) (FAC_IMU_GET_accel_Z() * 1000.0f);
+	FAC_settings_uint16_to_bytes(accelTemp, accel);
+	telemetryPacket[25] = accel[0];
+	telemetryPacket[26] = accel[1];
+#else
+	static uint16_t accx = 0;
+	static uint16_t accy = 330;
+	static uint16_t accz = 660;
+	// X
+	accx = (accx + 10) % 1000;
+	int16_t accelTemp = accx;
+	FAC_settings_uint16_to_bytes(accelTemp, accel);
+	telemetryPacket[21] = accel[0];
+	telemetryPacket[22] = accel[1];
+	// Y
+	accy = (accy + 10) % 1000;
+	accelTemp = accy;
+	FAC_settings_uint16_to_bytes(accelTemp, accel);
+	telemetryPacket[23] = accel[0];
+	telemetryPacket[24] = accel[1];
+	// Z
+	accz = (accz + 10) % 1000;
+	accelTemp = accz;
+	FAC_settings_uint16_to_bytes(accelTemp, accel);
+	telemetryPacket[25] = accel[0];
+	telemetryPacket[26] = accel[1];
+#endif
+
 	/* TRANMIT POCKET */
-	CDC_Transmit_FS(telemetryPocket, sizeof(telemetryPocket));
+	CDC_Transmit_FS(telemetryPacket, sizeof(telemetryPacket));
 }
 /* ----------------------PUBBLIC FUNCTIONS---------------------- */
 uint16_t FAC_settings_GET_value(uint8_t code) {
@@ -252,42 +310,41 @@ uint8_t FAC_settings_command_response() {
 	/* understand the command received from usb serial communication */
 	uint8_t ping = 73;	// the perfect number XD (0x49)
 	switch (command_code) {
-		case FAC_USB_COMMAND_READ_VALUE:
-			FAC_settings_USB_SEND_setting_value(setting_code);
-			commandUndestood = TRUE;
-			break;
-		case FAC_USB_COMMAND_READ_RANGE:
-			FAC_settings_USB_SEND_setting_ranges(setting_code);
-			commandUndestood = TRUE;
-			break;
-		case FAC_USB_COMMAND_WRITE:
-			uint8_t valueRaw[2] = {	// first 3 than 2 because data is sent in big endian (first msB than lsB) arm use little endian
-				comSerialBuffer[3],
-				comSerialBuffer[2] };
-			uint16_t value = FAC_settings_bytes_to_uint16(valueRaw);
-			FAC_settings_SET_value(setting_code, value);
+	case FAC_USB_COMMAND_READ_VALUE:
+		FAC_settings_USB_SEND_setting_value(setting_code);
+		commandUndestood = TRUE;
+		break;
+	case FAC_USB_COMMAND_READ_RANGE:
+		FAC_settings_USB_SEND_setting_ranges(setting_code);
+		commandUndestood = TRUE;
+		break;
+	case FAC_USB_COMMAND_WRITE:
+		uint8_t valueRaw[2] = {	// first 3 than 2 because data is sent in big endian (first msB than lsB) arm use little endian
+				comSerialBuffer[3], comSerialBuffer[2] };
+		uint16_t value = FAC_settings_bytes_to_uint16(valueRaw);
+		FAC_settings_SET_value(setting_code, value);
 
-			CDC_Transmit_FS(&ping, 1);
-			commandUndestood = TRUE;
-			break;
-		case FAC_USB_COMMAND_PING:
-			CDC_Transmit_FS(&ping, 1);
-			commandUndestood = TRUE;
-			break;
-		case FAC_USB_COMMAND_TELEMETRY_REQUEST:
-			FAC_settings_USB_SEND_telemetry();
-			commandUndestood = TRUE;
-			break;
-		case FAC_USB_COMMAND_SAVE_TO_EEPROM:
-			FAC_settings_STORE_ALL_to_eeprom();
-			CDC_Transmit_FS(&ping, 1);
-			commandUndestood = TRUE;
-			break;
-		case FAC_USB_COMMAND_APPLY_SETTINGS:
-			FAC_app_init_all_modules();	// reinitialize all the modules to apply the new setting
-			CDC_Transmit_FS(&ping, 1);
-			commandUndestood = TRUE;
-			break;
+		CDC_Transmit_FS(&ping, 1);
+		commandUndestood = TRUE;
+		break;
+	case FAC_USB_COMMAND_PING:
+		CDC_Transmit_FS(&ping, 1);
+		commandUndestood = TRUE;
+		break;
+	case FAC_USB_COMMAND_TELEMETRY_REQUEST:
+		FAC_settings_USB_SEND_telemetry();
+		commandUndestood = TRUE;
+		break;
+	case FAC_USB_COMMAND_SAVE_TO_EEPROM:
+		FAC_settings_STORE_ALL_to_eeprom();
+		CDC_Transmit_FS(&ping, 1);
+		commandUndestood = TRUE;
+		break;
+	case FAC_USB_COMMAND_APPLY_SETTINGS:
+		FAC_app_init_all_modules();	// reinitialize all the modules to apply the new setting
+		CDC_Transmit_FS(&ping, 1);
+		commandUndestood = TRUE;
+		break;
 	}
 
 	if (commandUndestood) {	// blink led if command understood, also add the usb_timeout time to the trasmition
@@ -336,30 +393,31 @@ void FAC_settings_USB_SEND_setting_ranges(uint8_t code) {
 
 void FAC_settings_init(uint8_t bootValue) {
 	/* FIRMWARE VERSION UPDATE */
-	FAC_settings_STORE_new_firmware_version(FIRMWARE_VERSION_MAJOR, FIRMWARE_VERSION_MINOR, FIRMWARE_VERSION_PATCH);
+	FAC_settings_STORE_new_firmware_version(FIRMWARE_VERSION_MAJOR,
+	FIRMWARE_VERSION_MINOR, FIRMWARE_VERSION_PATCH);
 
 	/* SETTINGS LOAD */
 	FAC_eeprom_init(bootValue);		// set the "first boot" value
-	if (FAC_eeprom_is_first_time()) {	// if the eeprom doesn´t contain any settings yet
+	if (FAC_eeprom_is_first_time()) {// if the eeprom doesn´t contain any settings yet
 		// STORE TO THE DEFAULT SETTINGS TO THE EEPROM
 		FAC_settings_STORE_ALL_to_eeprom();
 		/* A LOTS OF BLINK TO INDICARTE AN MASSIVE EEPROM WRITE */
 		for (int i = 0; i < 10; i++) {
-			HAL_IWDG_Refresh(&hiwdg);	// refresh the watchdog	(500ms) LONG TO MAKE
+			HAL_IWDG_Refresh(&hiwdg);// refresh the watchdog	(500ms) LONG TO MAKE
 			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 			HAL_Delay(50);
 			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 			HAL_Delay(50);
 		}
 
-		FAC_eeprom_WRITE_frist_boot_value_in_eeprom();	// store the new bootValue
+		FAC_eeprom_WRITE_frist_boot_value_in_eeprom();// store the new bootValue
 	} else {	// if the eeprom already contains settings
 		// LOAD FROM EEPROM SAVED SETTINGS
 		FAC_settings_LOAD_ALL_from_eeprom();
 
 		/* SOME BLINKS TO INDICATE A NORMAL EEPROM READ */
 		for (int i = 0; i < 3; i++) {
-			HAL_IWDG_Refresh(&hiwdg);	// refresh the watchdog	(500ms) LONG TO MAKE
+			HAL_IWDG_Refresh(&hiwdg);// refresh the watchdog	(500ms) LONG TO MAKE
 			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 			HAL_Delay(50);
 			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
