@@ -50,7 +50,7 @@ The **FAC Tool** provides a graphical interface for granular control over your r
 
 - `/FIRMWARE V2`: Firmware source code and binaries.
 
-- `/docs`: Full English manual and wiring diagrams.
+- `/docs`: Full English and Italian manual.
 
 - `/HARDWARE V2`: Design files and pinout maps.
 
