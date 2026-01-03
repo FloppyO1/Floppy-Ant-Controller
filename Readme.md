@@ -64,6 +64,8 @@ Developed by **Floppy Lab™**. For suggestions, bugs, or feedback:
 
 - **Website**: [www.floppylab.it](https://www.floppylab.it)
 
+- **Support Me**: [PayPal](https://www.paypal.com/paypalme/FloppyLab)
+
 ---
 
 *© 2026 The Floppy Lab™. All rights reserved.*
