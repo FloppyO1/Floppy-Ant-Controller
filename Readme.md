@@ -1,113 +1,69 @@
-# Floppy Ant Controller V2 (F.A.C. or FAC)
+# F.A.C. V2 - Floppy Ant Controller
 
-## Introduzione
+**F.A.C. V2** is an advanced control board specifically designed for combat robots (such as the Antweight category). Created by **Floppy Lab™**, it serves as a high-performance, highly customizable alternative to the Malenki-nano, offering professional features at a competitive price point.
 
-La FAC è una scheda di controllo per robot da combattimento, pensata come alternativa più avanzata della Malenki nano. 
+## 🚀 Key Features
 
-La FAC permette di avere un grado di libertà e personalizzazione molto avanzato. Questo permette di essere impiegata come scheda di controllo per una vastissima quantità di robot da combattimento.
+- **Full Customization**: All parameters are adjustable via USB using the dedicated [FAC Tool](https://factool.floppylab.it/).
 
-Con l'avanzamento delle versioni del firmware verranno aggiunte nuove funzionalità che integrano anche l'utilizzo del accelerometro/giroscopio in tegrato. Essendo un progetto opensource ogniuno può modificarlo e produrlo in autonomia. 
+- **Advanced Hardware**: Features a built-in **IMU** (accelerometer and gyroscope) for future firmware updates and advanced control algorithms.
 
-> Per la pubblicazione di contenuti ricavati da questo progetto guardare le condizioni dettate dalla LICENCE.
+- **Open Source**: Built with a community-first approach, allowing for user modifications and contributions.
 
-## Specifiche
+- **Robust Safety**: Includes integrated Watchdog timers, Fail-Safe mechanisms, and Battery Cut-Off to protect your hardware.
 
-* 3 uscite per motori DC:
-  
-  * `1.8A max`
-  
-  * `1000 step per direzione`
-  
-  * `frequenza modificabile (100->10'000 Hz)`
+## 📊 Technical Specifications
 
-* 2 uscite servo: 
-  
-  * `HV (alimentazione dalla batteria)`
-  
-  * `1000 step`
-  
-  * `larghezza dell'impulso modificabile`
-  
-  * `frequenza modificabile`
+- **DC Motor Outputs**: 3 channels (1.8A max, 1000-step resolution, adjustable frequency 100Hz-10kHz).
 
-* 2 ingressi digitali:
-  
-  * `3.3V max`
+- **Servo Outputs**: 2 HV channels (powered directly by the battery) with adjustable frequency and pulse width.
 
-* 1 ingresso analogico:
-  
-  * `3.3V max`
-  
-  * `connessioni facili per potenziometri`
+- **Inputs**: 2 Digital inputs and 1 Analog input (max 3.3V) for sensors or telemetry.
 
-* Versione base supporto batterie 1-2S lipo (limitata dai driver DC):
-  
-  * `soglia CUT-OFF impostabile`
-  
-  * `tempo di CUT-OFF impostabile`
+- **Power Supply**: Optimized for 1-2S LiPo batteries (up to 7.4V nominal).
 
-* LED di stato ad alta luminosità
+- **Compact Form Factor**: 21mm x 31mm; weighs only 2.4g (bare board).
 
-* Compatibile con diversi ricevitori:
-  
-  * `PPM fino ad 8 canali`
-  
-  * `PWM fino a 4 canali`
-  
-  * `E-LRS (non ancora implementato, ma predisposto)`
+- **Receiver Compatibility**: Supports PWM (up to 4 channels) and PPM (up to 8 channels).
 
-* Impostazioni modificabili facilmente tramite tool dedicato https://factool.floppylab.it/ con cavo USB-C
-  
-  * Tool utilizzabile anche offline, salvandolo come applicazione
-  
-  * Nessuna installazione necessaria
+## 🛠️ Configuration (FAC Tool)
 
-* Dimensioni e peso contenuti:
-  
-  * `21mm * 31mm`
-  
-  * `2.4g without receiver`, `3.6g with FS2A`
+The **FAC Tool** provides a graphical interface for granular control over your robot's behavior:
 
-## Nuove funzionalità
+1. **Mapping**: Freely assign software functions (e.g., Tank Mix) to physical pins on the board.
 
-Con questa nuova versione della Floppy Ant Controller sono stati revisitati sia l'hardware che il firmware completamente. Questo ha permesso di inserire nuove funzionalità molto interessanti, la più significativa è la presenza di una IMU (Inertial Mesurement Unit), ovvero un chip con all'interno giroscopio/accelerometro. Questo da la possibilità di implementare algoritmi personalizzati che rendono più avanzato il controllo del vostro robot. Per esempio è già in sviluppo un mix che inverte in automatico il comando dello sterzo per quei robot che una volta sotto sopra possono comunque muoversi.
+2. **Mixes & Special Functions**: Easily configure steering mixes or direct links between radio channels and outputs.
 
-## Impostazioni BASE e AVANZATE
+3. **Real-time Telemetry**: Monitor battery voltage, radio signal values, and operational status (Armed/Disarmed/Cut-Off).
 
-La FAC ha implementate delle impostazioni base che si trovano comunemente in un po' tutti i controller, ma ha anche altre funzionalità molto più avanzate per poter rendere più fine l'impostazione del proprio controller in base ai componenti utilizzati.
+## ⚠️ Safety Information
 
-Le impostazioni sono state suddivise in quattro categorie, presenti anche nel FAC Tool:
+- **Reverse Polarity**: The board **does not** have reverse polarity protection. Ensure the battery is connected correctly to avoid permanent damage.
 
-1. Generali (General)
+- **Activation**: For safety, the FAC will not activate until it detects a valid signal from your receiver.
 
-2. Mix e Funzioni speciali (Mix & SP. Functions)
+- **Battery Management**: Always configure the Battery Cut-Off to prevent over-discharging your LiPo cells.
 
-3. Servo e Motori (Servos & Motors)
+## 📂 Project Structure
 
-Qui sotto vengono spiegate più nel dettaglio. Nel FAC Tool in fianco ad ogni impostazione si trova un simbolo 🛈 dove si trova una descrizone della singola impostazione.
+- `/firmware`: Firmware source code and binaries.
 
-### Generali
+- `/docs`: Full English manual and wiring diagrams.
 
-Le impostazioni generali sono quelle che permettono di far funzionare correttamente la FAC, quindi quelle che con una nuova configurazione vanno sistemate per prime.
+- `/hardware`: Design files and pinout maps.
 
-> Battery
-> 
-> Low battery voltage: è la tensione della batteria alla quale viene considerata scarica
+## 📩 Support & Feedback
 
-## MIX e FUNZIONI SPECIALI
+Developed by **Floppy Lab™**. For suggestions, bugs, or feedback:
 
-Oltre a tutte le impostazioni base e avanzate della FAC tra le quali:
+- **Email**: thefloppylab@gmail.com
 
-* `gestione delle soglie della batteria`
+- **Instagram**: [@the_floppy_lab](https://www.instagram.com/the_floppy_lab)
 
-* `scelta del canale dell'arming o disattivazione di esso`
+- **YouTube**: [@floppylab](https://www.youtube.com/@floppylab)
 
-* `scelta della percentuale di deadzone degli stick del radiocomando`
+- **Website**: [www.floppylab.it](https://www.floppylab.it)
 
-* `scelta del tipo di ricevitore utilizzato`
+---
 
-* `inversione, cambio frequenza e freno dei motori DC`
-
-* `inversione, cambio frequenza e larghezza dell'impulso delle uscite servo`
-
-utili per poter impostare correttamente il comportamento della FAC in base alla propria configurazione.
+*© 2026 The Floppy Lab™. All rights reserved.*
