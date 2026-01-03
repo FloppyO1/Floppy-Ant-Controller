@@ -208,7 +208,7 @@ void FAC_app_init() {
 	FAC_adc_Init();
 	FAC_battery_init();
 	/* INERTIAL MESUREMENT UNIT INIT */
-	for (int i = 0; i < 100; i++) {	// wait for 3000ms (stabilization of the supply voltage)
+	for (int i = 0; i < 100; i++) {	// wait for 1000ms (stabilization of the supply voltage)
 		HAL_IWDG_Refresh(&hiwdg);	// refresh the watchdog	(500ms)
 		HAL_Delay(10);
 	}
