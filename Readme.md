@@ -48,11 +48,11 @@ The **FAC Tool** provides a graphical interface for granular control over your r
 
 ## 📂 Project Structure
 
-- `/firmware`: Firmware source code and binaries.
+- `/FIRMWARE V2`: Firmware source code and binaries.
 
 - `/docs`: Full English manual and wiring diagrams.
 
-- `/hardware`: Design files and pinout maps.
+- `/HARDWARE V2`: Design files and pinout maps.
 
 ## 📩 Support & Feedback
 
