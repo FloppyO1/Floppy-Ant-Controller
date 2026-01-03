@@ -20,13 +20,13 @@
 
 - **Servo Outputs**: 2 HV channels (powered directly by the battery) with adjustable frequency and pulse width.
 
-- **Inputs**: 2 Digital inputs and 1 Analog input (max 3.3V) for sensors or telemetry.
+- **Inputs**: 2 Digital inputs and 1 Analog input (max 3.3V).
 
-- **Power Supply**: Optimized for 1-2S LiPo batteries (up to 7.4V nominal).
+- **Power Supply**: Optimized for 1-2S LiPo batteries (up to 11V max).
 
-- **Compact Form Factor**: 21mm x 31mm; weighs only 2.4g (bare board).
+- **Compact Form Factor**: 21mm x 31mm; weighs only 2.4g (bare board) 3.6g (with FS2A).
 
-- **Receiver Compatibility**: Supports PWM (up to 4 channels) and PPM (up to 8 channels).
+- **Receiver Compatibility**: Supports PWM (up to 4 channels) and PPM (up to 8 channels), ELRS (not implemented yet).
 
 ## 🛠️ Configuration (FAC Tool)
 
@@ -52,7 +52,7 @@ The **FAC Tool** provides a graphical interface for granular control over your r
 
 - `/docs`: Full English and Italian manual.
 
-- `/HARDWARE V2`: Design files and pinout maps.
+- `/HARDWARE V2`: Design files.
 
 ## 📩 Support & Feedback
 
