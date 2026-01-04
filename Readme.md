@@ -26,7 +26,7 @@
 
 - **Compact Form Factor**: 21mm x 31mm; weighs only 2.4g (bare board) 3.6g (with FS2A).
 
-- **Receiver Compatibility**: Supports PWM (up to 4 channels) and PPM (up to 8 channels), ELRS (not implemented yet).
+- **Receiver Compatibility**: Supports PWM (up to 4 channels) and PPM (up to 8 channels), ELRS (not implemented yet but ready to run on current hardware).
 
 ## 🛠️ Configuration (FAC Tool)
 
@@ -34,7 +34,7 @@ The **FAC Tool** provides a graphical interface for granular control over your r
 
 1. **Mapping**: Freely assign software functions (e.g., Tank Mix) to physical pins on the board.
 
-2. **Mixes & Special Functions**: Easily configure steering mixes or direct links between radio channels and outputs.
+2. **Mixes & Special Functions**: Easily configure steering mixes or direct links between radio channels and outputs and others like DC servo.
 
 3. **Real-time Telemetry**: Monitor battery voltage, radio signal values, and operational status (Armed/Disarmed/Cut-Off).
 
