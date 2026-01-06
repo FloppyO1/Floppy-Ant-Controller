@@ -54,6 +54,12 @@ The **FAC Tool** provides a graphical interface for granular control over your r
 
 - `/HARDWARE V2`: Design files.
 
+## 📦 Manufacturing
+
+If you want to manufacture them by yourself you can do it directly from this link: [click here](https://www.pcbway.com/project/shareproject/Floppy_Ant_Controller_FAC_V2_The_Advanced_Control_Board_for_Combat_Robotics_f4803c5c.html)
+
+Using this link you automatically help me with a small tip, without any additional costs. Thanks!
+
 ## 📩 Support & Feedback
 
 Developed by **Floppy Lab™**. For suggestions, bugs, or feedback:
