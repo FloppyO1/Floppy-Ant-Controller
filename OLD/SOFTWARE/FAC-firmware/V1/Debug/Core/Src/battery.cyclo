@@ -1,4 +1,0 @@
-../Core/Src/battery.c:28:10:getADCValue	1
-../Core/Src/battery.c:12:6:initBattery	1
-../Core/Src/battery.c:36:10:getBattVoltage	1
-../Core/Src/battery.c:21:9:getBatteryConfiguration	2
