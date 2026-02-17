@@ -11,9 +11,6 @@
 #include "stm32f0xx_hal.h"
 
 #define ADC_BATTERY_CHANNEL 0
-/* BATTERY CORRECTION FACTOR */
-#define BATTERY_VOLTAGE_CORRECTION_M_FACTOR 1.025f
-#define BATTERY_VOLTAGE_CORRECTION_Q_FACTOR -0.125f
 
 /* BATTERY CELL DETECTION RANGES*/
 #define NOMINAL_BATTERY_LEVEL  3800	//3.8V to have 0.4V form 4.2V max and 3.4V theoretical min
@@ -24,11 +21,13 @@
 
 typedef struct Battery{
 		uint16_t voltage;	// V*100 (8.02V -> 802)
+		uint16_t voltage_uncalibrated;	// V*100 (8.02V -> 802)
 		uint16_t single_cell_voltage;
 		uint8_t type;	// number of cells detected
 		uint8_t low_battery_state;	// TRUE if the battery voltage is below a certain "limit" voltage
 		uint8_t cut_off_state;	// TRUE if the battery voltage is below a certain "cutoff" voltage
 		uint16_t voltage_divider_ratio;	// voltage divider ratio on the hardware (ex: 7.69 -> 7690
+		int16_t voltage_calibration_offset;	// offset used to calibrate the voltage readings
 } Battery;
 
 enum BATTERY_TYPE {
@@ -41,10 +40,13 @@ enum BATTERY_TYPE {
 };
 
 void FAC_battery_init();
+void FAC_battery_SET_calibration_offset(int16_t offset);
 uint16_t FAC_battery_GET_voltage ();
 uint16_t FAC_battery_GET_voltage();
 uint16_t FAC_battery_GET_cell_voltage();
 uint16_t FAC_battery_GET_type(uint16_t vbat);
+int16_t FAC_battery_GET_calibration_offset();
+void FAC_battery_calculate_calibration_offset();
 void FAC_battery_calculate_type(uint16_t vbat);
 
 

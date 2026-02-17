@@ -6,7 +6,6 @@
  */
 
 #include "FAC_Code/fac_settings.h"
-//#include "usb_device.h"
 #include "usbd_cdc_if.h"
 #include "iwdg.h"
 
@@ -108,7 +107,10 @@ static Setting settings[FAC_SETTINGS_CODE_LAST] = {	// insert every single setti
 	{ FAC_SETTINGS_CODE_MAPPER_S2, 200+1, 0, 200+10 },
 
 	/* FIRMWARE VERSION */
-	{ FAC_SETTINGS_CODE_FIRMWARE_VERSION, 20000, 0, UINT16_MAX}	// 20513 -> 2.05.13 <major>,<minor>,<patch>
+	{ FAC_SETTINGS_CODE_FIRMWARE_VERSION, 20000, 0, UINT16_MAX},	// 20513 -> 2.05.13 <major>,<minor>,<patch>
+
+	/* BATTERY CALIBRATION */
+	{ FAC_SETTINGS_CODE_BATTERY_CALIBRATION, 0, 0, UINT16_MAX}	// this is saved as int16_t so with sign
 };
 // @formatter:on
 
@@ -238,7 +240,7 @@ static void FAC_settings_USB_SEND_telemetry() {
 #endif
 	/* fac state */					// 0-2: DISARMED, NORMAL, CUTOFF
 #ifndef IM_TESTING_FAC_TOOL
-		telemetryPacket[20] = FAC_app_GET_current_state();	// add the arming value
+	telemetryPacket[20] = FAC_app_GET_current_state();	// add the arming value
 #else
 	static uint8_t states = 0;
 	static uint32_t timer1 = 0;
@@ -253,7 +255,7 @@ static void FAC_settings_USB_SEND_telemetry() {
 	uint8_t accel[2];
 #ifndef IM_TESTING_FAC_TOOL
 	// X
-int16_t accelTemp = (int16_t) (FAC_IMU_GET_accel_X() * 1000.0f);
+	int16_t accelTemp = (int16_t) (FAC_IMU_GET_accel_X() * 1000.0f);
 	FAC_settings_uint16_to_bytes(accelTemp, accel);
 	telemetryPacket[21] = accel[0];
 	telemetryPacket[22] = accel[1];
@@ -296,7 +298,27 @@ int16_t accelTemp = (int16_t) (FAC_IMU_GET_accel_X() * 1000.0f);
 }
 /* ----------------------PUBBLIC FUNCTIONS---------------------- */
 uint16_t FAC_settings_GET_value(uint8_t code) {
-	return settings[code].value;
+	uint16_t value = 0;
+	if(code < FAC_SETTINGS_CODE_LAST){
+		value = settings[code].value;
+	}
+	return value;
+}
+
+/*
+ * @brief	Store the calibration offset on the settings structure
+ * @note	Call this before the first eeprom initialization, in orther to store the calibration value
+ */
+void FAC_settings_SET_calibration_offset(uint16_t value) {
+	uint16_t v = value;
+	uint16_t code = FAC_SETTINGS_CODE_BATTERY_CALIBRATION;
+	/* check if value is inside the range */
+	if (v < settings[code].min_value)
+		v = settings[code].min_value;
+	if (v > settings[code].max_value)
+		v = settings[code].max_value;
+	/* store to the settings array */
+	settings[code].value = v;
 }
 
 /*
@@ -399,6 +421,10 @@ void FAC_settings_init(uint8_t bootValue) {
 	/* SETTINGS LOAD */
 	FAC_eeprom_init(bootValue);		// set the "first boot" value
 	if (FAC_eeprom_is_first_time()) {// if the eeprom doesn´t contain any settings yet
+		// calculate the vbat calibration value
+		FAC_battery_calculate_calibration_offset();
+		FAC_battery_GET_calibration_offset();
+
 		// STORE TO THE DEFAULT SETTINGS TO THE EEPROM
 		FAC_settings_STORE_ALL_to_eeprom();
 		/* A LOTS OF BLINK TO INDICARTE AN MASSIVE EEPROM WRITE */
@@ -424,6 +450,9 @@ void FAC_settings_init(uint8_t bootValue) {
 			HAL_Delay(50);
 		}
 	}
+
+	FAC_battery_SET_calibration_offset(
+			FAC_settings_GET_value(FAC_SETTINGS_CODE_BATTERY_CALIBRATION));
 }
 
 /*

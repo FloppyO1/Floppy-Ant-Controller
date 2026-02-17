@@ -16,10 +16,8 @@
 
 /* variable */
 static Adc adc;
-static uint16_t ADC_values[2];	// only visible on this file
 
 /* STATIC FUNCTION PROTORYPES */
-
 
 /* FUNCTION DEFINITION */
 /**
@@ -48,23 +46,23 @@ HAL_StatusTypeDef FAC_adc_Init() {
 	HAL_Delay(100);	// wait some time to allow the power supply to stabilize its output
 	HAL_ADCEx_Calibration_Start(&hadc);
 	HAL_Delay(50);
-	EndState = HAL_ADC_Start_DMA(&hadc, ADC_values, 2);
+	EndState = HAL_ADC_Start_DMA(&hadc, adc.adc_raw, 2);
 
 	adc.uVref = ADC_VREF;	// vref of 3.3V = 3300000uV
 	adc.resolution = 2;
 	switch (hadc.Init.Resolution) {
-		case ADC_RESOLUTION_12B:
-			adc.resolution <<= 12-1; // raise 2 at the power of hadc resolution
-			break;
-		case ADC_RESOLUTION_10B:
-			adc.resolution <<= 10-1;
-			break;
-		case ADC_RESOLUTION_8B:
-			adc.resolution <<= 8-1;
-			break;
-		case ADC_RESOLUTION_6B:
-			adc.resolution <<= 6-1;
-			break;
+	case ADC_RESOLUTION_12B:
+		adc.resolution <<= 12 - 1; // raise 2 at the power of hadc resolution
+		break;
+	case ADC_RESOLUTION_10B:
+		adc.resolution <<= 10 - 1;
+		break;
+	case ADC_RESOLUTION_8B:
+		adc.resolution <<= 8 - 1;
+		break;
+	case ADC_RESOLUTION_6B:
+		adc.resolution <<= 6 - 1;
+		break;
 	}
 
 	/* write the code here - END */
@@ -77,8 +75,8 @@ HAL_StatusTypeDef FAC_adc_Init() {
  * @visibility 	All files
  * @retval 		Raw value of the chNumber selected
  */
-uint16_t FAC_adc_get_raw_channel_value(uint8_t chNumber) {	// only visible on this file
-	return ADC_values[chNumber];
+uint16_t FAC_adc_get_raw_channel_value(uint8_t chNumber) {// only visible on this file
+	return adc.adc_raw[chNumber];
 }
 
 /**

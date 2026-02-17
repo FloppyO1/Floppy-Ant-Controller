@@ -91,6 +91,10 @@ enum FAC_SETTINGS_CODE {
 	/* FIRMWARE VERSION */
 	FAC_SETTINGS_CODE_FIRMWARE_VERSION,
 //.... ecc.
+
+	/* BATTERY CALIBRATION */
+	FAC_SETTINGS_CODE_BATTERY_CALIBRATION,	// calibration value for the vbat readings
+
 	FAC_SETTINGS_CODE_LAST	// just to have the last code possible, useful for for loop
 };
 
@@ -120,5 +124,6 @@ uint16_t FAC_settings_GET_value(uint8_t code);
 void FAC_settings_USB_SEND_setting_ranges(uint8_t code);	// does not need to be globally visible
 void FAC_settings_USB_SEND_setting_value(uint8_t code);		// does not need to be globally visible
 void FAC_settings_SEND_what_received();						// does not need to be globally visible
+void FAC_settings_SET_calibration_offset(uint16_t value);
 
 #endif /* INC_FAC_CODE_FAC_SETTINGS_H_ */

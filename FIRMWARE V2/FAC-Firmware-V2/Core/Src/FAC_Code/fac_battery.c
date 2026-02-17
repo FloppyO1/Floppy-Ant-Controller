@@ -9,6 +9,8 @@
 #include "main.h"
 
 #include "FAC_Code/fac_adc.h"
+#include "FAC_Code/fac_settings.h"
+#include "iwdg.h"
 
 static Battery battery;
 
@@ -18,6 +20,7 @@ static void FAC_battery_SET_cell_voltage(uint16_t vcell);
 static void FAC_battery_SET_type(uint8_t type);
 static void FAC_battery_calculate_voltage();
 static void FAC_battery_calculate_cell_voltage();
+static uint16_t FAC_battery_read_voltage(const uint8_t readings);
 
 /* FUNCTION DEFINITION */
 
@@ -30,6 +33,10 @@ static void FAC_battery_SET_cell_voltage(uint16_t vcell) {
 }
 static void FAC_battery_SET_type(uint8_t type) {
 	battery.type = type;
+}
+
+void FAC_battery_SET_calibration_offset(int16_t offset) {
+	battery.voltage_calibration_offset = offset;
 }
 
 /**
@@ -57,18 +64,52 @@ uint16_t FAC_battery_GET_type(uint16_t vbat) {
 	FAC_battery_calculate_type(vbat);
 	return battery.type;
 }
+
+/**
+ * @bief 	Return the calculated battery calibration voltage
+ * @retval 	Return the calculate battery voltage calibration offset
+ */
+int16_t FAC_battery_GET_calibration_offset() {
+	return battery.voltage_calibration_offset;
+}
+
+/**
+ * @bief 	Read the voltage of the battery from the adc reading
+ * @note 	Vbat with the format: 6.253V = 6253mV !! without calibration !!
+ * @retval	unsigned int mV voltage
+ */
+static uint16_t FAC_battery_read_voltage(const uint8_t readings) {
+	float vbat = 0;
+	for (uint8_t i = 0; i < readings; i++) {
+		float resolution = (float) FAC_adc_GET_resolution();
+		float uVref = (float) FAC_adc_GET_Vref_in_uV();
+		float adc = (float) FAC_adc_get_raw_channel_value(ADC_BATTERY_CHANNEL);
+		float divider_ratio = (float) battery.voltage_divider_ratio;
+		vbat += ((uVref / resolution) * adc * divider_ratio) / 1000000;
+	}
+	vbat = vbat / (float) readings;
+	battery.voltage_uncalibrated = (uint16_t) vbat;
+
+	return (uint16_t) vbat;
+}
+
+/**
+ * @bief 	Calculate the battery offset for the voltage reading
+ */
+void FAC_battery_calculate_calibration_offset() {
+	uint16_t v = FAC_battery_read_voltage(100);
+	int16_t offset = ((int16_t) USB_REFERENCE_VOLTAGE) - ((int16_t) v);
+	FAC_battery_SET_calibration_offset(offset);
+	FAC_settings_SET_calibration_offset((uint16_t) offset);
+}
+
 /**
  * @bief 	Calculate the voltage of the battery from the adc reading
- * @note 	Vbat with the format: 6.253V = 6253mV
+ * @note 	Vbat with the format: 6.253V = 6253mV !! WITH calibration !!
  */
 static void FAC_battery_calculate_voltage() {
-	float resolution = (float) FAC_adc_GET_resolution();
-	float uVref = (float) FAC_adc_GET_Vref_in_uV();
-	float adc = (float) FAC_adc_get_raw_channel_value(ADC_BATTERY_CHANNEL);
-	float divider_ratio = (float) battery.voltage_divider_ratio;
-
-	float vbat = ((uVref / resolution) * adc * divider_ratio) / 1000000;
-	vbat = vbat * (BATTERY_VOLTAGE_CORRECTION_M_FACTOR) + (BATTERY_VOLTAGE_CORRECTION_Q_FACTOR * 1000);
+	int16_t vbat = FAC_battery_read_voltage(5);
+	vbat = vbat ;//+ FAC_battery_GET_calibration_offset();
 	FAC_battery_SET_voltage((uint16_t) vbat);
 }
 
@@ -83,13 +124,18 @@ static void FAC_battery_calculate_cell_voltage() {
  * @bief 	Calculate the battery type
  */
 void FAC_battery_calculate_type(uint16_t vbat) {
-	if (vbat >= NOMINAL_USB_VOLTAGE - TYPIC_DIODE_VOLTAGE_DROP - USB_POWER_TOLLERACE && vbat <= NOMINAL_USB_VOLTAGE + USB_POWER_TOLLERACE) {
+	if (vbat
+			>= NOMINAL_USB_VOLTAGE - TYPIC_DIODE_VOLTAGE_DROP
+					- USB_POWER_TOLLERACE
+			&& vbat <= NOMINAL_USB_VOLTAGE + USB_POWER_TOLLERACE) {
 		FAC_battery_SET_type(BATTERY_TYPE_USB);
 		return;
 	} else {
 		uint8_t temp = vbat / (NOMINAL_BATTERY_LEVEL - TYPIC_BATTERY_RANGE);
-		uint16_t bottomRange = temp * (NOMINAL_BATTERY_LEVEL - TYPIC_BATTERY_RANGE);
-		uint16_t topRange = temp * (NOMINAL_BATTERY_LEVEL + TYPIC_BATTERY_RANGE);
+		uint16_t bottomRange = temp
+				* (NOMINAL_BATTERY_LEVEL - TYPIC_BATTERY_RANGE);
+		uint16_t topRange = temp
+				* (NOMINAL_BATTERY_LEVEL + TYPIC_BATTERY_RANGE);
 		if (vbat >= bottomRange && vbat <= topRange) {
 			FAC_battery_SET_type(temp);
 		} else {
@@ -108,4 +154,5 @@ void FAC_battery_init() {
 	battery.low_battery_state = FALSE;
 	battery.cut_off_state = FALSE;
 	battery.voltage_divider_ratio = 7692;
+	battery.voltage_calibration_offset = 0;
 }

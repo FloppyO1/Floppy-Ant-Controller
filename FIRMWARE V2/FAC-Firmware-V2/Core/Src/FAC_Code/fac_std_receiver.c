@@ -161,6 +161,8 @@ void FAC_std_reciever_init(uint8_t type) {
 			break;
 	}
 
+
+#if 0	// this can have some problem with some of the receiver outhere
 	/* stay in this loop until some channel are received */
 	uint8_t receiverConnected = FALSE;
 	uint8_t channelToCheck = 0;
@@ -171,6 +173,7 @@ void FAC_std_reciever_init(uint8_t type) {
 		if (FAC_std_receiver_GET_channel(channelToCheck) != 0)
 			receiverConnected = TRUE;
 	} while (!receiverConnected);
+#endif
 }
 
 /**

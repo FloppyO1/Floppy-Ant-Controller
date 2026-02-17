@@ -13,7 +13,7 @@
 /* FIRMWARE VERSION */
 #define FIRMWARE_VERSION_MAJOR 2	// [MAX 9] 	add one here, if the changes are substantial and not backwards compatible
 #define FIRMWARE_VERSION_MINOR 0	// [MAX 99] add one here, if new backwards compatible features have been added
-#define FIRMWARE_VERSION_PATCH 4	// [MAX 99] add one here, if any issues have been fixed without adding any features
+#define FIRMWARE_VERSION_PATCH 5	// [MAX 99] add one here, if any issues have been fixed without adding any features
 
 //#define IM_TESTING_FAC_TOOL			// if this is defined the target use only the mcu and eeprom, used for testing settings and nothing else.
 
@@ -43,5 +43,7 @@
 
 //#define NORMAL_LED_PERIOD	3000		// in milliseconds
 
+/* BATTERY CALIBRATION */	// the calibration is made the first time the FAC is booted up with only 5V form USB
+#define USB_REFERENCE_VOLTAGE 4778	// this value is measured and taken from 5 different real boards, after the usb protection diode
 
 #endif /* INC_FAC_CODE_CONFIG_H_ */

@@ -11,6 +11,7 @@
 #define ADC_VREF 3300000	// 3.3V = 3300000uV
 
 typedef struct Adc {
+	uint16_t adc_raw[2];
 	uint16_t resolution;	// ex: 12bit -> 4096
 	uint32_t uVref;	// ex: 3.3V -> 3300000	(uV)
 } Adc;

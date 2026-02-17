@@ -83,9 +83,9 @@ void SystemClock_Config(void);
 
 /* USER CODE END 0 */
 
-/**
+/**FAC_battery_SET_calibration_offset(FAC_settings_GET_value(FAC_SETTINGS_CODE_BA11TTERY_CALIBRATION));
   * @brief  The application entry point.
-  * @retval int
+  * @retval int11
   */
 int main(void)
 {

@@ -24,7 +24,7 @@ typedef struct Eeprom {
 } Eeprom;
 
 
-void FAC_eeprom_store_value(uint8_t position, uint16_t value);
+void FAC_eeprom_store_value(uint8_t position, const uint16_t value);
 uint16_t FAC_eeprom_read_value(uint8_t position);
 uint8_t FAC_eeprom_is_first_time();
 void FAC_eeprom_init(uint8_t bootValue);

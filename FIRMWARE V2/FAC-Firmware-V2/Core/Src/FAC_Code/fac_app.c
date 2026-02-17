@@ -203,10 +203,14 @@ void FAC_app_main_loop() {// one cycle every 13ms [about 76Hz] (with simple tank
  */
 void FAC_app_init() {
 	HAL_IWDG_Refresh(&hiwdg);	// refresh the watchdog	(500ms)
-	FAC_settings_init(0);/// first load all settings than initialize all modules
+	HAL_Delay(300);
+	HAL_IWDG_Refresh(&hiwdg);	// refresh the watchdog	(500ms)
 
 	FAC_adc_Init();
 	FAC_battery_init();
+
+	FAC_settings_init(2);/// first load all settings than initialize all modules
+
 	/* INERTIAL MESUREMENT UNIT INIT */
 	for (int i = 0; i < 100; i++) {	// wait for 1000ms (stabilization of the supply voltage)
 		HAL_IWDG_Refresh(&hiwdg);	// refresh the watchdog	(500ms)
@@ -235,8 +239,7 @@ void FAC_app_init() {
 
 	/* INIT END */
 //	FAC_jingle_Tequila();
-	FAC_jingle_neverGiveYouUp();
-
+//	FAC_jingle_neverGiveYouUp();
 }
 
 /*
