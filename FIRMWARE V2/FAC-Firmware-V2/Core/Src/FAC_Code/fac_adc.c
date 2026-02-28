@@ -13,12 +13,13 @@
 /* defines */
 #define FAC_ADC_CH_VBAT 0
 #define FAC_ADC_CH_AAUX 1
+#define FAC_ADC_CH_VREFIN 2
 
 /* variable */
 static Adc adc;
 
 /* STATIC FUNCTION PROTORYPES */
-
+static void FAC_adc_SET_uVref();
 /* FUNCTION DEFINITION */
 /**
  * @bried 	Get the resolution of the adc
@@ -37,6 +38,21 @@ uint32_t FAC_adc_GET_Vref_in_uV() {
 }
 
 /**
+ * @bried 	Calculate uVref in uV with the calibration
+ * @retval 	save the uVref into the adc structure
+ */
+static void FAC_adc_SET_uVref() {
+	uint32_t raw = 0;
+	for (int i = 0; i < 20; i++) {
+		raw = raw + FAC_adc_get_raw_channel_value(FAC_ADC_CH_VREFIN);
+		HAL_Delay(2);
+	}
+	raw = raw / 20;
+	float vdda = 3300.0 * ((float) *VREFINT_CAL_ADDR) / (float) raw;
+	adc.uVref = (uint32_t) (vdda * 1000);
+}
+
+/**
  * @brief 	Initialize the ADC module
  * @retval 	Status of the initialization in HAL_StatusTypeDef form
  */
@@ -46,9 +62,12 @@ HAL_StatusTypeDef FAC_adc_Init() {
 	HAL_Delay(100);	// wait some time to allow the power supply to stabilize its output
 	HAL_ADCEx_Calibration_Start(&hadc);
 	HAL_Delay(50);
-	EndState = HAL_ADC_Start_DMA(&hadc, adc.adc_raw, 2);
+	EndState = HAL_ADC_Start_DMA(&hadc, (uint32_t*) adc.adc_raw, 3);
 
-	adc.uVref = ADC_VREF;	// vref of 3.3V = 3300000uV
+	/* adc vref calibration and set */
+	HAL_Delay(100);
+	FAC_adc_SET_uVref();
+
 	adc.resolution = 2;
 	switch (hadc.Init.Resolution) {
 	case ADC_RESOLUTION_12B:
@@ -75,7 +94,7 @@ HAL_StatusTypeDef FAC_adc_Init() {
  * @visibility 	All files
  * @retval 		Raw value of the chNumber selected
  */
-uint16_t FAC_adc_get_raw_channel_value(uint8_t chNumber) {// only visible on this file
+uint16_t FAC_adc_get_raw_channel_value(uint8_t chNumber) { // only visible on this file
 	return adc.adc_raw[chNumber];
 }
 

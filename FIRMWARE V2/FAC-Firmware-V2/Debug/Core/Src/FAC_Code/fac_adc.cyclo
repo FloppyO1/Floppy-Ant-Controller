@@ -1,4 +1,4 @@
-../Core/Src/FAC_Code/fac_adc.c:27:10:FAC_adc_GET_resolution	1
-../Core/Src/FAC_Code/fac_adc.c:35:10:FAC_adc_GET_Vref_in_uV	1
-../Core/Src/FAC_Code/fac_adc.c:43:19:FAC_adc_Init	6
-../Core/Src/FAC_Code/fac_adc.c:78:10:FAC_adc_get_raw_channel_value	1
+../Core/Src/FAC_Code/fac_adc.c:28:10:FAC_adc_GET_resolution	1
+../Core/Src/FAC_Code/fac_adc.c:36:10:FAC_adc_GET_Vref_in_uV	1
+../Core/Src/FAC_Code/fac_adc.c:59:19:FAC_adc_Init	7
+../Core/Src/FAC_Code/fac_adc.c:97:10:FAC_adc_get_raw_channel_value	1

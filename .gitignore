@@ -72,3 +72,17 @@ Release/
 *.bak
 *.orig
 
+# ======================
+# Kicad files
+# ======================
+*.kicad_prl
+*.bak
+*-bak
+*~
+_autosave-*
+*.lck
+
+fp-info-cache
+
+*.pyc
+*.log

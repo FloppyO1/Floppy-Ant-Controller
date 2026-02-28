@@ -2,7 +2,6 @@
 ../Core/Src/FAC_Code/fac_battery.c:46:10:FAC_battery_GET_voltage	32	static
 ../Core/Src/FAC_Code/fac_battery.c:54:10:FAC_battery_GET_cell_voltage	32	static
 ../Core/Src/FAC_Code/fac_battery.c:63:10:FAC_battery_GET_type	8	static
-../Core/Src/FAC_Code/fac_battery.c:72:9:FAC_battery_GET_calibration_offset	0	static
-../Core/Src/FAC_Code/fac_battery.c:99:6:FAC_battery_calculate_calibration_offset	32	static
-../Core/Src/FAC_Code/fac_battery.c:126:6:FAC_battery_calculate_type	8	static
-../Core/Src/FAC_Code/fac_battery.c:150:6:FAC_battery_init	0	static
+../Core/Src/FAC_Code/fac_battery.c:71:9:FAC_battery_GET_calibration_offset	0	static
+../Core/Src/FAC_Code/fac_battery.c:117:6:FAC_battery_calculate_type	8	static
+../Core/Src/FAC_Code/fac_battery.c:141:6:FAC_battery_init	0	static

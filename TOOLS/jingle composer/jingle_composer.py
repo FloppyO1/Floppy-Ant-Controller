@@ -191,7 +191,7 @@ class MusicComposerApp:
             if item['type'] == 'note':
                 code_lines.append(f"FAC_motor_make_noise({item['name']}, {item['duration']});")
             elif item['type'] == 'pause':
-                code_lines.append(f"HAL_Delay({item['duration']});")
+                code_lines.append(f"FAC_jingles_delay({item['duration']});")
         
         self.code_box.delete("1.0", tk.END)
         self.code_box.insert("1.0", "\n".join(code_lines))

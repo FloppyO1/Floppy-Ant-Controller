@@ -11,11 +11,11 @@
 
 #include "FAC_Code/fac_eeprom.h"
 #include "FAC_Code/fac_std_receiver.h"
-#include "FAC_Code/fac_battery.h"
 #include "FAC_Code/mixes_functions/fac_mixes.h"
 #include "FAC_Code/config.h"
 #include "FAC_Code/fac_app.h"
 #include "FAC_Code/fac_imu.h"
+#include "FAC_Code/fac_battery.h"
 
 #ifdef IM_TESTING_FAC_TOOL
 #include "FAC_Code/fac_ppm_receiver.h"
@@ -34,9 +34,9 @@ static Setting settings[FAC_SETTINGS_CODE_LAST] = {	// insert every single setti
 	{ FAC_SETTINGS_CODE_M1_REVERSED, FALSE, FALSE, TRUE },
 	{ FAC_SETTINGS_CODE_M2_REVERSED, FALSE, FALSE, TRUE },
 	{ FAC_SETTINGS_CODE_M3_REVERSED, FALSE, FALSE, TRUE },
-	{ FAC_SETTINGS_CODE_M1_BRAKE_EN, FALSE, FALSE, TRUE },
-	{ FAC_SETTINGS_CODE_M2_BRAKE_EN, FALSE, FALSE, TRUE },
-	{ FAC_SETTINGS_CODE_M3_BRAKE_EN, FALSE, FALSE, TRUE },
+	{ FAC_SETTINGS_CODE_M1_BRAKE_EN, TRUE, FALSE, TRUE },
+	{ FAC_SETTINGS_CODE_M2_BRAKE_EN, TRUE, FALSE, TRUE },
+	{ FAC_SETTINGS_CODE_M3_BRAKE_EN, TRUE, FALSE, TRUE },
 	{ FAC_SETTINGS_CODE_MOTORS_FREQ, 500, 100, 10000 },			// min freq = 100 Hz, max freq = 10kHz
 	/* SERVO */
 	{ FAC_SETTINGS_CODE_S1_REVERSED, FALSE, FALSE, TRUE },
@@ -51,9 +51,9 @@ static Setting settings[FAC_SETTINGS_CODE_LAST] = {	// insert every single setti
 	{ FAC_SETTINGS_CODE_CUTOFF_VOLTAGE_MV, 2800, 0, 3500 },			// min cutoff 0mV (disabled), max 3500mV
 	{ FAC_SETTINGS_CODE_CUTOFF_DETECTION_TIME, 10, 0, 30 },			// min cutoff detection time 0s (trigger instantaneously), max 30 seconds (trigger only if battery voltage stay below cutoff voltage for 30s)
 	/* RECEIVER */
-	{ FAC_SETTINGS_CODE_RECEIVER_TYPE, RECEIVER_TYPE_PPM, RECEIVER_TYPE_PWM, RECEIVER_TYPE_LAST-1 },
+	{ FAC_SETTINGS_CODE_RECEIVER_TYPE, RECEIVER_TYPE_PWM, RECEIVER_TYPE_PWM, RECEIVER_TYPE_LAST-1 },
 	{ FAC_SETTINGS_CODE_CHANNELS_DEADZONE_PERCENTAGE, 2, 0, 50 },	// expressed in percentage of the max receiver resolution
-	{ FAC_SETTINGS_CODE_ARMING_CHANNEL, 5, 0, RECEIVER_CHANNELS_NUMBER },
+	{ FAC_SETTINGS_CODE_ARMING_CHANNEL, 0, 0, RECEIVER_CHANNELS_NUMBER },
 	/* MIXES */
 	{ FAC_SETTINGS_CODE_ACTIVE_MIX, FAC_MIX_SIMPLE_TANK, 0, FAC_MIX_LAST-1 },
 	{ FAC_SETTINGS_CODE_MIX_INPUT1_CHANNEL, 2, 0, RECEIVER_CHANNELS_NUMBER },
@@ -74,7 +74,7 @@ static Setting settings[FAC_SETTINGS_CODE_LAST] = {	// insert every single setti
 	{ FAC_SETTINGS_CODE_MIX_INPUT8_REVERSED, FALSE, FALSE, TRUE },
 	/* SPECIAL FUNCTIONS */
 	{ FAC_SETTINGS_CODE_SPECIAL_FUNCTION1_INPUT_CHANNEL, 3, 0, RECEIVER_CHANNELS_NUMBER },	// 0 means function disabled
-	{ FAC_SETTINGS_CODE_SPECIAL_FUNCTION2_INPUT_CHANNEL, 4, 0, RECEIVER_CHANNELS_NUMBER },
+	{ FAC_SETTINGS_CODE_SPECIAL_FUNCTION2_INPUT_CHANNEL, 0, 0, RECEIVER_CHANNELS_NUMBER },
 	{ FAC_SETTINGS_CODE_SPECIAL_FUNCTION3_INPUT_CHANNEL, 0, 0, RECEIVER_CHANNELS_NUMBER },
 	{ FAC_SETTINGS_CODE_SPECIAL_FUNCTION4_INPUT_CHANNEL, 0, 0, RECEIVER_CHANNELS_NUMBER },
 	{ FAC_SETTINGS_CODE_SPECIAL_FUNCTION5_INPUT_CHANNEL, 0, 0, RECEIVER_CHANNELS_NUMBER },
@@ -102,9 +102,9 @@ static Setting settings[FAC_SETTINGS_CODE_LAST] = {	// insert every single setti
 	 */
 	{ FAC_SETTINGS_CODE_MAPPER_M1, 100+0, 0, 200+10 },		// min is 100+0 output 0 of mix active, max is 200+10 output of the tenth special function
 	{ FAC_SETTINGS_CODE_MAPPER_M2, 100+1, 0, 200+10 },		// 0 means it is not used
-	{ FAC_SETTINGS_CODE_MAPPER_M3, 200+0, 0, 200+10 },
+	{ FAC_SETTINGS_CODE_MAPPER_M3, 0, 0, 200+10 },
 	{ FAC_SETTINGS_CODE_MAPPER_S1, 200+0, 0, 200+10 },
-	{ FAC_SETTINGS_CODE_MAPPER_S2, 200+1, 0, 200+10 },
+	{ FAC_SETTINGS_CODE_MAPPER_S2, 0, 0, 200+10 },
 
 	/* FIRMWARE VERSION */
 	{ FAC_SETTINGS_CODE_FIRMWARE_VERSION, 20000, 0, UINT16_MAX},	// 20513 -> 2.05.13 <major>,<minor>,<patch>
@@ -299,7 +299,7 @@ static void FAC_settings_USB_SEND_telemetry() {
 /* ----------------------PUBBLIC FUNCTIONS---------------------- */
 uint16_t FAC_settings_GET_value(uint8_t code) {
 	uint16_t value = 0;
-	if(code < FAC_SETTINGS_CODE_LAST){
+	if (code < FAC_SETTINGS_CODE_LAST) {
 		value = settings[code].value;
 	}
 	return value;
@@ -421,9 +421,6 @@ void FAC_settings_init(uint8_t bootValue) {
 	/* SETTINGS LOAD */
 	FAC_eeprom_init(bootValue);		// set the "first boot" value
 	if (FAC_eeprom_is_first_time()) {// if the eeprom doesn´t contain any settings yet
-		// calculate the vbat calibration value
-		FAC_battery_calculate_calibration_offset();
-		FAC_battery_GET_calibration_offset();
 
 		// STORE TO THE DEFAULT SETTINGS TO THE EEPROM
 		FAC_settings_STORE_ALL_to_eeprom();
@@ -450,7 +447,6 @@ void FAC_settings_init(uint8_t bootValue) {
 			HAL_Delay(50);
 		}
 	}
-
 	FAC_battery_SET_calibration_offset(
 			FAC_settings_GET_value(FAC_SETTINGS_CODE_BATTERY_CALIBRATION));
 }

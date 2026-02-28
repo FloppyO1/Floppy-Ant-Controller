@@ -155,8 +155,8 @@ try:
         print(f"\nConnesso a {ser.name}")
         print("\nComandi:")
         print("  - INVIO: richiedi la telemetria una volta")
-        print("  - 'start': avvia la richiesta automatica ogni 0.5s")
-        print("  - 'stop': ferma la richiesta automatica")
+        print("  - 's (start)': avvia la richiesta automatica ogni 0.5s")
+        print("  - 'p (pause)': ferma la richiesta automatica")
         print("  - 'q': esci dal programma")
 
         thread_telemetria = None
@@ -168,7 +168,7 @@ try:
                 print("\nUscita dal programma.")
                 break
             
-            elif comando == 'start':
+            elif comando == 's':
                 if thread_telemetria is None or not thread_telemetria.is_alive():
                     print("\nAvvio della richiesta automatica...")
                     stop_flag.clear()
@@ -178,7 +178,7 @@ try:
                 else:
                     print("La richiesta automatica è già in esecuzione.")
             
-            elif comando == 'stop':
+            elif comando == 'p':
                 if thread_telemetria and thread_telemetria.is_alive():
                     print("\nArresto della richiesta automatica...")
                     stop_flag.set()

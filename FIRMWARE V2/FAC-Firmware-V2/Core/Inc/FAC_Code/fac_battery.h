@@ -12,6 +12,7 @@
 
 #define ADC_BATTERY_CHANNEL 0
 
+
 /* BATTERY CELL DETECTION RANGES*/
 #define NOMINAL_BATTERY_LEVEL  3800	//3.8V to have 0.4V form 4.2V max and 3.4V theoretical min
 #define TYPIC_BATTERY_RANGE 425	// the 0.4V mentioned above + 50 mV of tollerance
@@ -45,9 +46,9 @@ uint16_t FAC_battery_GET_voltage ();
 uint16_t FAC_battery_GET_voltage();
 uint16_t FAC_battery_GET_cell_voltage();
 uint16_t FAC_battery_GET_type(uint16_t vbat);
-int16_t FAC_battery_GET_calibration_offset();
-void FAC_battery_calculate_calibration_offset();
 void FAC_battery_calculate_type(uint16_t vbat);
+int16_t FAC_battery_GET_calibration_offset();
+void FAC_battery_SET_calibration_offset(int16_t offset);
 
 
 #endif /* INC_FAC_CODE_FAC_BATTERY_H_ */

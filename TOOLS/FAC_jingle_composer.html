@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>F.A.C. Jingle Composer</title>
+    <style>
+        :root { --bg: #121212; --panel: #1e1e1e; --accent: #00adb5; --playing: #ff5722; --stop: #f44336; --tie-color: #673ab7; --selection: rgba(255, 235, 59, 0.3); --selection-border: #ffeb3b; --text: #eee; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        /* Header & Brand */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 15px; }
+        .brand { font-weight: 800; color: var(--accent); font-size: 18px; letter-spacing: 1px; min-width: 220px; }
+        
+        .file-management { display: flex; align-items: center; gap: 8px; background: #222; padding: 5px 12px; border-radius: 20px; border: 1px solid #444; }
+        .file-input-name { background: #000; border: 1px solid var(--accent); color: var(--accent); padding: 5px 12px; border-radius: 15px; font-weight: bold; width: 160px; outline: none; }
+        
+        .toolbar { display: flex; gap: 12px; align-items: center; background: #222; padding: 5px 15px; border-radius: 20px; border: 1px solid #444; flex-grow: 1; }
+        .bpm-val { color: var(--accent); font-weight: bold; min-width: 35px; text-align: center; }
+
+        button, select { border-radius: 20px; border: none; cursor: pointer; transition: 0.2s; font-family: inherit; }
+
+        .btn-midi { background: #eee; color: #000; padding: 6px 14px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+        .btn-midi:hover { background: var(--accent); color: white; }
+        .btn-help { background: #444; color: white; width: 28px; height: 28px; font-weight: bold; font-size: 16px; border-radius: 50%; }
+        .btn-help:hover { background: #666; }
+
+        /* Grid System */
+        .grid-wrapper { flex-grow: 1; overflow: auto; background: var(--panel); border-radius: 12px; border: 1px solid #333; position: relative; scroll-behavior: smooth; margin-top: 5px; }
+        .grid { display: grid; position: relative; user-select: none; }
+        .row { display: contents; }
+        .note-label { position: sticky; left: 0; background: #252525; padding: 5px 10px; font-size: 11px; z-index: 10; border-right: 2px solid var(--accent); min-width: 50px; text-align: right; color: #aaa; }
+        
+        .cell { width: 44px; height: 28px; border: 0.1px solid #2a2a2a; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; box-sizing: border-box; position: relative; }
+        .cell.active { background: var(--accent); color: white; }
+        .cell.is-tied { background: var(--tie-color) !important; color: transparent !important; }
+        .cell.tied-next { border-right: none !important; }
+        .cell.tied-prev { border-left: none !important; }
+        /* semi-transparent overlay for selected columns (keeps underlying styles visible) */
+        .cell.in-selection { outline: 1px solid var(--selection-border); outline-offset: -1px; box-shadow: inset 0 0 0 1000px rgba(255,235,59,0.12); }
+        /* highlight for cell when hovering corresponding piano key (subtle) */
+        .cell.hover-highlight { box-shadow: 0 0 12px 3px rgba(255,255,255,0.06); transform: scale(1.03); z-index: 6; }
+        /* piano key preview: color entire cell yellow on selected column */
+        .cell.piano-highlight { background: var(--selection-border) !important; color: #000 !important; box-shadow: none !important; transform: none !important; }
+        /* note symbol inside cell (sharp/flat) */
+        .cell .note-symbol { font-size: 12px; line-height: 1; }
+        .cell.is-tied .note-symbol { color: white !important; }
+
+        /* Controls */
+        .controls-row { display: flex; align-items: center; justify-content: center; gap: 12px; background: #000; padding: 12px; border-radius: 15px; margin-top: 10px; border: 1px solid #333; }
+        .piano-container { display: flex; overflow-x: auto; padding-bottom: 5px; }
+        .piano-key { width: 30px; height: 85px; background: white; border: 1px solid #999; border-radius: 0 0 8px 8px; cursor: pointer; position: relative; color: #333; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px; font-weight: bold; font-size: 10px; flex-shrink: 0; transition: transform 0.1s, background 0.1s; }
+        .piano-key:active { background: #ddd; transform: scale(0.95); }
+        .piano-key.black { background: #333; color: white; height: 55px; width: 20px; margin-left: -10px; margin-right: -10px; z-index: 2; border: none; font-size: 8px; border-radius: 0 0 4px 4px; }
+        .piano-key.black:active { background: #000; }
+
+        .btn-group-side { display: flex; flex-direction: column; gap: 4px; }
+        .btn-action { width: 120px; height: 32px; color: white; font-weight: bold; font-size: 10px; text-transform: uppercase; }
+        .btn-action:active { transform: scale(0.95); }
+        .btn-del { background: #f44336; height: 45px; font-size: 22px; border-radius: 12px; }
+
+        /* Code Output */
+        .bottom-panel { display: flex; gap: 12px; height: 160px; margin-top: 10px; }
+        #output-code { flex-grow: 1; background: #000; color: #0f0; font-family: 'Consolas', 'Courier New', monospace; padding: 12px; border-radius: 12px; font-size: 12px; resize: none; border: 1px solid #444; line-height: 1.4; }
+        .main-btns { display: flex; flex-direction: column; gap: 8px; min-width: 160px; }
+        
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); }
+        .modal-content { background: #222; margin: 5% auto; padding: 25px; border: 1px solid var(--accent); border-radius: 20px; width: 60%; max-height: 80vh; overflow-y: auto; color: #ccc; line-height: 1.6; }
+        .close-btn { float: right; cursor: pointer; font-size: 24px; color: #777; }
+    </style>
+</head>
+<body onmouseup="endDrag()">
+
+    <div class="header">
+        <div class="brand">F.A.C. JINGLE COMPOSER</div>
+
+        <div class="file-management">
+            <span style="font-size: 11px; font-weight: bold; color: #999;">FILE NAME:</span>
+            <input type="text" id="file-name" class="file-input-name" placeholder="jingle_name" value="my_jingle" oninput="updateCode()">
+            <button class="btn-midi" onclick="exportMIDI()">Export .MID</button>
+            <button class="btn-midi" onclick="document.getElementById('midi-input').click()">Import .MID</button>
+            <input type="file" id="midi-input" style="display:none" accept=".mid,.midi" onchange="importMIDI(event)">
+        </div>
+
+        <div class="toolbar">
+            <span style="font-size: 11px;">BPM:</span>
+            <input type="range" id="bpm-range" min="40" max="240" value="120" oninput="updateBPM(this.value)">
+            <span class="bpm-val" id="bpm-display">120</span>
+            
+            <select id="bpm-multiplier" onchange="updateBPM(document.getElementById('bpm-range').value)" style="background:#00adb5; color:black; font-weight:bold; padding:4px 8px; border-radius:15px; outline:none;">
+                <option value="1">1x</option>
+                <option value="2">2x</option>
+                <option value="3">3x</option>
+                <option value="4">4x</option>
+                <option value="5">5x</option>
+            </select>
+
+            <select id="notation-type" onchange="renderGrid(); createPiano();" style="background:#333; color:white; padding:5px; border-radius:15px; margin-left: auto; outline:none;">
+                <option value="alpha">A B C (Alpha)</option>
+                <option value="latin">Do Re Mi (Latin)</option>
+            </select>
+            <button class="btn-help" onclick="toggleHelp(true)">?</button>
+        </div>
+    </div>
+
+    <div class="grid-wrapper" id="scroll-container">
+        <div id="sequencer" class="grid" onmouseleave="endDrag()"></div>
+    </div>
+
+    <div class="controls-row">
+        <button class="btn-action btn-del" title="Delete Selection" onclick="deleteSelection()">⌫</button>
+        <div class="piano-container" id="piano"></div>
+        <div class="btn-group-side">
+            <button class="btn-action" style="background:var(--tie-color)" onclick="combineSelected()">Link Notes 🔗</button>
+            <button class="btn-action" style="background:#607d8b" onclick="splitSelected()">Split Notes ✂️</button>
+            <button class="btn-action" style="background:#2196f3" onclick="insertColumns()">Ins. Column</button>
+            <button class="btn-action" style="background:#ff9800" onclick="removeColumns()">Del. Column</button>
+        </div>
+    </div>
+
+    <div class="bottom-panel">
+        <textarea id="output-code" readonly placeholder="C++ code will appear here..."></textarea>
+        <div class="main-btns">
+            <button id="btn-play" style="background:var(--accent); font-weight:bold; height: 50px; color: white;" onclick="togglePlay()">▶ PLAY [Space]</button>
+            <button style="background:var(--stop); font-weight:bold; color: white;" onclick="stopSequence()">⏹ STOP</button>
+            <button style="background:#4caf50; height: 40px; color: white;" onclick="copyCode()">📋 COPY FUNCTION</button>
+        </div>
+    </div>
+
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="toggleHelp(false)">&times;</span>
+            <h2>🎵 F.A.C. Jingle Composer Guide</h2>
+            <hr border="0" height="1" bgcolor="#444" style="margin-bottom: 20px;">
+            
+            <p><b>1. Setup & Configuration:</b> Enter a <b>File Name</b> for your project to name the generated C++ function. Set your base tempo with the <b>BPM slider</b> and use the <b>Multiplier (1x - 5x)</b> to increase playback speed and code timing resolution.</p>
+            
+            <p><b>2. Composing on the Grid:</b> Click a cell to set focus. Click a <b>Piano Key</b> to assign a note; the cursor will automatically advance. Click and drag to select multiple columns.</p>
+            
+            <p><b>3. Smart Editing:</b> Use <b>Backspace</b> (or the red ⌫ button) to delete a note and move the selection back by one step, allowing for rapid "type-and-correct" editing.</p>
+
+            <p><b>4. Note Management:</b>
+                <ul>
+                    <li><b>Link Notes (🔗):</b> Select adjacent cells with the same note and click "Link" to create a single sustained sound.</li>
+                    <li><b>Split Notes (✂️):</b> Removes ties from selected notes.</li>
+                    <li><b>Ins/Del Column:</b> Insert space or shift the entire track.</li>
+                </ul>
+            </p>
+
+            <p><b>5. Exporting:</b> The C++ code updates in real-time. Use <b>Copy Function</b> for your firmware or <b>Export .MID</b> to save the project file for later use.</p>
+            
+            <hr border="0" height="1" bgcolor="#444" style="margin-top: 20px;">
+            <p style="font-size: 11px; color: var(--accent);">
+                <b>Keyboard Shortcuts:</b> [Space] Play/Pause | [Backspace] Delete & Back | [Click+Drag] Select
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const baseNotes = ["B", "A", "G", "F", "E", "D", "C"];
+        const midiToNoteArr = ["C","CS","D","DS","E","F","FS","G","GS","A","AS","B"];
+        const latinNotes = {"C":"Do","CS":"Do#","D":"Re","DS":"Re#","E":"Mi","F":"Fa","FS":"Fa#","G":"Sol","GS":"Sol#","A":"La","AS":"La#","B":"Si"};
+        const noteToMidiMap = {"C":0,"CS":1,"D":2,"DS":3,"E":4,"F":5,"FS":6,"G":7,"GS":8,"A":9,"AS":10,"B":11};
+
+        let bpm = 120, stepMs = 125, numSteps = 64;
+        let gridData = {}, ties = {}, isPlaying = false, isDragging = false;
+        let selectionStart = 0, selectionEnd = 0, currentFocus = 0, pauseStep = 0;
+        // hover helpers: column hovered in sequencer, and piano key hovered
+        let hoveredColumn = null, hoveredPianoNote = null;
+
+        function init() { 
+            updateBPM(120); createPiano(); renderGrid();
+            window.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+                if (e.code === 'Backspace') { e.preventDefault(); deleteSelection(); }
+                // move selected notes up
+                if (e.code === 'ArrowUp') { e.preventDefault(); shiftSelectedNotesUp(); }
+                // move selected notes down
+                if (e.code === 'ArrowDown') { e.preventDefault(); shiftSelectedNotesDown(); }
+                // move selection left/right
+                if (e.code === 'ArrowLeft') { e.preventDefault(); moveSelectionBy(-1); }
+                if (e.code === 'ArrowRight') { e.preventDefault(); moveSelectionBy(1); }
+            });
+        }
+
+        // clamp helper
+        function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+        // move selection left/right by delta (only selection range moves)
+        function moveSelectionBy(delta) {
+            const min = Math.min(selectionStart, selectionEnd);
+            const max = Math.max(selectionStart, selectionEnd);
+            const length = max - min;
+            let newMin = clamp(min + delta, 0, numSteps - 1 - length);
+            let newMax = newMin + length;
+            selectionStart = newMin; selectionEnd = newMax; renderGrid();
+        }
+
+        // build full row list in the same order as renderGrid (top -> bottom)
+        function buildRowList() {
+            const rows = [];
+            [6,5,4,3].forEach(oct => { baseNotes.forEach(n => rows.push(n + oct)); });
+            return rows;
+        }
+
+        // shift selected columns' notes up/down by one row
+        function shiftSelectedNotesBy(delta) {
+            const minCol = Math.min(selectionStart, selectionEnd);
+            const maxCol = Math.max(selectionStart, selectionEnd);
+            const rows = buildRowList();
+            const sharpsAllowed = new Set(["C","D","F","G","A"]);
+            for (let c = minCol; c <= maxCol; c++) {
+                if (!gridData[c]) continue;
+                const note = gridData[c];
+                const m = note.match(/^([A-G]S?)(\d+)$/);
+                if (!m) continue;
+                const base = m[1];
+                const octave = m[2];
+                const baseNorm = base.replace('S','');
+                const idx = rows.indexOf(baseNorm + octave);
+                if (idx === -1) continue;
+                const newIdx = clamp(idx + delta, 0, rows.length - 1);
+                const target = rows[newIdx];
+                const targetBase = target.replace(/\d+$/, '');
+                const targetOct = target.match(/\d+$/)[0];
+                let newNote;
+                if (base.includes('S') && sharpsAllowed.has(targetBase)) newNote = targetBase + 'S' + targetOct;
+                else newNote = targetBase + targetOct;
+                gridData[c] = newNote;
+            }
+            renderGrid(); updateCode();
+        }
+
+        function shiftSelectedNotesUp() { shiftSelectedNotesBy(-1); }
+        function shiftSelectedNotesDown() { shiftSelectedNotesBy(1); }
+
+        function toggleHelp(show) { document.getElementById('helpModal').style.display = show ? 'block' : 'none'; }
+
+        function getSanitizedName() {
+            let name = document.getElementById('file-name').value.trim();
+            if (name === "") name = "jingle";
+            return name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        }
+
+        function updateCode() {
+            const funcName = getSanitizedName();
+            let compiled = [], i = 0;
+            while (i < numSteps) {
+                let note = gridData[i], duration = stepMs;
+                if (note) {
+                    while (i < numSteps && ties[i] && gridData[i] === gridData[i+1]) { duration += stepMs; i++; }
+                    compiled.push(`    FAC_motor_make_noise(NOTE_${note}, ${duration});`);
+                } else {
+                    let startPause = i;
+                    while (i < numSteps && !gridData[i+1] && (i+1) < numSteps) { duration += stepMs; i++; }
+                    if (i < numSteps - 1) compiled.push(`    FAC_jingles_delay(${duration});`);
+                }
+                i++;
+            }
+            const header = `void FAC_jingle_${funcName}() {\n`;
+            const footer = `\n    FAC_jingles_delay(500);\n}`;
+            document.getElementById('output-code').value = header + compiled.join('\n') + footer;
+        }
+
+        function exportMIDI() {
+            let compiled = [], i = 0;
+            while (i < numSteps) {
+                let note = gridData[i], duration = stepMs;
+                if (note) { while (i < numSteps && ties[i] && gridData[i] === gridData[i+1]) { duration += stepMs; i++; } }
+                else { while (i < numSteps && !gridData[i+1] && (i+1) < numSteps) { duration += stepMs; i++; } }
+                compiled.push({ note: note || "PAUSE", duration }); i++;
+            }
+            const ticksPerBeat = 128, ticksPerStep = ticksPerBeat / 4;
+            let trackData = [];
+            compiled.forEach(item => {
+                let dur = (item.duration / stepMs) * ticksPerStep;
+                if (item.note !== "PAUSE") {
+                    let name = item.note.replace(/[0-9]/g, ''), oct = parseInt(item.note.match(/\d+/)[0]);
+                    let pitch = 12 + (oct * 12) + noteToMidiMap[name];
+                    trackData.push(0, 0x90, pitch, 0x60, dur & 0x7F, 0x80, pitch, 0x00);
+                } else { trackData.push(dur & 0x7F, 0x80, 0, 0); }
+            });
+            trackData.push(0, 0xFF, 0x2F, 0);
+            const blob = new Blob([new Uint8Array([0x4d,0x54,0x68,0x64,0,0,0,6,0,0,0,1,0,128, 0x4d,0x54,0x72,0x6b, ...[(trackData.length >> 24) & 0xFF, (trackData.length >> 16) & 0xFF, (trackData.length >> 8) & 0xFF, trackData.length & 0xFF], ...trackData])], {type: "audio/midi"});
+            const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = getSanitizedName() + ".mid"; a.click();
+        }
+
+        function importMIDI(event) {
+            const file = event.target.files[0]; if (!file) return;
+            document.getElementById('file-name').value = file.name.replace(/\.[^/.]+$/, "");
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result); gridData = {}; ties = {}; let s = 0;
+                for(let i=14; i<data.length-4; i++) if (data[i] === 0x90 && data[i+2] > 0) {
+                    let pitch = data[i+1]; gridData[s] = midiToNoteArr[pitch % 12] + (Math.floor(pitch / 12) - 1); s++;
+                }
+                numSteps = Math.max(64, s + 10); renderGrid(); updateCode();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function updateBPM(val) { 
+            const mult = parseInt(document.getElementById('bpm-multiplier').value);
+            bpm = val * mult; 
+            document.getElementById('bpm-display').innerText = val; 
+            stepMs = Math.round((60000 / bpm) / 4); 
+            updateCode(); 
+        }
+
+        function renderGrid() {
+            const seq = document.getElementById('sequencer'); seq.innerHTML = '';
+            const type = document.getElementById('notation-type').value;
+            seq.style.gridTemplateColumns = `60px repeat(${numSteps}, 44px)`;
+            [6, 5, 4, 3].forEach(oct => { baseNotes.forEach(n => {
+                const row = document.createElement('div'); row.className = 'row';
+                const label = document.createElement('div'); label.className = 'note-label';
+                label.innerText = (type === 'latin' ? latinNotes[n] : n) + oct;
+                // expose the base note for quick lookup (e.g. "C4")
+                label.dataset.note = `${n}${oct}`;
+                row.dataset.note = `${n}${oct}`;
+                row.appendChild(label);
+                for (let s = 0; s < numSteps; s++) {
+                    const cell = document.createElement('div'); cell.className = 'cell';
+                    cell.dataset.note = `${n}${oct}`;
+                    cell.dataset.col = s;
+                    // create a container for the note symbol (sharp/flat)
+                    cell.innerHTML = '<span class="note-symbol"></span>';
+                    const symSpan = cell.querySelector('.note-symbol');
+                    if (gridData[s] && gridData[s].startsWith(n) && gridData[s].endsWith(oct)) {
+                        cell.classList.add('active');
+                        // determine symbol: sharp = 'S' in note, flat = 'b' or '♭'
+                        const noteId = gridData[s];
+                        if (/S/.test(noteId)) symSpan.textContent = '♯';
+                        else if (/[b♭]/.test(noteId)) symSpan.textContent = '♭';
+                        else symSpan.textContent = '';
+                        if (ties[s] || (s > 0 && ties[s-1] && gridData[s-1] === gridData[s])) {
+                            cell.classList.add('is-tied'); if (ties[s]) cell.classList.add('tied-next'); if (s > 0 && ties[s-1]) cell.classList.add('tied-prev');
+                        }
+                    }
+                    if (s >= Math.min(selectionStart, selectionEnd) && s <= Math.max(selectionStart, selectionEnd)) cell.classList.add('in-selection');
+                    cell.onmousedown = () => startDrag(s);
+                    cell.onmouseenter = () => { hoveredColumn = s; moveDrag(s); updatePianoHover(); };
+                    row.appendChild(cell);
+                }
+                seq.appendChild(row);
+            }); });
+        }
+
+        function createPiano() {
+            const piano = document.getElementById('piano'); piano.innerHTML = '';
+            const type = document.getElementById('notation-type').value;
+            [3, 4, 5, 6].forEach(oct => { ["C", "D", "E", "F", "G", "A", "B"].forEach(n => {
+                const key = document.createElement('div'); key.className = 'piano-key';
+                const displayName = type === 'latin' ? latinNotes[n] : n;
+                if (n === "C") key.innerHTML = `<span style="position:absolute;top:2px;left:4px;color:red;font-size:8px">${oct}</span>`;
+                key.innerText = displayName;
+                key.onmousedown = () => addNoteFromPiano(`${n}${oct}`);
+                key.onmouseenter = () => { hoveredPianoNote = `${n}${oct}`; updatePianoHover(); };
+                key.onmouseleave = () => { hoveredPianoNote = null; updatePianoHover(); };
+                piano.appendChild(key);
+                if (["C", "D", "F", "G", "A"].includes(n)) {
+                    const sKey = document.createElement('div'); sKey.className = 'piano-key black';
+                    sKey.onmousedown = (e) => { e.stopPropagation(); addNoteFromPiano(`${n}S${oct}`); };
+                    sKey.onmouseenter = (e) => { hoveredPianoNote = `${n}S${oct}`; updatePianoHover(); };
+                    sKey.onmouseleave = () => { hoveredPianoNote = null; updatePianoHover(); };
+                    piano.appendChild(sKey);
+                }
+            }); });
+        }
+
+        function addNoteFromPiano(noteId) { delete ties[currentFocus]; if (currentFocus > 0) delete ties[currentFocus - 1]; gridData[currentFocus] = noteId; selectionStart = currentFocus + 1; selectionEnd = currentFocus + 1; currentFocus++; pauseStep = currentFocus; if (currentFocus >= numSteps) numSteps += 8; renderGrid(); updateCode(); playTone(noteId, 150); autoScroll(); }
+
+        async function playSequence() {
+            if (isPlaying) return; isPlaying = true; document.getElementById('btn-play').innerText = "⏸ PAUSE [Space]";
+            let i = pauseStep;
+            while(i < numSteps && isPlaying) {
+                let note = gridData[i] || "PAUSE", duration = stepMs, start = i;
+                while (i < numSteps && ties[i] && gridData[i] === gridData[i+1]) { duration += stepMs; i++; }
+                selectionStart = start; selectionEnd = i; renderGrid(); autoScroll();
+                if (note !== "PAUSE") playTone(note, duration);
+                await new Promise(r => setTimeout(r, duration)); i++; pauseStep = i;
+            }
+            if (i >= numSteps) pauseStep = 0; isPlaying = false; document.getElementById('btn-play').innerText = "▶ PLAY [Space]";
+        }
+
+        function togglePlay() { if (isPlaying) isPlaying = false; else playSequence(); }
+        function stopSequence() { isPlaying = false; pauseStep = 0; selectionStart = 0; selectionEnd = 0; currentFocus = 0; renderGrid(); autoScroll(); }
+        function playTone(noteId, duration) {
+            const freqMap = {"C3":130.81,"CS3":138.59,"D3":146.83,"DS3":155.56,"E3":164.81,"F3":174.61,"FS3":185,"G3":196,"GS3":207.65,"A3":220,"AS3":233.08,"B3":246.94,"C4":261.63,"CS4":277.18,"D4":293.66,"DS4":311.13,"E4":329.63,"F4":349.23,"FS4":369.99,"G4":392,"GS4":415.3,"A4":440,"AS4":466.16,"B4":493.88,"C5":523.25,"CS5":554.37,"D5":587.33,"DS5":622.25,"E5":659.25,"F5":698.46,"FS5":739.99,"G5":783.99,"GS5":830.61,"A5":880,"AS5":932.33,"B5":987.77,"C6":1046.5,"CS6":1108.73,"D6":1174.66,"DS6":1244.51,"E6":1318.51,"F6":1396.91,"FS6":1479.98,"G6":1567.98,"GS6":1661.22,"A6":1760,"AS6":1864.66,"B6":1975.53};
+            const osc = audioCtx.createOscillator(), gain = audioCtx.createGain(); osc.type = 'square'; osc.frequency.setValueAtTime(freqMap[noteId], audioCtx.currentTime);
+            osc.connect(gain); gain.connect(audioCtx.destination); gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration/1000); osc.start(); osc.stop(audioCtx.currentTime + duration/1000);
+        }
+
+        function deleteSelection() {
+            const min = Math.min(selectionStart, selectionEnd), max = Math.max(selectionStart, selectionEnd);
+            for (let i = min; i <= max; i++) { delete gridData[i]; delete ties[i]; if (i > 0) delete ties[i - 1]; }
+            let newPos = Math.max(0, min - 1);
+            selectionStart = newPos; selectionEnd = newPos; currentFocus = newPos; pauseStep = newPos;
+            renderGrid(); updateCode(); autoScroll();
+        }
+
+        function combineSelected() { const min = Math.min(selectionStart, selectionEnd), max = Math.max(selectionStart, selectionEnd); if (min === max || !gridData[min]) return; for (let i = min; i <= max; i++) if (gridData[i] !== gridData[min]) return; for (let i = min; i < max; i++) ties[i] = true; renderGrid(); updateCode(); }
+        function splitSelected() { const min = Math.min(selectionStart, selectionEnd), max = Math.max(selectionStart, selectionEnd); for (let i = min; i <= max; i++) { delete ties[i]; if (i > 0) delete ties[i - 1]; } renderGrid(); updateCode(); }
+        function insertColumns() { const min = Math.min(selectionStart, selectionEnd), count = Math.abs(selectionEnd - selectionStart) + 1; const nD = {}, nT = {}; Object.keys(gridData).forEach(k => { let key = parseInt(k); nD[key >= min ? key + count : key] = gridData[k]; }); Object.keys(ties).forEach(k => { let key = parseInt(k); nT[key >= min ? key + count : key] = ties[k]; }); gridData = nD; ties = nT; numSteps += count; renderGrid(); updateCode(); }
+        function removeColumns() { const min = Math.min(selectionStart, selectionEnd), count = Math.abs(selectionEnd - selectionStart) + 1; const nD = {}, nT = {}; Object.keys(gridData).forEach(k => { let key = parseInt(k); if (key < min) nD[key] = gridData[k]; else if (key >= min+count) nD[key-count] = gridData[k]; }); Object.keys(ties).forEach(k => { let key = parseInt(k); if (key < min-1) nT[key] = ties[k]; else if (key >= min+count) nT[key-count] = ties[k]; }); gridData = nD; ties = nT; numSteps = Math.max(40, numSteps - count); renderGrid(); updateCode(); }
+        function startDrag(s) { isDragging = true; selectionStart = s; selectionEnd = s; currentFocus = s; pauseStep = s; renderGrid(); }
+        function moveDrag(s) { if (isDragging) { selectionEnd = s; renderGrid(); } }
+        function endDrag() { isDragging = false; hoveredColumn = null; updatePianoHover(); }
+        function updatePianoHover() {
+            // clear previous highlights (both subtle hover and full piano preview)
+            document.querySelectorAll('.cell.hover-highlight, .cell.piano-highlight').forEach(c => c.classList.remove('hover-highlight', 'piano-highlight'));
+            if (!hoveredPianoNote) return;
+            // normalize piano note to base (remove 'S' for matching row dataset)
+            const baseNoteKey = hoveredPianoNote.replace('S', '');
+            // find the row that matches the base note
+            const row = Array.from(document.querySelectorAll('.row')).find(r => r.dataset && r.dataset.note === baseNoteKey);
+            if (!row) return;
+            const cells = row.querySelectorAll('.cell');
+            // use the currently selected column (show preview on the selected column)
+            const selectedCol = Math.min(selectionStart, selectionEnd);
+            if (selectedCol < 0 || selectedCol >= cells.length) return;
+            cells[selectedCol].classList.add('piano-highlight');
+        }
+        function autoScroll() { const container = document.getElementById('scroll-container'); container.scrollLeft = (selectionStart * 44) - (container.clientWidth / 2); }
+        function copyCode() { document.getElementById('output-code').select(); document.execCommand('copy'); }
+
+        init();
+    </script>
+</body>
+</html>

@@ -165,3 +165,26 @@ void FAC_jingle_neverGiveYouUp() {
 	FAC_jingles_delay(250);
 }
 
+void FAC_jingle_simple_scale() {
+    FAC_motor_make_noise(NOTE_C3, 63);
+    FAC_motor_make_noise(NOTE_E3, 63);
+    FAC_motor_make_noise(NOTE_G3, 63);
+    FAC_motor_make_noise(NOTE_B3, 63);
+    FAC_motor_make_noise(NOTE_D4, 63);
+    FAC_motor_make_noise(NOTE_F4, 63);
+    FAC_motor_make_noise(NOTE_A4, 63);
+    FAC_motor_make_noise(NOTE_C4, 63);
+    FAC_motor_make_noise(NOTE_E4, 63);
+    FAC_motor_make_noise(NOTE_G4, 63);
+    FAC_motor_make_noise(NOTE_B4, 63);
+    FAC_motor_make_noise(NOTE_D5, 63);
+    FAC_motor_make_noise(NOTE_F5, 63);
+    FAC_motor_make_noise(NOTE_A5, 63);
+    FAC_motor_make_noise(NOTE_C5, 63);
+    FAC_motor_make_noise(NOTE_E5, 63);
+    FAC_motor_make_noise(NOTE_G5, 63);
+    FAC_motor_make_noise(NOTE_B5, 63);
+    FAC_motor_make_noise(NOTE_D6, 63);
+    FAC_motor_make_noise(NOTE_F6, 63);
+}
+

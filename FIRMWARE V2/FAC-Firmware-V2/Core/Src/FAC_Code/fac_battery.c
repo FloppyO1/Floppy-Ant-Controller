@@ -64,7 +64,6 @@ uint16_t FAC_battery_GET_type(uint16_t vbat) {
 	FAC_battery_calculate_type(vbat);
 	return battery.type;
 }
-
 /**
  * @bief 	Return the calculated battery calibration voltage
  * @retval 	Return the calculate battery voltage calibration offset
@@ -88,28 +87,20 @@ static uint16_t FAC_battery_read_voltage(const uint8_t readings) {
 		vbat += ((uVref / resolution) * adc * divider_ratio) / 1000000;
 	}
 	vbat = vbat / (float) readings;
+
 	battery.voltage_uncalibrated = (uint16_t) vbat;
 
-	return (uint16_t) vbat;
+	return ((uint16_t) vbat);
 }
 
-/**
- * @bief 	Calculate the battery offset for the voltage reading
- */
-void FAC_battery_calculate_calibration_offset() {
-	uint16_t v = FAC_battery_read_voltage(100);
-	int16_t offset = ((int16_t) USB_REFERENCE_VOLTAGE) - ((int16_t) v);
-	FAC_battery_SET_calibration_offset(offset);
-	FAC_settings_SET_calibration_offset((uint16_t) offset);
-}
 
 /**
  * @bief 	Calculate the voltage of the battery from the adc reading
- * @note 	Vbat with the format: 6.253V = 6253mV !! WITH calibration !!
+ * @note 	Vbat with the format: 6.253V = 6253mV
  */
 static void FAC_battery_calculate_voltage() {
 	int16_t vbat = FAC_battery_read_voltage(5);
-	vbat = vbat ;//+ FAC_battery_GET_calibration_offset();
+	vbat = vbat + FAC_battery_GET_calibration_offset();
 	FAC_battery_SET_voltage((uint16_t) vbat);
 }
 
@@ -150,6 +141,7 @@ void FAC_battery_calculate_type(uint16_t vbat) {
 void FAC_battery_init() {
 	battery.type = BATTERY_TYPE_USB;
 	battery.voltage = 0;
+	battery.voltage_uncalibrated = 0;
 	battery.single_cell_voltage = 0;
 	battery.low_battery_state = FALSE;
 	battery.cut_off_state = FALSE;

@@ -9,12 +9,15 @@
 #define INC_FAC_CODE_FAC_ADC_H_
 
 #define ADC_VREF 3300000	// 3.3V = 3300000uV
+/* ST's ADC calibration address */
+#define VREFINT_CAL_ADDR ((uint16_t*) ((uint32_t)0x1FFFF7BA))
 
 typedef struct Adc {
-	uint16_t adc_raw[2];
+	uint16_t adc_raw[3];
 	uint16_t resolution;	// ex: 12bit -> 4096
 	uint32_t uVref;	// ex: 3.3V -> 3300000	(uV)
 } Adc;
+
 
 uint16_t FAC_adc_GET_resolution();
 uint32_t FAC_adc_GET_Vref_in_uV();

@@ -209,7 +209,7 @@ void FAC_app_init() {
 	FAC_adc_Init();
 	FAC_battery_init();
 
-	FAC_settings_init(2);/// first load all settings than initialize all modules
+	FAC_settings_init(50);/// first load all settings than initialize all modules
 
 	/* INERTIAL MESUREMENT UNIT INIT */
 	for (int i = 0; i < 100; i++) {	// wait for 1000ms (stabilization of the supply voltage)
@@ -239,7 +239,9 @@ void FAC_app_init() {
 
 	/* INIT END */
 //	FAC_jingle_Tequila();
+//	FAC_jingle_Tequila_long();
 //	FAC_jingle_neverGiveYouUp();
+	FAC_jingle_simple_scale();
 }
 
 /*
@@ -248,6 +250,7 @@ void FAC_app_init() {
  *
  */
 void FAC_app_init_all_modules() {
+	FAC_battery_SET_calibration_offset(FAC_settings_GET_value(FAC_SETTINGS_CODE_BATTERY_CALIBRATION));
 	FAC_motor_init();
 #ifndef	IM_TESTING_FAC_TOOL
 	FAC_std_reciever_init(
