@@ -186,5 +186,6 @@ void FAC_jingle_simple_scale() {
     FAC_motor_make_noise(NOTE_B5, 63);
     FAC_motor_make_noise(NOTE_D6, 63);
     FAC_motor_make_noise(NOTE_F6, 63);
+    FAC_jingles_delay(500);
 }
 

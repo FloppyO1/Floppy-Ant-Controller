@@ -74,16 +74,22 @@ void FAC_app_main_loop() {// one cycle every 13ms [about 76Hz] (with simple tank
 		}
 
 		/* CHECK ARMING CHANNEL IF USED */
-		uint8_t armingCh = FAC_settings_GET_value(
-				FAC_SETTINGS_CODE_ARMING_CHANNEL);
-		if (armingCh != 0) {
-			uint16_t armingValue = FAC_std_receiver_GET_channel(armingCh);
-			if (armingValue
-					>= (RECEIVER_CHANNEL_RESOLUTION / 100) * ARMING_THRESHOLD) {// value above the threschold
-				FAC_app_SET_current_state(FAC_STATE_NORMAL);
+		/* THE FAC CAN BE ARMED ONLY IF THE RECEIVER IS CONNECTED TO THE REMOTE */
+		// the receiver is connected to the remote means that at least one channel have a non zero value
+		// usually receivers don't outputs signals if they are not connected to the remote once
+		if (FAC_std_receiver_GET_is_connected()) {
+			uint8_t armingCh = FAC_settings_GET_value(
+					FAC_SETTINGS_CODE_ARMING_CHANNEL);
+			if (armingCh != 0) {
+				uint16_t armingValue = FAC_std_receiver_GET_channel(armingCh);
+				if (armingValue
+						>= (RECEIVER_CHANNEL_RESOLUTION / 100)
+								* ARMING_THRESHOLD) {// value above the threschold
+					FAC_app_SET_current_state(FAC_STATE_NORMAL);
+				}
+			} else {
+				FAC_app_SET_current_state(FAC_STATE_NORMAL);// always armed if no arming channel active
 			}
-		} else {
-			FAC_app_SET_current_state(FAC_STATE_NORMAL);// always armed if no arming channel active
 		}
 
 		/* DISARMED TONE */
@@ -209,7 +215,7 @@ void FAC_app_init() {
 	FAC_adc_Init();
 	FAC_battery_init();
 
-	FAC_settings_init(50);/// first load all settings than initialize all modules
+	FAC_settings_init(FIRMWARE_VERSION_TAG);/// first load all settings than initialize all modules
 
 	/* INERTIAL MESUREMENT UNIT INIT */
 	for (int i = 0; i < 100; i++) {	// wait for 1000ms (stabilization of the supply voltage)
@@ -250,7 +256,8 @@ void FAC_app_init() {
  *
  */
 void FAC_app_init_all_modules() {
-	FAC_battery_SET_calibration_offset(FAC_settings_GET_value(FAC_SETTINGS_CODE_BATTERY_CALIBRATION));
+	FAC_battery_SET_calibration_offset(
+			FAC_settings_GET_value(FAC_SETTINGS_CODE_BATTERY_CALIBRATION));
 	FAC_motor_init();
 #ifndef	IM_TESTING_FAC_TOOL
 	FAC_std_reciever_init(

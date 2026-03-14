@@ -8,17 +8,22 @@
 #ifndef INC_FAC_CODE_CONFIG_H_
 #define INC_FAC_CODE_CONFIG_H_
 
+#ifdef DEBUG
+//#define IM_TESTING_FAC_TOOL			// if this is defined the target use only the mcu and eeprom, used for testing settings and nothing else.
 //#define SERIAL_DEBUG	// activate the serial debug prints
+#endif
 
 /* FIRMWARE VERSION */
-// VERSION NOTE:
-// In this version the adc vref (Vdda) calibration is added at the startup. Now a Vref calibration is performed to make more accurate Vbat readings.
-// The manual calibration is now available from FAC settings
+// VERSION NOTE (in addition to the previews one):
+// Now the FAC will always boot up and is forced to DISARMED state until a valid signal came from the receiver
+// than the arming channel/setting will decide the state
 #define FIRMWARE_VERSION_MAJOR 2	// [MAX 9] 	add one here, if the changes are substantial and not backwards compatible
 #define FIRMWARE_VERSION_MINOR 0	// [MAX 99] add one here, if new backwards compatible features have been added
-#define FIRMWARE_VERSION_PATCH 6	// [MAX 99] add one here, if any issues have been fixed without adding any features
+#define FIRMWARE_VERSION_PATCH 7	// [MAX 99] add one here, if any issues have been fixed without adding any features
 
-//#define IM_TESTING_FAC_TOOL			// if this is defined the target use only the mcu and eeprom, used for testing settings and nothing else.
+#define FIRMWARE_VERSION_TAG  (uint8_t)((FIRMWARE_VERSION_MAJOR * 101U + FIRMWARE_VERSION_MINOR * 7U + FIRMWARE_VERSION_PATCH * 3U) % 255U)
+
+
 
 /* RECEIVER */
 #define RECEIVER_CHANNEL_RESOLUTION 1000	// max 2000, because the timer tick is 0.5us (500ns)

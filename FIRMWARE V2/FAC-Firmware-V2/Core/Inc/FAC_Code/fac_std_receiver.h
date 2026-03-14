@@ -16,6 +16,7 @@
 typedef struct Std_receiver {
 		uint16_t channels[RECEIVER_CHANNELS_NUMBER];		// real 0-max channels values
 		uint8_t type;	// follow the type enum, indicate witch type of receiver was initialized
+		uint8_t connected;	// this became true if the receiver is connected.
 } Std_receiver;
 
 enum RECEIVER_TYPE{
@@ -34,6 +35,7 @@ enum EDGE{
 uint16_t FAC_std_receiver_GET_channel (uint8_t chNumber);
 uint8_t FAC_std_receiver_new_channel_value(uint8_t chNumber, uint16_t value);
 void FAC_std_reciever_init(uint8_t type);
+uint8_t FAC_std_receiver_GET_is_connected(void);
 
 
 #endif /* INC_FAC_CODE_FAC_STD_RECEIVER_H_ */
