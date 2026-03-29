@@ -86,3 +86,4 @@ fp-info-cache
 
 *.pyc
 *.log
+/FIRMWARE V2/FAC-Firmware-V2/Debug
