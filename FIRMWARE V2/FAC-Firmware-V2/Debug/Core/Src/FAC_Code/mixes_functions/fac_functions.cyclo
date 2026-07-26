@@ -1,6 +1,0 @@
-../Core/Src/FAC_Code/mixes_functions/fac_functions.c:41:7:FAC_functions_GET_output	1
-../Core/Src/FAC_Code/mixes_functions/fac_functions.c:45:7:FAC_functions_GET_input	1
-../Core/Src/FAC_Code/mixes_functions/fac_functions.c:49:6:FAC_functions_SET_output	1
-../Core/Src/FAC_Code/mixes_functions/fac_functions.c:58:6:FAC_functions_update_inputs	3
-../Core/Src/FAC_Code/mixes_functions/fac_functions.c:88:6:FAC_functions_update	2
-../Core/Src/FAC_Code/mixes_functions/fac_functions.c:113:6:FAC_functions_init	2

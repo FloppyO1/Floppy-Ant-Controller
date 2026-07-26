@@ -1,7 +1,0 @@
-../Core/Src/FAC_Code/fac_settings.c:300:10:FAC_settings_GET_value	0	static
-../Core/Src/FAC_Code/fac_settings.c:312:6:FAC_settings_SET_calibration_offset	8	static
-../Core/Src/FAC_Code/fac_settings.c:328:9:FAC_settings_command_response	56	static
-../Core/Src/FAC_Code/fac_settings.c:388:6:FAC_settings_USB_SEND_setting_value	16	static
-../Core/Src/FAC_Code/fac_settings.c:403:6:FAC_settings_USB_SEND_setting_ranges	16	static
-../Core/Src/FAC_Code/fac_settings.c:416:6:FAC_settings_init	16	static
-../Core/Src/FAC_Code/fac_settings.c:458:6:FAC_settings_SEND_what_received	8	static
