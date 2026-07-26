@@ -1,0 +1,3 @@
+[submodule "FIRMWARE V2/FAC-Firmware-V2"]
+	path = FIRMWARE V2/FAC-Firmware-V2
+	url = https://github.com/FloppyO1/FAC-V2-Firmware.git
