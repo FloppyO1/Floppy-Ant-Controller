@@ -4,20 +4,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-`FAC_mix_editor.html` is a **single self-contained HTML file** (~4400 lines: inline `<style>`, inline vanilla ES2020, no build step, no npm, no CDN, no network) in which a user assembles a F.A.C. V2 **mix** (8 inputs / 10 outputs) or **special function** (1 input / 1 output) out of a closed set of integer blocks, simulates it in the browser **bit-identically to the MCU**, and exports the `.c`/`.h` pair plus a hand-registration guide for the firmware.
+`FAC_mix_editor.html` is a **single self-contained HTML file** (~5400 lines: inline `<style>`, inline vanilla ES2020, no build step, no npm, no CDN, no network) in which a user assembles a F.A.C. V2 **mix** (8 inputs / 10 outputs) or **special function** (1 input / 1 output) out of a closed set of integer blocks, simulates it in the browser **bit-identically to the MCU**, and exports the `.c`/`.h` pair plus a hand-registration guide for the firmware.
 
 The whole premise is that a mix is a composition of ~30 known integer operations, not arbitrary C — integer means the browser and the Cortex-M0 agree exactly. Any change that introduces a float into the graph math, or a second copy of a primitive, destroys the tool's reason to exist.
 
 `PROMPT_FAC_MIX_EDITOR.md.initial` is the original build brief: the full requirement spec, decision log and acceptance criteria. Read it before any non-trivial change — but see *Precedence* below.
+
+### Work order V2 — phase 1 is DONE, phase 2 is not
+
+`PROMPT_FAC_MIX_EDITOR_V2.md` is the second work order. **Phase 1 is complete and shipped**: §1 symmetric channel domain, §3 collapsed-group drag, §4 marquee selection, §5 grid snap, §6 right-button pan, §2 resizable panes, §7 auto-layout, §9 the *Blocks* tab. Everything those sections describe is in the file and is documented below — read this file, not the work order, for what the tool does today.
+
+**§8 is the only part left**, and the work order defers it explicitly: the live 2D robot view and the closed loop that drives the simulated IMU from the robot's motion. It is specified in full at the end of that document. Two things it will need that do not exist yet: `SCHEMA_VERSION` goes to **2** (it carries new `P.sim` physical-unit fields, which *do* belong to the project — unlike the UI preferences, see below), and `SIM.integrateRobot()` becomes the **second** float boundary in the program, so it must terminate in `Math.round()` before anything reaches `SIM.gyro` / `SIM.accel`, with a self-test assertion proving no non-integer ever gets there.
+
+Two corrections the work order itself records, so they do not get re-proposed: scaling the motor mapper by `MOTOR_SPEED_RESOLUTION - 1` recovers nothing and truncates the whole scale, and the `FAC_servo_SET_position` clamp is load-bearing (it bounds the pulse formula), not defensive.
 
 ## Running and testing
 
 There is no build, no package manager, no test runner.
 
 - **Run**: open `FAC_mix_editor.html` in Chrome/Edge/Firefox (`file://` works, offline).
-- **Tests**: the `SELFTEST` section is the test suite — several hundred assertions covering the `fac_math.h` port, the guarded returns, unsigned `sqrt`, the receiver-deadzone port over `value × deadzone × channel`, and a `simple_tank` parity grid against a hand transcription of `fac_simple_tank_mix.c`. `runSelfTest()` runs **automatically at boot**; the *Self-test* bottom tab shows pass/fail and re-runs on demand. **Export is blocked while the self-test has not run or has any failure** — keep it that way.
+- **Tests**: the `SELFTEST` section is the test suite — **185 assertions** covering the `fac_math.h` port, the guarded returns, unsigned `sqrt`, the receiver-deadzone port swept over `value × deadzone × channel`, the mapper mirrors at the device end, and a `simple_tank` parity grid against a hand transcription of `fac_simple_tank_mix.c`. `runSelfTest()` runs **automatically at boot**; the *Self-test* bottom tab shows pass/fail and re-runs on demand. **Export is blocked while the self-test has not run or has any failure** — keep it that way.
 - Presets (`PRESETS`) double as regression fixtures; `simple_tank` is the acceptance test for the group-4 (plain-C) blocks, `headlessMix()` evaluates a project without the UI and is what the parity grid uses.
 - Only if a browser refuses the Gamepad API on `file://`: `python -m http.server` in this folder and open `localhost`. That is a convenience, never a requirement — the tool must stay fully usable with sliders and no pad.
+
+### Verifying a change without a browser
+
+There is no test runner in the repo and there must not be one. When working from an agent that has no browser, build a **throwaway node harness in the scratchpad** and delete it afterwards — nothing test-shaped gets committed. What worked, and is worth rebuilding rather than reinventing:
+
+- **The pure sections evaluate under `node`.** Slice the file from the `SECTION: FAC_MATH` banner to `SECTION: UI - palette`, run it in a `vm` context, and you get `NODES`, `PRESETS`, `analyse()`, `generate()`, `runSelfTest()` and the whole `FAC_MATH` port. Two gotchas: `const`/`class` bindings are script-scoped and never land on the context, so append an epilogue that copies the names you want onto a global; and `P` is a `let`, so export a `setP`/`getP` pair to swap the active project.
+- **UI functions can still be tested** by extracting a single function's text by brace matching and evaluating it with stubs — `marqueeHits`, `snapDelta`, `collectMoveTargets`, `autoLayout`, `blockDocList` were all checked that way. Extracting the *real* function instead of restating its logic is the point: a copied assertion proves nothing.
+- **A whole-script parse check** (`new vm.Script(...)` over the `<script>` body) catches what the pure-section harness cannot, since most of the UI lives outside it.
+- **Two standing regression gates**: dump the generated `.c`/`.h` of every preset before and after a change and diff them, and check that every `$('#id')` in the JS matches an id that exists in the markup.
+
+A caveat that cost a real bug: the harness does **not** exercise the pointer interaction, so a change to the drag, the marquee, the splitters or the panning is not verified until it is opened in a browser. `Array.prototype.slice.call(aSet)` returning `[]` — a `Set` is not array-like — shipped past a clean parse check because nothing executed that line.
 
 ## Architecture
 
@@ -34,10 +53,13 @@ One file, sections marked with banner comments — grep `SECTION:` to jump. Orde
 | `CODEGEN` | `makeCtx()`, `genBody()`, `buildMixC/H`, `buildFunctionC/H` |
 | `REGISTRATION` | `registrationGuide()` — text only |
 | `PROJECT FILES` | `.facmix.json` save/load, autosave, round-trip import from a generated `.c` |
-| `SIM` | fixed 1 ms loop driving a simulated `HAL_GetTick()` |
+| `SIM` | fixed 1 ms loop driving a simulated `HAL_GetTick()`, plus `servoPosition()` / `motorSpeed()` mirroring `fac_mapper.c` |
 | `GAMEPAD` | Gamepad API → the same stage-0 values the sliders write |
-| `SELFTEST`, `PRESETS`, `UI ×3` | |
-| `UI - block documentation` | `blockEmitDemo()`, `blockRange()`, `uiBlocks()` — the *Blocks* tab, derived entirely from `NODES` |
+| `SELFTEST`, `PRESETS` | |
+| `UI - palette, canvas editor, …` | also the UI prefs (`UI`, `LAYOUT_KEY`, `applyLayout()`), `snapPos()`/`snapDelta()`, the drag and marquee machinery |
+| `AUTO LAYOUT` | `layoutUnits()`, `autoLayout()` — left to right by rank, over layout units |
+| `UI - bottom tabs`, `UI - export, help, keyboard, autosave, boot` | |
+| `UI - block documentation` | `blockEmitDemo()`, `blockRange()`, `blockDocList()`, `uiBlocks()` — the *Blocks* tab, derived entirely from `NODES` |
 
 ### The one invariant: no second implementation
 
@@ -110,7 +132,10 @@ Emission constraints worth not rediscovering:
 - **UI preferences live in `localStorage` under `facmix.layout.v1`**, never in the project file and never in `SCHEMA_VERSION`: pane sizes, collapse state, compact density and grid size are a property of the person, not of the mix. `AUTOSAVE_KEY` is a separate key and the two must not read each other. `applyLayout()` is the single place a preference becomes CSS.
 - **A collapsed group is visual only**, and blocks marked `noGroup` in the catalogue — the mix/function inputs and outputs — are never grouped: they are where the graph begins and ends. `loadProject()` strips a stale group off them, so the rule holds for older projects too.
 - **Auto-layout arranges layout units, not nodes**: a collapsed group is one unit at its box size and its members move rigidly inside it. Cycles are broken on the edge *into* a stateful block — the same edge that makes them legal. A freshly loaded preset is laid out once, with `undoSuspend` set, because the presets' hand-written coordinates overlap; a restored session keeps the user's positions.
-- **Positions are not semantics.** The generated C is identical before and after a layout. The `.c` is *not* byte-identical, because it carries the project as JSON for round-trip import and that JSON holds the coordinates — which is the point of it.
+- **Positions are not semantics.** The generated C is identical before and after a layout. The `.c` is *not* byte-identical, because it carries the project as JSON for round-trip import and that JSON holds the coordinates — which is the point of it. When a work order asks for a byte-identical `.c` across a layout, that is the clause it did not account for.
+- **`openTab()` is the one way a bottom tab opens**, so a link from the palette or the inspector behaves exactly like clicking it (and un-collapses the bottom panel if needed). `TAB_RENDER` maps a tab name to its render function.
+- **A list with a filter must not rebuild its own filter controls.** The *Blocks* tab builds its shell once and re-renders only `#bdList`; rebuilding the whole panel on every keystroke destroyed the input being typed into and took the focus and caret with it. The same shape applies to any filtered list added later.
+- There is **no UI scale control**: it was built and then removed on the user's call, because the browser's own zoom covers the case. `--ui-dense` survives for the *compact* switch and multiplies chrome paddings only — fonts are plain px, and nothing in `.node`/`.port`/`.prow` uses it, which is what keeps node metrics fixed in world coordinates.
 
 ## Validation
 
