@@ -3250,6 +3250,87 @@ let selection = new Set();
 let dragState = null;
 const NODE_GEOM = {};   /* nodeId -> {w,h} measured after render */
 
+/* ---------------------------------------------------------- move dragging
+ * A move drag resolves the elements it will touch ONCE, at mousedown, instead
+ * of looking them up per frame.
+ *
+ * That is also what makes a collapsed group draggable at all: its members are
+ * NOT rendered - renderNodes() skips them through isHidden() and draws a single
+ * box carrying data-grp instead - so a per-frame '.node[data-id=...]' lookup
+ * matched nothing, the box stayed put, and the whole group only jumped into
+ * place on the refreshAll() at mouseup. */
+function collectMoveTargets(ids) {
+	/* one pass over the rendered nodes into two lookups. A group name is user
+	 * typed, so it must never be interpolated into a CSS selector. */
+	/* null prototype: a group named "constructor" would otherwise resolve to
+	 * Object.prototype.constructor and crash the drag on the first frame */
+	const byId = Object.create(null), byGroup = Object.create(null);
+	$$('#nodes .node').forEach(e => {
+		if (e.dataset.grp) byGroup[e.dataset.grp] = e;
+		else if (e.dataset.id) byId[e.dataset.id] = e;
+	});
+	const doms = [], boxes = [], seenGroup = Object.create(null);
+	ids.forEach(id => {
+		const n = nodeById(id); if (!n) return;
+		if (isHidden(n)) {
+			/* behind a collapsed box: move the box, once, however many of its
+			 * members the selection happens to contain */
+			if (seenGroup[n.grp]) return;
+			seenGroup[n.grp] = 1;
+			const be = byGroup[n.grp];
+			if (be) boxes.push({ g: n.grp, el: be, members: P.nodes.filter(m => m.grp === n.grp) });
+			return;
+		}
+		if (byId[id]) doms.push({ n: n, el: byId[id] });
+	});
+	return { doms: doms, boxes: boxes };
+}
+
+function beginMoveDrag(e) {
+	const wp = worldPos(e);
+	dragState = { kind: 'move', ox: wp.x, oy: wp.y, start: {}, doms: [], boxes: [] };
+	selection.forEach(sid => { const n = nodeById(sid); if (n) dragState.start[sid] = { x: n.x, y: n.y }; });
+	const t = collectMoveTargets(Array.prototype.slice.call(selection));
+	dragState.doms = t.doms; dragState.boxes = t.boxes;
+}
+
+/* the model is updated on every mousemove, the DOM at most once per frame */
+let moveRaf = 0;
+function scheduleMoveFrame() {
+	if (moveRaf) return;
+	moveRaf = requestAnimationFrame(() => { moveRaf = 0; applyMoveFrame(); });
+}
+function cancelMoveFrame() { if (moveRaf) { cancelAnimationFrame(moveRaf); moveRaf = 0; } }
+function applyMoveFrame() {
+	const ds = dragState; if (!ds || ds.kind !== 'move') return;
+	ds.doms.forEach(d => { d.el.style.left = d.n.x + 'px'; d.el.style.top = d.n.y + 'px'; });
+	ds.boxes.forEach(b => {
+		/* the box origin is the top left corner of its members, the same rule
+		 * renderNodes() uses, so the box lands where the cursor released it and
+		 * an expand afterwards shows the members at their own offsets */
+		const x = Math.min.apply(null, b.members.map(m => m.x));
+		const y = Math.min.apply(null, b.members.map(m => m.y));
+		b.el.style.left = x + 'px'; b.el.style.top = y + 'px';
+		const gb = GROUP_BOX[b.g];
+		if (gb) { gb.x = x; gb.y = y; }   /* portPos() reads this, so the wires follow too */
+	});
+	renderWires();   /* at most once per frame, whatever the selection size */
+}
+
+/* Starting a drag does not need a full re-render. refreshAll() re-runs
+ * analyse(), rebuilds the generated code and the registration guide and
+ * autosaves - none of which a mousedown can have invalidated. Toggling the
+ * class and refreshing the inspector is the whole of a selection change. */
+function syncSelectionUI() {
+	$$('#nodes .node').forEach(e => {
+		const sel = e.dataset.grp
+			? P.nodes.some(n => n.grp === e.dataset.grp && selection.has(n.id))
+			: selection.has(e.dataset.id);
+		e.classList.toggle('sel', sel);
+	});
+	uiInspector();
+}
+
 /* --------------------------------------------------------------- palette */
 function uiPalette() {
 	const body = $('#palBody'), q = ($('#palSearch').value || '').toLowerCase();
@@ -3508,21 +3589,17 @@ function initCanvas() {
 			if (!e.shiftKey) selection = new Set();
 			ids.forEach(x => selection.add(x));
 			pushUndo();
-			const wp = worldPos(e);
-			dragState = { kind: 'move', ox: wp.x, oy: wp.y, start: {} };
-			ids.forEach(sid => { const n = nodeById(sid); dragState.start[sid] = { x: n.x, y: n.y }; });
-			refreshAll();
+			beginMoveDrag(e);
+			syncSelectionUI();
 			return;
 		}
 		if (nodeEl) {
 			const id = nodeEl.dataset.id;
 			if (!selection.has(id)) { if (!e.shiftKey) selection = new Set(); selection.add(id); }
-			else if (e.shiftKey) { selection.delete(id); refreshAll(); return; }
+			else if (e.shiftKey) { selection.delete(id); syncSelectionUI(); return; }
 			pushUndo();
-			const w = worldPos(e);
-			dragState = { kind: 'move', ox: w.x, oy: w.y, start: {} };
-			selection.forEach(sid => { const n = nodeById(sid); if (n) dragState.start[sid] = { x: n.x, y: n.y }; });
-			refreshAll();
+			beginMoveDrag(e);
+			syncSelectionUI();
 			return;
 		}
 		if (e.button === 1 || e.altKey || keyState.space) {
@@ -3542,10 +3619,8 @@ function initCanvas() {
 			selection.forEach(id => {
 				const n = nodeById(id), s = dragState.start[id]; if (!n || !s) return;
 				n.x = Math.round((s.x + dx) / grid) * grid; n.y = Math.round((s.y + dy) / grid) * grid;
-				const dom = $('#nodes .node[data-id="' + id + '"]');
-				if (dom) { dom.style.left = n.x + 'px'; dom.style.top = n.y + 'px'; }
 			});
-			renderWires();
+			scheduleMoveFrame();
 		} else if (dragState.kind === 'wire') {
 			dragState.b = worldPos(e); renderWires({ a: dragState.a, b: dragState.b });
 		} else if (dragState.kind === 'wireBack') {
@@ -3569,6 +3644,7 @@ function initCanvas() {
 
 	window.addEventListener('mouseup', e => {
 		if (!dragState) return;
+		cancelMoveFrame();   /* a pending frame would write into stale elements */
 		const ds = dragState; dragState = null;
 		if (ds.kind === 'wire' || ds.kind === 'wireBack') {
 			const t = e.target.closest ? e.target.closest('.port') : null;
