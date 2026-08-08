@@ -3249,6 +3249,7 @@ const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 let selection = new Set();
 let dragState = null;
 const NODE_GEOM = {};   /* nodeId -> {w,h} measured after render */
+const MARQUEE_DEAD_PX = 3;   /* screen pixels before a press becomes a marquee */
 
 /* ---------------------------------------------------------- move dragging
  * A move drag resolves the elements it will touch ONCE, at mousedown, instead
@@ -3294,13 +3295,18 @@ function beginMoveDrag(e) {
 	dragState.doms = t.doms; dragState.boxes = t.boxes;
 }
 
-/* the model is updated on every mousemove, the DOM at most once per frame */
-let moveRaf = 0;
-function scheduleMoveFrame() {
-	if (moveRaf) return;
-	moveRaf = requestAnimationFrame(() => { moveRaf = 0; applyMoveFrame(); });
+/* The model is updated on every mousemove, the DOM at most once per frame. One
+ * slot is enough: a move drag and a marquee drag are mutually exclusive. */
+let dragRaf = 0, dragRafFn = null;
+function scheduleDragFrame(fn) {
+	dragRafFn = fn;
+	if (dragRaf) return;
+	dragRaf = requestAnimationFrame(() => { dragRaf = 0; const f = dragRafFn; dragRafFn = null; if (f) f(); });
 }
-function cancelMoveFrame() { if (moveRaf) { cancelAnimationFrame(moveRaf); moveRaf = 0; } }
+function cancelDragFrame() {
+	if (dragRaf) { cancelAnimationFrame(dragRaf); dragRaf = 0; }
+	dragRafFn = null;
+}
 function applyMoveFrame() {
 	const ds = dragState; if (!ds || ds.kind !== 'move') return;
 	ds.doms.forEach(d => { d.el.style.left = d.n.x + 'px'; d.el.style.top = d.n.y + 'px'; });
@@ -3317,18 +3323,85 @@ function applyMoveFrame() {
 	renderWires();   /* at most once per frame, whatever the selection size */
 }
 
+/* Paint a selection - the real one, or the one a marquee WOULD produce - with
+ * nothing but a class toggle. No re-render, so it is cheap enough to run on
+ * every frame of a drag. */
+function paintSelection(sel) {
+	$$('#nodes .node').forEach(e => {
+		const on = e.dataset.grp
+			? P.nodes.some(n => n.grp === e.dataset.grp && sel.has(n.id))
+			: sel.has(e.dataset.id);
+		e.classList.toggle('sel', on);
+	});
+}
+
 /* Starting a drag does not need a full re-render. refreshAll() re-runs
  * analyse(), rebuilds the generated code and the registration guide and
  * autosaves - none of which a mousedown can have invalidated. Toggling the
  * class and refreshing the inspector is the whole of a selection change. */
 function syncSelectionUI() {
-	$$('#nodes .node').forEach(e => {
-		const sel = e.dataset.grp
-			? P.nodes.some(n => n.grp === e.dataset.grp && selection.has(n.id))
-			: selection.has(e.dataset.id);
-		e.classList.toggle('sel', sel);
-	});
+	paintSelection(selection);
 	uiInspector();
+}
+
+/* ------------------------------------------------------------- marquee
+ * NODE_GEOM is filled by renderNodes() from offsetWidth/offsetHeight. A render
+ * that ran while the editor was not laid out measures zero, and a node that has
+ * never been rendered is missing entirely; either way the hit test would fall
+ * back to a nominal size and silently misjudge wide nodes. Re-measure from the
+ * DOM before a marquee starts, which is the only moment it costs nothing. */
+function refreshGeometry() {
+	$$('#nodes .node').forEach(e => {
+		const w = e.offsetWidth, h = e.offsetHeight;
+		if (!w || !h) return;
+		if (e.dataset.grp) {
+			NODE_GEOM['#grp:' + e.dataset.grp] = { w: w, h: h };
+			const b = GROUP_BOX[e.dataset.grp];
+			if (b) { b.w = w; b.h = h; }
+		} else if (e.dataset.id) {
+			NODE_GEOM[e.dataset.id] = { w: w, h: h };
+		}
+	});
+}
+
+/* INTERSECTION, not containment: a marquee that touches a block at all takes
+ * it. A collapsed group is hit as the single box the user can actually see, and
+ * contributes all of its members - the same thing clicking the box does. */
+function marqueeHits(x0, y0, x1, y1) {
+	const xa = Math.min(x0, x1), xb = Math.max(x0, x1);
+	const ya = Math.min(y0, y1), yb = Math.max(y0, y1);
+	const touches = (x, y, w, h) => x + w > xa && x < xb && y + h > ya && y < yb;
+	const hit = new Set();
+	P.nodes.forEach(n => {
+		if (isHidden(n)) return;
+		const g = NODE_GEOM[n.id];
+		if (g && touches(n.x, n.y, g.w, g.h)) hit.add(n.id);
+	});
+	groupNames().forEach(g => {
+		if (!P.collapsed[g]) return;
+		const b = GROUP_BOX[g];
+		if (b && touches(b.x, b.y, b.w, b.h))
+			P.nodes.forEach(n => { if (n.grp === g) hit.add(n.id); });
+	});
+	return hit;
+}
+
+/* what the marquee would select right now, shift included */
+function marqueePreview(ds) {
+	const hit = marqueeHits(ds.x0, ds.y0, ds.x1, ds.y1);
+	if (ds.add) ds.base.forEach(id => hit.add(id));
+	return hit;
+}
+
+function applyMarqueeFrame() {
+	const ds = dragState; if (!ds || ds.kind !== 'box' || ds.x1 === undefined) return;
+	let b = $('#selbox');
+	if (!b) { b = el('div'); b.id = 'selbox'; $('#editor').appendChild(b); }
+	b.style.left = (Math.min(ds.x0, ds.x1) * P.view.z + P.view.x) + 'px';
+	b.style.top = (Math.min(ds.y0, ds.y1) * P.view.z + P.view.y) + 'px';
+	b.style.width = Math.abs(ds.x1 - ds.x0) * P.view.z + 'px';
+	b.style.height = Math.abs(ds.y1 - ds.y0) * P.view.z + 'px';
+	paintSelection(marqueePreview(ds));   /* live, while dragging, not on release */
 }
 
 /* --------------------------------------------------------------- palette */
@@ -3607,8 +3680,14 @@ function initCanvas() {
 			e.preventDefault(); return;
 		}
 		const w = worldPos(e);
-		dragState = { kind: 'box', x0: w.x, y0: w.y, add: e.shiftKey, base: new Set(selection) };
-		if (!e.shiftKey) { selection = new Set(); refreshAll(); }
+		refreshGeometry();   /* the hit test must not guess a node's width */
+		dragState = {
+			kind: 'box', x0: w.x, y0: w.y, add: e.shiftKey, base: new Set(selection),
+			sx: e.clientX, sy: e.clientY, moved: false
+		};
+		/* clearing on an empty canvas press happens HERE, which is why there is no
+		 * click listener doing it afterwards - see the mouseup note below */
+		if (!e.shiftKey) { selection = new Set(); syncSelectionUI(); }
 	});
 
 	window.addEventListener('mousemove', e => {
@@ -3620,7 +3699,7 @@ function initCanvas() {
 				const n = nodeById(id), s = dragState.start[id]; if (!n || !s) return;
 				n.x = Math.round((s.x + dx) / grid) * grid; n.y = Math.round((s.y + dy) / grid) * grid;
 			});
-			scheduleMoveFrame();
+			scheduleDragFrame(applyMoveFrame);
 		} else if (dragState.kind === 'wire') {
 			dragState.b = worldPos(e); renderWires({ a: dragState.a, b: dragState.b });
 		} else if (dragState.kind === 'wireBack') {
@@ -3630,21 +3709,21 @@ function initCanvas() {
 			P.view.y = dragState.vy + (e.clientY - dragState.sy);
 			applyView();
 		} else if (dragState.kind === 'box') {
+			/* a few pixels of dead zone, so a shaky click still reads as a click
+			 * and does not flash a one pixel marquee */
+			if (!dragState.moved &&
+				Math.abs(e.clientX - dragState.sx) < MARQUEE_DEAD_PX &&
+				Math.abs(e.clientY - dragState.sy) < MARQUEE_DEAD_PX) return;
+			dragState.moved = true;
 			const w = worldPos(e);
-			const r = $('#viewport').getBoundingClientRect();
-			let b = $('#selbox');
-			if (!b) { b = el('div'); b.id = 'selbox'; $('#editor').appendChild(b); }
-			const x0 = Math.min(dragState.x0, w.x) * P.view.z + P.view.x, y0 = Math.min(dragState.y0, w.y) * P.view.z + P.view.y;
-			b.style.left = x0 + 'px'; b.style.top = y0 + 'px';
-			b.style.width = Math.abs(w.x - dragState.x0) * P.view.z + 'px';
-			b.style.height = Math.abs(w.y - dragState.y0) * P.view.z + 'px';
 			dragState.x1 = w.x; dragState.y1 = w.y;
+			scheduleDragFrame(applyMarqueeFrame);
 		}
 	});
 
 	window.addEventListener('mouseup', e => {
 		if (!dragState) return;
-		cancelMoveFrame();   /* a pending frame would write into stale elements */
+		cancelDragFrame();   /* a pending frame would write into stale elements */
 		const ds = dragState; dragState = null;
 		if (ds.kind === 'wire' || ds.kind === 'wireBack') {
 			const t = e.target.closest ? e.target.closest('.port') : null;
@@ -3655,22 +3734,16 @@ function initCanvas() {
 			refreshAll();
 		} else if (ds.kind === 'box') {
 			const b = $('#selbox'); if (b) b.remove();
-			if (ds.x1 !== undefined) {
-				const xa = Math.min(ds.x0, ds.x1), xb = Math.max(ds.x0, ds.x1);
-				const ya = Math.min(ds.y0, ds.y1), yb = Math.max(ds.y0, ds.y1);
-				selection = ds.add ? ds.base : new Set();
-				P.nodes.forEach(n => {
-					if (isHidden(n)) return;
-					const g = NODE_GEOM[n.id] || { w: 120, h: 60 };
-					if (n.x + g.w > xa && n.x < xb && n.y + g.h > ya && n.y < yb) selection.add(n.id);
-				});
-			}
+			/* commit exactly what the preview was already showing */
+			if (ds.moved) selection = marqueePreview(ds);
 			refreshAll();
 		} else if (ds.kind === 'move') { refreshAll(); }
 	});
-	$('#viewport').addEventListener('click', e => {
-		if (e.target.id === 'viewport' || e.target.id === 'world') { selection = new Set(); refreshAll(); }
-	});
+	/* There is deliberately NO click listener clearing the selection here. It ran
+	 * AFTER the mouseup that completed a marquee, saw e.target as #viewport or
+	 * #world, and wiped the selection it had just built - which is why a marquee
+	 * released over empty canvas never stuck, while one released over a node did.
+	 * An empty canvas press already clears in the mousedown path above. */
 	$('#viewport').addEventListener('dblclick', e => {
 		const box = e.target.closest ? e.target.closest('.node') : null;
 		if (box && box.dataset.grp) { P.collapsed[box.dataset.grp] = false; refreshAll(); }
