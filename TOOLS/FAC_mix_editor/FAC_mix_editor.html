@@ -221,7 +221,7 @@ canvas{display:block;background:#0b0b0b;border:1px solid var(--line2);border-rad
 			</div>
 		</div>
 		<div id="groups"></div>
-		<div id="editHint">drag from a palette block &middot; drag port&rarr;port to wire<br>del = delete &middot; ctrl+C/V &middot; wheel = zoom &middot; space/middle drag = pan<br>arrows = nudge (shift = &times;5) &middot; ctrl while dragging = ignore grid</div>
+		<div id="editHint">drag from a palette block &middot; drag port&rarr;port to wire<br>del = delete &middot; ctrl+C/V &middot; wheel = zoom &middot; right/middle/space/alt drag = pan<br>arrows = nudge (shift = &times;5) &middot; ctrl while dragging = ignore grid</div>
 		<div id="hud"></div>
 	</section>
 
@@ -3722,7 +3722,21 @@ function initCanvas() {
 		P.view.z = nz; applyView(); renderWires();
 	}, { passive: false });
 
+	/* Only inside the canvas: everywhere else the browser menu must keep working.
+	 * The tool deliberately offers NO context menu of its own, so a stationary
+	 * right click does nothing at all. */
+	vp.addEventListener('contextmenu', e => e.preventDefault());
+
 	vp.addEventListener('mousedown', e => {
+		/* Pan is decided FIRST, before the port and node branches. A pan gesture
+		 * means the same thing wherever it starts, and testing it last meant a
+		 * middle or right press that happened to land on a block started a move
+		 * drag - complete with its pushUndo - instead of panning. */
+		if (e.button === 1 || e.button === 2 || e.altKey || keyState.space) {
+			dragState = { kind: 'pan', sx: e.clientX, sy: e.clientY, vx: P.view.x, vy: P.view.y };
+			e.preventDefault();
+			return;
+		}
 		const portEl = e.target.closest ? e.target.closest('.port') : null;
 		const nodeEl = e.target.closest ? e.target.closest('.node') : null;
 		if (portEl) {
@@ -3761,10 +3775,6 @@ function initCanvas() {
 			beginMoveDrag(e, gn ? { x: gn.x, y: gn.y } : null);
 			syncSelectionUI();
 			return;
-		}
-		if (e.button === 1 || e.altKey || keyState.space) {
-			dragState = { kind: 'pan', sx: e.clientX, sy: e.clientY, vx: P.view.x, vy: P.view.y };
-			e.preventDefault(); return;
 		}
 		const w = worldPos(e);
 		refreshGeometry();   /* the hit test must not guess a node's width */
@@ -4600,8 +4610,9 @@ function uiHelp() {
 		'<tr><td class="l">Del / Backspace</td><td class="l">delete the selection</td></tr>' +
 		'<tr><td class="l">Ctrl+C / Ctrl+V</td><td class="l">copy and paste a subgraph</td></tr>' +
 		'<tr><td class="l">Ctrl+Z / Ctrl+Y</td><td class="l">undo / redo</td></tr>' +
-		'<tr><td class="l">F</td><td class="l">frame all</td></tr>' +
-		'<tr><td class="l">space / middle / alt drag</td><td class="l">pan &middot; wheel zooms &middot; ctrl-drag disables the grid snap</td></tr>' +
+		'<tr><td class="l">F</td><td class="l">frame all (bare F only, so Ctrl+F still opens the browser find)</td></tr>' +
+		'<tr><td class="l">arrows / shift+arrows</td><td class="l">nudge the selection by one grid step, or five</td></tr>' +
+		'<tr><td class="l">right / middle / space / alt drag</td><td class="l">pan &middot; wheel zooms &middot; ctrl-drag ignores the grid snap. A stationary right click does nothing: there is no context menu of our own, and the browser one is suppressed inside the canvas only</td></tr>' +
 		'<tr><td class="l">group field in the inspector</td><td class="l">name a group, then use the chips at the top left to collapse it behind one box. Purely visual: the graph, the analysis and the generated code are identical either way</td></tr></table>' +
 		'<h4>What this tool will never do</h4>' +
 		'<p>Emit a <span class="mono">float</span>, a device write, a settings write, a blocking call, a new setting code, or a patch to your firmware. ' +
@@ -4691,9 +4702,13 @@ function initKeys() {
 		if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') { copySel(); e.preventDefault(); }
 		if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') { pasteSel(); e.preventDefault(); }
 		if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') { selection = new Set(P.nodes.map(n => n.id)); refreshAll(); e.preventDefault(); }
-		if (e.key === 'f' || e.key === 'F') frameAll();
+		/* Every BARE letter shortcut is gated on this. Without it Ctrl+F framed the
+		 * graph instead of opening the browser's find, and any further letter added
+		 * here would inherit the same trap. Shift stays free, so 'F' still works. */
+		const noMod = !e.ctrlKey && !e.metaKey && !e.altKey;
+		if (noMod && (e.key === 'f' || e.key === 'F')) frameAll();
 		const ARROW = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
-		if (ARROW[e.key] && !e.ctrlKey && !e.metaKey && !e.altKey) {
+		if (ARROW[e.key] && noMod) {
 			const k = snapStep() * (e.shiftKey ? 5 : 1);
 			nudgeSelection(ARROW[e.key][0] * k, ARROW[e.key][1] * k);
 			e.preventDefault();
