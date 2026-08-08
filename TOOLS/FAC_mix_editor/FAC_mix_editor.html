@@ -15,6 +15,17 @@
 	--err:#f4564a; --warn:#e8a33d; --ok:#4caf50; --wire:#5a5a5a;
 	--pos:#4fc3f7; --neg:#ff8a65;
 	--grid:#242424;
+
+	/* ---- chrome density ----
+	 * --k multiplies the paddings of the top bar, the palette, the right column
+	 * and the bottom panel: 1 normal, 0.7 compact. Font sizes are NOT scaled, and
+	 * nothing here reaches the canvas - .node/.port/.prow keep plain px, so node
+	 * metrics and port hit areas stay fixed in WORLD coordinates and a saved x/y
+	 * layout occupies the same space whatever the chrome looks like. Making the
+	 * whole editor bigger is the browser's own zoom, which is why this tool does
+	 * not carry a UI scale control of its own. */
+	--ui-dense:1;
+	--k:var(--ui-dense);
 }
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -24,12 +35,12 @@ body{
 	display:flex; flex-direction:column;
 }
 button,select,input,textarea{font-family:inherit; font-size:12px; color:var(--text)}
-button{background:#2c2c2c;border:1px solid var(--line2);border-radius:6px;padding:4px 10px;cursor:pointer}
+button{background:#2c2c2c;border:1px solid var(--line2);border-radius:6px;padding:calc(4px*var(--k)) calc(10px*var(--k));cursor:pointer}
 button:hover{background:#383838;border-color:var(--accent)}
 button:active{transform:translateY(1px)}
 button.primary{background:var(--accent-dim);border-color:var(--accent);font-weight:600}
 button.primary:hover{background:var(--accent)}
-button.tiny{padding:2px 6px;font-size:11px}
+button.tiny{padding:calc(2px*var(--k)) calc(6px*var(--k));font-size:11px}
 button.on{background:var(--accent-dim);border-color:var(--accent)}
 select,input[type=text],input[type=number]{background:#161616;border:1px solid var(--line2);border-radius:5px;padding:3px 6px}
 input[type=number]{width:84px}
@@ -41,14 +52,14 @@ a{color:var(--accent)}
 .hidden{display:none !important}
 
 /* ---- top bar ---- */
-#topbar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--panel);border-bottom:1px solid var(--line);flex:0 0 auto;flex-wrap:wrap}
+#topbar{display:flex;align-items:center;gap:calc(8px*var(--k));padding:calc(6px*var(--k)) calc(10px*var(--k));background:var(--panel);border-bottom:1px solid var(--line);flex:0 0 auto;flex-wrap:wrap}
 #brand{font-weight:800;color:var(--accent);letter-spacing:1px;white-space:nowrap}
 #brand small{display:block;font-weight:400;color:var(--muted);letter-spacing:0;font-size:10px}
 .sep{width:1px;height:24px;background:var(--line2);margin:0 2px}
 #topbar label{color:var(--muted);font-size:11px}
 
 /* ---- self test banner ---- */
-#stBanner{padding:6px 12px;font-weight:700;text-align:center;flex:0 0 auto}
+#stBanner{padding:calc(6px*var(--k)) calc(12px*var(--k));font-weight:700;text-align:center;flex:0 0 auto}
 #stBanner.bad{background:var(--err);color:#fff}
 #stBanner.good{background:#1c3a1e;color:#9ede9f;font-weight:500;font-size:11px}
 
@@ -65,13 +76,21 @@ aside{background:var(--panel);display:flex;flex-direction:column;min-height:0}
 .hsplit:hover,.hsplit.drag{background:var(--accent)}
 body.resizing-v,body.resizing-v *{cursor:col-resize !important;user-select:none !important}
 body.resizing-h,body.resizing-h *{cursor:row-resize !important;user-select:none !important}
-.paneHead{padding:5px 8px;font-size:11px;font-weight:700;letter-spacing:1px;color:var(--muted);
+/* A collapsed side pane goes to zero width; its splitter stays visible and is
+ * the way back - a single click on it reopens, and so does a double click,
+ * which resets the pane to its default. The toggle button itself rides inside
+ * the pane, so it disappears with it, which is exactly why the splitter has to
+ * keep working as an affordance. */
+aside.collapsed{width:0 !important;min-width:0;overflow:hidden;border:0}
+.vsplit.reopen,.hsplit.reopen{background:var(--accent-dim)}
+.paneHead button.tiny{margin-left:auto}
+.paneHead{padding:calc(5px*var(--k)) calc(8px*var(--k));font-size:11px;font-weight:700;letter-spacing:1px;color:var(--muted);
 	background:var(--panel2);border-bottom:1px solid var(--line);text-transform:uppercase;flex:0 0 auto;
 	display:flex;justify-content:space-between;align-items:center}
 .paneBody{overflow:auto;flex:1 1 auto;min-height:0}
-.catHead{padding:4px 8px;background:#202020;border-bottom:1px solid #2a2a2a;cursor:pointer;font-size:11px;
+.catHead{padding:calc(4px*var(--k)) calc(8px*var(--k));background:#202020;border-bottom:1px solid #2a2a2a;cursor:pointer;font-size:11px;
 	font-weight:700;color:var(--accent);display:flex;justify-content:space-between}
-.blk{padding:3px 8px 3px 14px;cursor:grab;border-bottom:1px solid #232323;display:flex;justify-content:space-between;gap:4px}
+.blk{padding:calc(3px*var(--k)) calc(8px*var(--k)) calc(3px*var(--k)) calc(14px*var(--k));cursor:grab;border-bottom:1px solid #232323;display:flex;justify-content:space-between;gap:4px}
 .blk:hover{background:#2b2b2b}
 .blk .bd{color:var(--muted);font-size:10px;white-space:nowrap}
 #palSearch{margin:5px 6px;width:calc(100% - 12px)}
@@ -120,32 +139,32 @@ body.resizing-h,body.resizing-h *{cursor:row-resize !important;user-select:none 
 #editHint{position:absolute;right:8px;top:8px;font-size:10px;color:#555;pointer-events:none;text-align:right;line-height:1.5}
 
 /* ---- right pane ---- */
-.field{display:flex;align-items:center;gap:6px;padding:3px 8px}
+.field{display:flex;align-items:center;gap:calc(6px*var(--k));padding:calc(3px*var(--k)) calc(8px*var(--k))}
 .field label{flex:0 0 96px;color:var(--muted);font-size:11px;text-align:right}
 .field input[type=text]{flex:1 1 auto;min-width:0}
 .field select{flex:1 1 auto;min-width:0}
-.help{padding:5px 9px;color:#9a9a9a;font-size:11px;line-height:1.45;border-bottom:1px solid var(--line);background:#1a1a1a}
-.vitem{padding:4px 8px;border-bottom:1px solid #262626;cursor:pointer;font-size:11px;line-height:1.35}
+.help{padding:calc(5px*var(--k)) calc(9px*var(--k));color:#9a9a9a;font-size:11px;line-height:1.45;border-bottom:1px solid var(--line);background:#1a1a1a}
+.vitem{padding:calc(4px*var(--k)) calc(8px*var(--k));border-bottom:1px solid #262626;cursor:pointer;font-size:11px;line-height:1.35}
 .vitem:hover{background:#2a2a2a}
 .vitem b{display:inline-block;min-width:52px}
 .vitem.e b{color:var(--err)} .vitem.w b{color:var(--warn)}
-#costBox{padding:6px 9px;font:11px Consolas,monospace;line-height:1.6;border-top:1px solid var(--line);background:#1a1a1a;flex:0 0 auto}
+#costBox{padding:calc(6px*var(--k)) calc(9px*var(--k));font:11px Consolas,monospace;line-height:1.6;border-top:1px solid var(--line);background:#1a1a1a;flex:0 0 auto}
 #costBox b{color:var(--accent)}
 
 /* ---- bottom ---- */
 #bottom{flex:0 0 auto;background:var(--panel);border-top:1px solid var(--line);display:flex;flex-direction:column;height:262px;min-height:26px}
 #tabs{display:flex;gap:0;background:var(--panel2);border-bottom:1px solid var(--line);flex:0 0 auto;align-items:center}
-.tab{padding:5px 12px;cursor:pointer;font-size:11px;font-weight:600;color:var(--muted);border-right:1px solid var(--line);white-space:nowrap}
+.tab{padding:calc(5px*var(--k)) calc(12px*var(--k));cursor:pointer;font-size:11px;font-weight:600;color:var(--muted);border-right:1px solid var(--line);white-space:nowrap}
 .tab.on{color:var(--accent);background:var(--panel);box-shadow:inset 0 -2px 0 var(--accent)}
-.tabPanel{flex:1 1 auto;overflow:auto;min-height:0;padding:8px}
+.tabPanel{flex:1 1 auto;overflow:auto;min-height:0;padding:calc(8px*var(--k))}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
-.card{background:#1a1a1a;border:1px solid var(--line);border-radius:7px;padding:7px 9px}
+.card{background:#1a1a1a;border:1px solid var(--line);border-radius:7px;padding:calc(7px*var(--k)) calc(9px*var(--k))}
 .card h4{margin:0 0 5px;font-size:11px;color:var(--accent);letter-spacing:.6px;text-transform:uppercase}
 table.g{border-collapse:collapse;font-size:11px}
 table.g th,table.g td{border:1px solid #2e2e2e;padding:2px 6px;text-align:right}
 table.g th{background:#232323;color:var(--muted);font-weight:600}
 table.g td.l,table.g th.l{text-align:left}
-pre.code{background:#000;color:#cfe9c8;font:11.5px Consolas,'Courier New',monospace;padding:10px;
+pre.code{background:#000;color:#cfe9c8;font:11.5px Consolas,'Courier New',monospace;padding:calc(10px*var(--k));
 	border:1px solid var(--line2);border-radius:7px;margin:0;overflow:auto;max-height:100%;white-space:pre;line-height:1.35}
 .bar{position:relative;height:12px;background:#181818;border:1px solid #333;border-radius:3px;overflow:hidden;min-width:110px}
 .bar i{position:absolute;top:0;bottom:0;left:50%;background:var(--accent)}
@@ -163,7 +182,7 @@ pre.code{background:#000;color:#cfe9c8;font:11.5px Consolas,'Courier New',monosp
 .errbox{background:#3a1616;border:1px solid var(--err);border-radius:6px;padding:6px 9px;color:#f5bdb8;font-size:11px;margin:6px 0}
 .okbox{background:#16301a;border:1px solid var(--ok);border-radius:6px;padding:6px 9px;color:#b6e6bb;font-size:11px;margin:6px 0}
 canvas{display:block;background:#0b0b0b;border:1px solid var(--line2);border-radius:7px}
-.chip{display:inline-block;background:#2a2a2a;border:1px solid var(--line2);border-radius:10px;padding:1px 8px;font-size:10px;color:#bbb}
+.chip{display:inline-block;background:#2a2a2a;border:1px solid var(--line2);border-radius:10px;padding:1px calc(8px*var(--k));font-size:10px;color:#bbb}
 .chip.on{background:var(--accent-dim);border-color:var(--accent);color:#fff}
 </style>
 </head>
@@ -195,6 +214,8 @@ canvas{display:block;background:#0b0b0b;border:1px solid var(--line2);border-rad
 		<option value="20">20</option>
 		<option value="25">25</option>
 	</select>
+	<label title="tighter paddings, same font size"><input type="checkbox" id="uiDense" style="vertical-align:-1px"> compact</label>
+	<button id="btResetLayout" title="restore the default pane sizes, UI scale and grid">Reset layout</button>
 	<div class="sep"></div>
 	<button class="primary" id="btExport">Export &amp; register&hellip;</button>
 	<button id="btSelfTest">Self-test</button>
@@ -206,7 +227,7 @@ canvas{display:block;background:#0b0b0b;border:1px solid var(--line2);border-rad
 
 <div id="main">
 	<aside id="palette">
-		<div class="paneHead">Blocks</div>
+		<div class="paneHead">Blocks<button class="tiny" id="btPaletteToggle" title="collapse this pane">&#9664;</button></div>
 		<input type="text" id="palSearch" placeholder="filter&hellip;">
 		<div class="paneBody" id="palBody"></div>
 	</aside>
@@ -228,7 +249,7 @@ canvas{display:block;background:#0b0b0b;border:1px solid var(--line2);border-rad
 	<div class="vsplit" id="splitRight" title="drag to resize"></div>
 
 	<aside id="right">
-		<div class="paneHead">Inspector</div>
+		<div class="paneHead">Inspector<button class="tiny" id="btRightToggle" title="collapse this pane">&#9654;</button></div>
 		<div class="paneBody" id="inspBody" style="flex:0 0 auto;height:46%"></div>
 		<div class="hsplit" id="splitInsp" title="drag to resize"></div>
 		<div class="paneHead">Validation <span id="vCount"></span></div>
@@ -3267,19 +3288,156 @@ const MARQUEE_DEAD_PX = 3;   /* screen pixels before a press becomes a marquee *
  * AUTOSAVE_KEY, and never in the project file or SCHEMA_VERSION. */
 const LAYOUT_KEY = 'facmix.layout.v1';
 const GRID_SIZES = [0, 5, 10, 20, 25];   /* 0 = off */
-const UI = { grid: 10 };                 /* defaults, matching the old hardcoded 10 */
+/* every default here is the value that was hardcoded in the CSS before */
+const UI_DEFAULTS = {
+	grid: 10,
+	palW: 196, rightW: 300, inspH: 240, bottomH: 262,
+	palOpen: true, rightOpen: true, bottomOpen: true,
+	dense: false
+};
+const UI = Object.assign({}, UI_DEFAULTS);
 
 function loadUiPrefs() {
 	try {
 		const raw = localStorage.getItem(LAYOUT_KEY);
 		if (!raw) return;
 		const o = JSON.parse(raw);
-		if (o && GRID_SIZES.indexOf(Number(o.grid)) >= 0) UI.grid = Number(o.grid);
+		if (!o || typeof o !== 'object') return;
+		/* each field is validated on its own: a pref file from a future version, or
+		 * a hand edited one, must degrade to the default and never to a broken
+		 * layout the user cannot get out of */
+		if (GRID_SIZES.indexOf(Number(o.grid)) >= 0) UI.grid = Number(o.grid);
+		const num = (k, lo, hi) => {
+			const v = Number(o[k]);
+			if (isFinite(v) && v >= lo && v <= hi) UI[k] = v;
+		};
+		num('palW', PANE_LIMITS.palW[0], PANE_LIMITS.palW[1]);
+		num('rightW', PANE_LIMITS.rightW[0], PANE_LIMITS.rightW[1]);
+		num('inspH', PANE_LIMITS.inspH[0], PANE_LIMITS.inspH[1]);
+		num('bottomH', PANE_LIMITS.bottomH[0], PANE_LIMITS.bottomH[1]);
+		['palOpen', 'rightOpen', 'bottomOpen', 'dense'].forEach(k => {
+			if (typeof o[k] === 'boolean') UI[k] = o[k];
+		});
 	} catch (e) { }   /* a corrupt pref must never stop the editor from opening */
 }
 function saveUiPrefs() {
 	try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(UI)); } catch (e) { }
 }
+function resetUiPrefs() {
+	try { localStorage.removeItem(LAYOUT_KEY); } catch (e) { }
+	Object.assign(UI, UI_DEFAULTS);
+}
+/* min and max for every resizable pane, in CSS pixels. Nothing may be dragged
+ * to zero (that is what the collapse toggles are for) and nothing may push the
+ * canvas out of existence, so the two side panes together are also capped
+ * against the window width in clampPane() below. */
+const PANE_LIMITS = {
+	palW: [120, 480], rightW: [180, 640],
+	inspH: [60, 1200], bottomH: [26, 2000]
+};
+function clampPane(key, v) {
+	const L = PANE_LIMITS[key];
+	v = Math.max(L[0], Math.min(L[1], Math.round(v)));
+	/* the canvas keeps at least 240 px whatever the window size */
+	if (key === 'palW') v = Math.min(v, Math.max(L[0], window.innerWidth - UI.rightW - 240));
+	if (key === 'rightW') v = Math.min(v, Math.max(L[0], window.innerWidth - UI.palW - 240));
+	if (key === 'bottomH') v = Math.min(v, Math.max(L[0], window.innerHeight - 220));
+	if (key === 'inspH') v = Math.min(v, Math.max(L[0], $('#right').clientHeight - 120));
+	return v;
+}
+
+/* Push the whole of UI onto the document. Called on boot, on every resize and
+ * after Reset layout, so there is ONE place that knows how a pref becomes CSS. */
+function applyLayout() {
+	document.documentElement.style.setProperty('--ui-dense', UI.dense ? '0.7' : '1');
+
+	$('#palette').style.width = UI.palW + 'px';
+	$('#right').style.width = UI.rightW + 'px';
+	$('#inspBody').style.height = UI.inspH + 'px';
+	$('#inspBody').style.flex = '0 0 auto';
+	$('#bottom').style.height = (UI.bottomOpen ? UI.bottomH : 26) + 'px';
+
+	$('#palette').classList.toggle('collapsed', !UI.palOpen);
+	$('#right').classList.toggle('collapsed', !UI.rightOpen);
+	$('#splitPalette').classList.toggle('reopen', !UI.palOpen);
+	$('#splitRight').classList.toggle('reopen', !UI.rightOpen);
+	$('#btPaletteToggle').innerHTML = UI.palOpen ? '&#9664;' : '&#9654;';
+	$('#btRightToggle').innerHTML = UI.rightOpen ? '&#9654;' : '&#9664;';
+	$('#btBottomToggle').innerHTML = UI.bottomOpen ? '&#9660;' : '&#9650;';
+
+	const dn = $('#uiDense'); if (dn) dn.checked = !!UI.dense;
+	const gr = $('#uiGrid'); if (gr) gr.value = String(UI.grid);
+
+	/* the pane sizes changed, so the grid pattern must be redrawn against the new
+	 * viewport - but P.view.z is NOT touched: resizing a panel is not zooming */
+	applyGridBackground();
+}
+
+/* One splitter. `key` is the UI field it edits, `sign` is +1 when dragging in
+ * the positive direction makes the pane bigger. Pointer capture keeps the drag
+ * alive over iframes and outside the window. */
+function initSplitter(splitId, key, axis, sign, reopenTargets) {
+	const sp = $(splitId); if (!sp) return;
+	sp.addEventListener('pointerdown', e => {
+		if (e.button !== 0) return;
+		/* a collapsed pane reopens instead of resizing: its own button went away
+		 * with it, so the splitter is the way back */
+		if (reopenTargets && !UI[reopenTargets]) {
+			UI[reopenTargets] = true; applyLayout(); saveUiPrefs();
+			return;
+		}
+		e.preventDefault();
+		sp.setPointerCapture(e.pointerId);
+		sp.classList.add('drag');
+		document.body.classList.add(axis === 'x' ? 'resizing-v' : 'resizing-h');
+		const start = axis === 'x' ? e.clientX : e.clientY;
+		const base = UI[key];
+		const onMove = ev => {
+			const d = (axis === 'x' ? ev.clientX : ev.clientY) - start;
+			UI[key] = clampPane(key, base + sign * d);
+			applyLayout();
+		};
+		const onUp = ev => {
+			sp.releasePointerCapture(e.pointerId);
+			sp.classList.remove('drag');
+			document.body.classList.remove('resizing-v', 'resizing-h');
+			sp.removeEventListener('pointermove', onMove);
+			sp.removeEventListener('pointerup', onUp);
+			sp.removeEventListener('pointercancel', onUp);
+			saveUiPrefs();
+		};
+		sp.addEventListener('pointermove', onMove);
+		sp.addEventListener('pointerup', onUp);
+		sp.addEventListener('pointercancel', onUp);
+	});
+	sp.addEventListener('dblclick', () => {
+		UI[key] = UI_DEFAULTS[key];
+		if (reopenTargets) UI[reopenTargets] = true;
+		applyLayout(); saveUiPrefs();
+	});
+}
+
+function initLayout() {
+	initSplitter('#splitPalette', 'palW', 'x', 1, 'palOpen');
+	initSplitter('#splitRight', 'rightW', 'x', -1, 'rightOpen');
+	initSplitter('#splitInsp', 'inspH', 'y', 1, null);
+	initSplitter('#splitBottom', 'bottomH', 'y', -1, 'bottomOpen');
+
+	const toggle = (k) => () => { UI[k] = !UI[k]; applyLayout(); saveUiPrefs(); };
+	$('#btPaletteToggle').onclick = toggle('palOpen');
+	$('#btRightToggle').onclick = toggle('rightOpen');
+	$('#btBottomToggle').onclick = toggle('bottomOpen');
+
+	$('#uiDense').onchange = e => { UI.dense = !!e.target.checked; applyLayout(); saveUiPrefs(); };
+	$('#btResetLayout').onclick = () => { resetUiPrefs(); applyLayout(); };
+
+	/* shrinking the window can invalidate a pane size that was fine before */
+	window.addEventListener('resize', () => {
+		['palW', 'rightW', 'inspH', 'bottomH'].forEach(k => { UI[k] = clampPane(k, UI[k]); });
+		applyLayout();
+	});
+}
+
 /* THE single place a node position is snapped. Every path that produces
  * coordinates goes through it - palette drop, double click insert, paste,
  * keyboard nudge, the move drag - because the grid looking like it "works
@@ -4730,12 +4888,8 @@ function initTabs() {
 		const f = { sim: uiSim, scope: uiScope, robot: uiRobot, sensors: uiSensors, pad: uiPad, code: uiCode, reg: uiReg, test: uiTest }[t.dataset.p];
 		if (f) f();
 	});
-	let big = true;
-	$('#btBottomToggle').onclick = () => {
-		big = !big;
-		$('#bottom').style.height = big ? '262px' : '26px';
-		$('#btBottomToggle').innerHTML = big ? '&#9660;' : '&#9650;';
-	};
+	/* the bottom toggle now lives in initLayout(), with the other two, so that all
+	 * three collapse states persist through the same key */
 }
 
 /* --------------------------------------------------------------- toolbar */
@@ -4795,7 +4949,8 @@ function initToolbar() {
 	$('#palSearch').oninput = uiPalette;
 }
 function syncToolbar() {
-	$('#uiGrid').value = String(UI.grid);
+	/* the UI preference controls (grid, scale, density) are owned by
+	 * applyLayout() - one source of truth, not two */
 	$('#uiMode').value = P.mode;
 	$('#uiTitle').value = P.title;
 	$('#uiAuthor').value = P.author || '';
@@ -4826,7 +4981,8 @@ function boot() {
 	P = blankProject('mix');
 	loadUiPrefs();   /* before the first render, so the grid is right from frame one */
 	PAD.init();
-	initCanvas(); initKeys(); initTabs(); initToolbar();
+	initCanvas(); initKeys(); initTabs(); initToolbar(); initLayout();
+	applyLayout();
 	let restored = false;
 	try {
 		const raw = localStorage.getItem(AUTOSAVE_KEY);
