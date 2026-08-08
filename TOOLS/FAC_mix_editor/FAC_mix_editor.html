@@ -14,6 +14,7 @@
 	--accent:#00adb5; --accent-dim:#00787d; --text:#e6e6e6; --muted:#8b8b8b;
 	--err:#f4564a; --warn:#e8a33d; --ok:#4caf50; --wire:#5a5a5a;
 	--pos:#4fc3f7; --neg:#ff8a65;
+	--grid:#242424;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -186,6 +187,14 @@ canvas{display:block;background:#0b0b0b;border:1px solid var(--line2);border-rad
 	<button id="btUndo" title="Ctrl+Z">Undo</button>
 	<button id="btRedo" title="Ctrl+Y">Redo</button>
 	<button id="btFrame" title="Frame all (F)">Frame</button>
+	<label>Grid</label>
+	<select id="uiGrid" title="snap step - hold Ctrl while dragging to bypass it" style="width:64px">
+		<option value="0">off</option>
+		<option value="5">5</option>
+		<option value="10">10</option>
+		<option value="20">20</option>
+		<option value="25">25</option>
+	</select>
 	<div class="sep"></div>
 	<button class="primary" id="btExport">Export &amp; register&hellip;</button>
 	<button id="btSelfTest">Self-test</button>
@@ -212,7 +221,7 @@ canvas{display:block;background:#0b0b0b;border:1px solid var(--line2);border-rad
 			</div>
 		</div>
 		<div id="groups"></div>
-		<div id="editHint">drag from a palette block &middot; drag port&rarr;port to wire<br>del = delete &middot; ctrl+C/V &middot; wheel = zoom &middot; space/middle drag = pan</div>
+		<div id="editHint">drag from a palette block &middot; drag port&rarr;port to wire<br>del = delete &middot; ctrl+C/V &middot; wheel = zoom &middot; space/middle drag = pan<br>arrows = nudge (shift = &times;5) &middot; ctrl while dragging = ignore grid</div>
 		<div id="hud"></div>
 	</section>
 
@@ -3251,6 +3260,51 @@ let dragState = null;
 const NODE_GEOM = {};   /* nodeId -> {w,h} measured after render */
 const MARQUEE_DEAD_PX = 3;   /* screen pixels before a press becomes a marquee */
 
+/* ------------------------------------------------------------- UI prefs
+ * How the editor looks and behaves belongs to the PERSON, not to the mix: a
+ * .facmix.json handed to someone else must not resize their panes or change
+ * their grid. It therefore lives in its own localStorage key, separate from
+ * AUTOSAVE_KEY, and never in the project file or SCHEMA_VERSION. */
+const LAYOUT_KEY = 'facmix.layout.v1';
+const GRID_SIZES = [0, 5, 10, 20, 25];   /* 0 = off */
+const UI = { grid: 10 };                 /* defaults, matching the old hardcoded 10 */
+
+function loadUiPrefs() {
+	try {
+		const raw = localStorage.getItem(LAYOUT_KEY);
+		if (!raw) return;
+		const o = JSON.parse(raw);
+		if (o && GRID_SIZES.indexOf(Number(o.grid)) >= 0) UI.grid = Number(o.grid);
+	} catch (e) { }   /* a corrupt pref must never stop the editor from opening */
+}
+function saveUiPrefs() {
+	try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(UI)); } catch (e) { }
+}
+/* THE single place a node position is snapped. Every path that produces
+ * coordinates goes through it - palette drop, double click insert, paste,
+ * keyboard nudge, the move drag - because the grid looking like it "works
+ * sometimes" was exactly the symptom of only the drag path snapping. */
+function snapPos(x, y) {
+	const g = UI.grid;
+	if (!g) return { x: Math.round(x), y: Math.round(y) };
+	return { x: Math.round(x / g) * g, y: Math.round(y / g) * g };
+}
+/* one keyboard nudge: a grid cell, or a pixel when the grid is off */
+function snapStep() { return UI.grid || 1; }
+
+/* Snap a drag DELTA so that the anchor - the block actually grabbed - lands on
+ * the grid, and everything else in the selection moves by exactly the same
+ * amount. Snapping each node's absolute position on its own instead made nodes
+ * whose coordinates were not multiples of the grid drift relative to each other
+ * for the whole length of the drag. */
+function snapDelta(anchor, dx, dy, grid) {
+	if (!grid || !anchor) return { dx: dx, dy: dy };
+	return {
+		dx: Math.round((anchor.x + dx) / grid) * grid - anchor.x,
+		dy: Math.round((anchor.y + dy) / grid) * grid - anchor.y
+	};
+}
+
 /* ---------------------------------------------------------- move dragging
  * A move drag resolves the elements it will touch ONCE, at mousedown, instead
  * of looking them up per frame.
@@ -3287,11 +3341,20 @@ function collectMoveTargets(ids) {
 	return { doms: doms, boxes: boxes };
 }
 
-function beginMoveDrag(e) {
+/* `anchor` is the starting position the snap is computed from - the block the
+ * user grabbed, or the origin of the group box. Snapping the DELTA against it,
+ * instead of snapping each node's absolute position on its own, is what keeps a
+ * multi-selection rigid: the anchor lands exactly on the grid and everything
+ * else moves by the same amount, so two blocks that started 37 px apart are
+ * still 37 px apart when the drag ends. */
+function beginMoveDrag(e, anchor) {
 	const wp = worldPos(e);
-	dragState = { kind: 'move', ox: wp.x, oy: wp.y, start: {}, doms: [], boxes: [] };
+	dragState = { kind: 'move', ox: wp.x, oy: wp.y, anchor: anchor, start: {}, doms: [], boxes: [] };
 	selection.forEach(sid => { const n = nodeById(sid); if (n) dragState.start[sid] = { x: n.x, y: n.y }; });
-	const t = collectMoveTargets(Array.prototype.slice.call(selection));
+	/* Array.from, NOT Array.prototype.slice.call: a Set is not array-like - it has
+	 * .size and no .length - so slice would hand back an empty array and nothing
+	 * would move until the refreshAll() at mouseup */
+	const t = collectMoveTargets(Array.from(selection));
 	dragState.doms = t.doms; dragState.boxes = t.boxes;
 }
 
@@ -3431,8 +3494,9 @@ function uiPalette() {
 			b.addEventListener('dragstart', e => e.dataTransfer.setData('text/fac', d.id));
 			b.addEventListener('dblclick', () => {
 				pushUndo();
-				const n = addNode(d.id, (-P.view.x + 300) / P.view.z, (-P.view.y + 200) / P.view.z);
-				selection = new Set([n.id]); refreshAll();
+				const sp = snapPos((-P.view.x + 300) / P.view.z, (-P.view.y + 200) / P.view.z);
+					const n = addNode(d.id, sp.x, sp.y);
+					selection = new Set([n.id]); refreshAll();
 			});
 			body.appendChild(b);
 		});
@@ -3446,6 +3510,23 @@ function worldPos(e) {
 }
 function applyView() {
 	$('#world').style.transform = 'translate(' + P.view.x + 'px,' + P.view.y + 'px) scale(' + P.view.z + ')';
+	applyGridBackground();
+}
+/* The grid is PAINTED, as a background on #viewport, so snapping is something
+ * you can see. A background is paint and not an element, so it cannot intercept
+ * a pointer event - which is the whole reason not to draw it into #world. It is
+ * offset by P.view and scaled by P.view.z, so it stays glued to the blocks while
+ * panning and zooming. */
+function applyGridBackground() {
+	const vp = $('#viewport'); if (!vp) return;
+	const step = UI.grid * P.view.z;
+	if (!UI.grid || step < 4) { vp.style.backgroundImage = 'none'; return; }   /* below ~4 px it is noise, not a grid */
+	vp.style.backgroundImage =
+		'linear-gradient(to right, var(--grid) 1px, transparent 1px),' +
+		'linear-gradient(to bottom, var(--grid) 1px, transparent 1px)';
+	vp.style.backgroundSize = step + 'px ' + step + 'px';
+	/* the modulo keeps the pattern anchored to world origin at any pan distance */
+	vp.style.backgroundPosition = (P.view.x % step) + 'px ' + (P.view.y % step) + 'px';
 }
 
 /* ---- groups. Purely visual: collapsing one hides its blocks behind a single
@@ -3626,7 +3707,8 @@ function initCanvas() {
 		const t = e.dataTransfer.getData('text/fac'); if (!t || !NODES[t]) return;
 		const w = worldPos(e);
 		pushUndo();
-		const n = addNode(t, w.x - 50, w.y - 20);
+		const p = snapPos(w.x - 50, w.y - 20);
+		const n = addNode(t, p.x, p.y);
 		selection = new Set([n.id]); refreshAll();
 	});
 	vp.addEventListener('wheel', e => {
@@ -3658,11 +3740,15 @@ function initCanvas() {
 		if (nodeEl && nodeEl.dataset.grp) {
 			/* a collapsed group box moves, selects and deletes as its members */
 			const g = nodeEl.dataset.grp;
-			const ids = P.nodes.filter(n => n.grp === g).map(n => n.id);
+			const members = P.nodes.filter(n => n.grp === g);
 			if (!e.shiftKey) selection = new Set();
-			ids.forEach(x => selection.add(x));
+			members.forEach(n => selection.add(n.id));
 			pushUndo();
-			beginMoveDrag(e);
+			/* the box has no node of its own: its visible origin is the anchor */
+			beginMoveDrag(e, {
+				x: Math.min.apply(null, members.map(n => n.x)),
+				y: Math.min.apply(null, members.map(n => n.y))
+			});
 			syncSelectionUI();
 			return;
 		}
@@ -3671,7 +3757,8 @@ function initCanvas() {
 			if (!selection.has(id)) { if (!e.shiftKey) selection = new Set(); selection.add(id); }
 			else if (e.shiftKey) { selection.delete(id); syncSelectionUI(); return; }
 			pushUndo();
-			beginMoveDrag(e);
+			const gn = nodeById(id);
+			beginMoveDrag(e, gn ? { x: gn.x, y: gn.y } : null);
 			syncSelectionUI();
 			return;
 		}
@@ -3693,11 +3780,17 @@ function initCanvas() {
 	window.addEventListener('mousemove', e => {
 		if (!dragState) return;
 		if (dragState.kind === 'move') {
-			const w = worldPos(e), dx = w.x - dragState.ox, dy = w.y - dragState.oy;
-			const grid = keyState.ctrl ? 1 : 10;
+			const w = worldPos(e);
+			/* e.ctrlKey, NOT keyState.ctrl: keyState is only refreshed by keydown /
+			 * keyup on window, and the keydown handler returns early when the focus
+			 * is in an input, so it goes stale - press Ctrl+C, alt-tab away, come
+			 * back, and the snap stayed silently off. The live event never lies. */
+			const d = snapDelta(dragState.anchor,
+				w.x - dragState.ox, w.y - dragState.oy,
+				(e.ctrlKey || e.metaKey) ? 0 : UI.grid);
 			selection.forEach(id => {
 				const n = nodeById(id), s = dragState.start[id]; if (!n || !s) return;
-				n.x = Math.round((s.x + dx) / grid) * grid; n.y = Math.round((s.y + dy) / grid) * grid;
+				n.x = s.x + d.dx; n.y = s.y + d.dy;
 			});
 			scheduleDragFrame(applyMoveFrame);
 		} else if (dragState.kind === 'wire') {
@@ -4528,9 +4621,16 @@ function pasteSel() {
 	if (!clipboard || !clipboard.nodes.length) return;
 	pushUndo();
 	const map = {};
+	/* the paste offset is snapped ONCE, against the first node, and then applied
+	 * to all of them. Snapping each node on its own would deform the copied
+	 * layout - the same mistake the move drag used to make. */
+	const first = clipboard.nodes[0];
+	const t = snapPos(first.x + 30, first.y + 30);
+	const odx = t.x - first.x, ody = t.y - first.y;
 	const fresh = clipboard.nodes.map(n => {
 		const c = JSON.parse(JSON.stringify(n));
-		c.id = newId(); map[n.id] = c.id; c.x += 30; c.y += 30;
+		c.id = newId(); map[n.id] = c.id;
+		c.x += odx; c.y += ody;
 		return c;
 	});
 	/* indices are positional: a pasted input/output must not silently collide */
@@ -4559,6 +4659,26 @@ function autosave() {
 
 /* -------------------------------------------------------------- keyboard */
 const keyState = { space: false, ctrl: false };
+
+/* Arrow nudge. One grid step, five with shift, one pixel when the grid is off.
+ * A held arrow repeats, and one undo entry per key repeat would make Ctrl+Z
+ * useless, so a burst that pauses for less than NUDGE_BURST_MS keeps sharing the
+ * snapshot it already pushed. */
+const NUDGE_BURST_MS = 600;
+let nudgeLast = 0;
+function nudgeSelection(sx, sy) {
+	if (!selection.size) return;
+	const now = Date.now();
+	if (now - nudgeLast > NUDGE_BURST_MS) pushUndo();
+	nudgeLast = now;
+	selection.forEach(id => {
+		const n = nodeById(id); if (!n) return;
+		const p = snapPos(n.x + sx, n.y + sy);   /* the same helper every other path uses */
+		n.x = p.x; n.y = p.y;
+	});
+	renderNodes(); renderWires(); autosave();
+}
+
 function initKeys() {
 	window.addEventListener('keydown', e => {
 		const tag = (e.target.tagName || '').toLowerCase();
@@ -4572,8 +4692,18 @@ function initKeys() {
 		if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') { pasteSel(); e.preventDefault(); }
 		if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') { selection = new Set(P.nodes.map(n => n.id)); refreshAll(); e.preventDefault(); }
 		if (e.key === 'f' || e.key === 'F') frameAll();
+		const ARROW = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+		if (ARROW[e.key] && !e.ctrlKey && !e.metaKey && !e.altKey) {
+			const k = snapStep() * (e.shiftKey ? 5 : 1);
+			nudgeSelection(ARROW[e.key][0] * k, ARROW[e.key][1] * k);
+			e.preventDefault();
+		}
 	});
 	window.addEventListener('keyup', e => { if (e.code === 'Space') keyState.space = false; keyState.ctrl = e.ctrlKey || e.metaKey; });
+	/* keydown/keyup alone cannot see a modifier released while the window was not
+	 * focused, and the keydown handler above returns early inside an input, so
+	 * keyState drifts. Losing focus is the one moment nothing can be held. */
+	window.addEventListener('blur', () => { keyState.space = false; keyState.ctrl = false; });
 }
 
 /* ------------------------------------------------------------------ tabs */
@@ -4599,6 +4729,13 @@ function initToolbar() {
 		if (P.nodes.length && !confirm('Switching mode starts a new empty graph. Continue?')) { e.target.value = P.mode; return; }
 		P = blankProject(e.target.value);
 		syncToolbar(); uiPalette(); SIM.reset(); refreshAll(); uiSim();
+	};
+	/* the grid is a UI preference, so it persists in LAYOUT_KEY and never in the
+	 * project - it does not touch P and does not mark the mix as changed */
+	$('#uiGrid').onchange = e => {
+		UI.grid = Number(e.target.value) || 0;
+		saveUiPrefs();
+		applyGridBackground();
 	};
 	$('#uiTitle').onchange = e => { P.title = e.target.value; refreshAll(); };
 	$('#uiAuthor').onchange = e => { P.author = e.target.value; refreshAll(); };
@@ -4643,6 +4780,7 @@ function initToolbar() {
 	$('#palSearch').oninput = uiPalette;
 }
 function syncToolbar() {
+	$('#uiGrid').value = String(UI.grid);
 	$('#uiMode').value = P.mode;
 	$('#uiTitle').value = P.title;
 	$('#uiAuthor').value = P.author || '';
@@ -4671,6 +4809,7 @@ function loop(ts) {
 /* ------------------------------------------------------------------ boot */
 function boot() {
 	P = blankProject('mix');
+	loadUiPrefs();   /* before the first render, so the grid is right from frame one */
 	PAD.init();
 	initCanvas(); initKeys(); initTabs(); initToolbar();
 	let restored = false;
