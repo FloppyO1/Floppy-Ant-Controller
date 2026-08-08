@@ -274,6 +274,11 @@ const MATH_FINE = 10000;                       /* FAC_MATH_FINE = FAC_VALUE_MAX 
 const I32_MIN = -2147483648, I32_MAX = 2147483647;
 const RECEIVER_CHANNEL_RESOLUTION = 1000;      /* config.h */
 const RECEIVER_CHANNELS_NUMBER = 8;            /* config.h */
+/* the device end of the chain, so the Robot tab can mirror fac_mapper.c exactly
+ * instead of inventing its own scaling */
+const MOTOR_SPEED_RESOLUTION = 1000;           /* config.h - equals the receiver resolution */
+const MAX_SERVO_VALUE = 999;                   /* fac_servo.h - (RECEIVER_CHANNEL_RESOLUTION-1),
+                                                * the divisor of the pulse formula, fac_servo.c:98 */
 const MIXES_MAX_INPUTS_NUMBER = 8;             /* fac_mixes.h */
 const MIXES_MAX_OUTPUTS_NUMBER = 10;           /* fac_mixes.h */
 const SPECIAL_FUNCITONS_NUMBER = 20;           /* fac_functions.h - spelling is API, do not fix */
@@ -412,17 +417,31 @@ function m_deg(d) { return idiv(d * ANGLE_TURN, 360); }
  *
  * FOUR stages, and they must stay apart or a simulator either double applies
  * the deadzone or invents travel the hardware does not have:
- *   0  backend capture           0 .. 999   fac_pwm_receiver.c:82
- *   1a deadzone                 -? .. 1000  FAC_std_receiver_calculate_dead_zone()
- *   1b store clamp               0 .. 999   FAC_std_receiver_SET_channel()  <-- !!
- *   2  mix input             -1000 .. +998  FAC_math_from_range(ch,0,1000)
+ *   0  backend capture           0 .. 1000  fac_pwm_receiver.c:82, fac_ppm_receiver.c:62
+ *   1a deadzone                  0 .. 1000  FAC_std_receiver_calculate_dead_zone()
+ *   1b store clamp          clamp to 1000   FAC_std_receiver_SET_channel()
+ *   2  mix input             -1000 .. +1000 FAC_math_from_range(ch,0,1000)
  *
- * Stage 1b is the one the mix editor brief got wrong. SET_channel clamps the
- * deadzone result to RECEIVER_CHANNEL_RESOLUTION-1 = 999 AFTER the deadzone has
- * snapped the top extreme to 1000, so FAC_std_receiver_GET_channel() never
- * returns 1000 and a mix input never reaches +1000. It does reach -1000, so the
- * travel is ASYMMETRIC: [-1000, +998]. CLAUDE.md ("clamps to
- * [0, RECEIVER_CHANNEL_RESOLUTION-1]") agrees with the source.
+ * The channel domain is 0 .. RECEIVER_CHANNEL_RESOLUTION INCLUSIVE: 1001 values,
+ * so it has an exact centre. rx = 500 gives from_range(500,0,1000) = 0 with no
+ * rounding, and the identity mix_input = 2*rx - 1000 holds exactly across the
+ * whole chain.
+ *
+ * HISTORICAL, and the reason the stages are modelled separately at all: the
+ * domain used to be inconsistent between producers and consumers. The deadzone
+ * and FAC_math_from_range already spoke 0..1000, while the capture and the store
+ * clamped to RECEIVER_CHANNEL_RESOLUTION-1 = 999. SET_channel clamped the
+ * deadzone result to 999 AFTER the deadzone had snapped the top extreme to 1000,
+ * so GET_channel never returned 1000 and a mix input reached -1000 but only
+ * +998 - travel was ASYMMETRIC. That was a firmware bug, not a modelling choice,
+ * and it has been fixed on the firmware side (see the "receiver/mapper: make the
+ * value chain reach full scale at both ends" commit). Stage 1b survives as a
+ * guard that is a no-op in practice; collapsing the stages would still be wrong,
+ * because 1a and 1b are separate functions with separate domains in the source.
+ *
+ * The device end, mirrored by the Robot tab from fac_mapper.c:
+ *   servo  m_to_range(v, 0, MAX_SERVO_VALUE) -> 0 .. 999   fac_mapper.c:102
+ *   motor  abs(v), sign carried as direction -> 0 .. 1000  fac_mapper.c:77
  * ========================================================================== */
 
 /* map_int32() of fac_app.c:386 - clamps x into [in_min,in_max] first */
@@ -460,9 +479,12 @@ function rxDeadzone(value, deadzonePerc, chNumber) {
 	return temp;
 }
 
-/* FAC_std_receiver_SET_channel(), fac_std_receiver.c:60-67 - the store clamp */
+/* FAC_std_receiver_SET_channel(), fac_std_receiver.c:60-67 - the store clamp.
+ * A no-op in practice now that the deadzone's own output is already bounded by
+ * RECEIVER_CHANNEL_RESOLUTION, but it is a distinct function in the source with
+ * its own domain, so it stays a distinct stage here. */
 function rxStoreClamp(v) {
-	if (v > RECEIVER_CHANNEL_RESOLUTION - 1) return RECEIVER_CHANNEL_RESOLUTION - 1;
+	if (v > RECEIVER_CHANNEL_RESOLUTION) return RECEIVER_CHANNEL_RESOLUTION;
 	return v;
 }
 /* stage 0 -> stage 1: what FAC_std_receiver_GET_channel() will return */
@@ -512,9 +534,9 @@ const IV = {
 const IV_NORM = IV.mk(V_MIN, V_MAX);
 const IV_BOOL = IV.mk(0, 1);
 const IV_ANGLE = IV.mk(0, ANGLE_MASK);
-/* a mix input is documented as a normalized value. The real chain only reaches
- * [-1000, +998] (see RECEIVER above) but the analysis stays conservative on the
- * documented contract: a superset is always safe for an overflow proof. */
+/* a mix input is documented as a normalized value, and since the channel domain
+ * became symmetric the real chain reaches exactly that: [-1000, +1000] (see
+ * RECEIVER above). The two now coincide. */
 const IV_INPUT = IV_NORM;
 
 function isPow2(n) { n = Math.abs(n); return n > 0 && (n & (n - 1)) === 0; }
@@ -580,7 +602,9 @@ def({
 	sim: (c, a, p) => m_from_range(c.ch(p.ch), 0, RECEIVER_CHANNEL_RESOLUTION),
 	emit: (c, a, p) => ({ expr: 'FAC_math_from_range(' + c.rxLocal(p.ch) + ', 0, RECEIVER_CHANNEL_RESOLUTION)' }),
 	inc: 'FAC_Code/fac_std_receiver.h',
-	range: () => IV.mk(-1000, 998)
+	/* the channel domain is 0..1000 inclusive, so from_range spans the full
+	 * normalized interval - see SECTION: RECEIVER */
+	range: () => IV.mk(-1000, 1000)
 });
 def({
 	id: 'rx_connected', label: 'RX connected', cat: 'source', adv: true, ins: [], out: 'BOOL', divs: 0,
@@ -2434,13 +2458,23 @@ const SIM = {
 		}
 	},
 
-	/* what the mapper would give each device, from the five link settings */
+	/* what the mapper would give each device, from the five link settings.
+	 * This is the NORMALIZED value, before the per-device conversion below. */
 	deviceValue: function (link) {
 		link = Number(link) | 0;
 		if (link === 0) return null;
 		if (link >= 100 && link <= 109) return m_clamp(this.outputs[link - 100]);
 		if (link >= 200 && link <= 200 + SPECIAL_FUNCITONS_NUMBER - 1) return m_clamp(this.fnOut[link - 200]);
 		return null;
+	},
+
+	/* the two device conversions of fac_mapper.c, mirrored exactly so the Robot
+	 * tab shows what the hardware would be told and not an approximation of it */
+	servoPosition: function (v) {           /* fac_mapper.c:102 -> 0 .. MAX_SERVO_VALUE */
+		return m_to_range(v, 0, MAX_SERVO_VALUE);
+	},
+	motorSpeed: function (v) {              /* fac_mapper.c:77 - exact, both resolutions are 1000 */
+		return idiv(m_abs(v) * MOTOR_SPEED_RESOLUTION, V_MAX);
 	},
 
 	applyGenerators: function () {
@@ -2496,7 +2530,7 @@ const SIM = {
 
 /* ==========================================================================
  * SECTION: GAMEPAD
- * The pad writes THE SAME eight stage-0 values 0..999 the sliders write, and
+ * The pad writes THE SAME eight stage-0 values 0..1000 the sliders write, and
  * nothing downstream can tell them apart. That is the whole point: what you
  * tune with a stick is what the receiver will feed on the robot.
  *
@@ -2556,7 +2590,7 @@ const PAD = {
 		return null;
 	},
 	/* THE FLOAT BOUNDARY. Everything above this line is float, everything below
-	 * is an integer 0..999 and every rule of the FAC_MATH section applies. */
+	 * is an integer 0..1000 and every rule of the FAC_MATH section applies. */
 	padToStage0: function (b, rawVal) {
 		let v = rawVal - b.center;
 		const dz = Math.max(0, Math.min(0.9, b.dz));
@@ -2566,8 +2600,9 @@ const PAD = {
 		if (hi > lo) v = ((v - lo) / (hi - lo)) * 2 - 1;
 		if (b.invert) v = -v;
 		v = Math.max(-1, Math.min(1, v));
-		let ch = Math.round(((v + 1) / 2) * (RECEIVER_CHANNEL_RESOLUTION - 1));
-		ch = Math.min(RECEIVER_CHANNEL_RESOLUTION - 1, Math.max(0, ch));
+		/* 1001 values, so an axis at -1/0/+1 lands exactly on 0/500/1000 */
+		let ch = Math.round(((v + 1) / 2) * RECEIVER_CHANNEL_RESOLUTION);
+		ch = Math.min(RECEIVER_CHANNEL_RESOLUTION, Math.max(0, ch));
 		return ch;   /* integer from here on, and never anything else */
 	},
 	poll: function () {
@@ -2742,6 +2777,8 @@ function runSelfTest() {
 	/* --- the channel domain --- */
 	T('from_range(0,0,1000)', m_from_range(0, 0, RECEIVER_CHANNEL_RESOLUTION), -1000);
 	T('from_range(1000,0,1000)', m_from_range(1000, 0, RECEIVER_CHANNEL_RESOLUTION), 1000);
+	/* 999 is an ordinary interior value of the domain now, not the top of travel:
+	 * the domain is 0..1000 inclusive and the line above is the real maximum */
 	T('from_range(999,0,1000)', m_from_range(999, 0, RECEIVER_CHANNEL_RESOLUTION), 998);
 	T('from_range(500,0,1000)', m_from_range(500, 0, RECEIVER_CHANNEL_RESOLUTION), 0);
 	Tok('from_range(x,0,1000) == 2x - 1000 over the whole domain', (function () {
@@ -2750,38 +2787,86 @@ function runSelfTest() {
 	})());
 
 	/* --- the receiver chain, port of fac_std_receiver.c:60-127 --- */
-	Tok('deadzone output always inside [0, 999] after the store clamp', (function () {
+	/* the domain is 0..RECEIVER_CHANNEL_RESOLUTION INCLUSIVE, 1001 values. The
+	 * sweep is over every percentage the settings admit and every channel, not
+	 * just the two arithmetic paths, because the 1-based channel number is what
+	 * selects the path and an off-by-one there would not show up otherwise. */
+	Tok('deadzone output is an integer inside [0, 1000] for every percentage and channel', (function () {
 		for (let perc = 0; perc <= 50; perc++)
-			for (let ch = 1; ch <= 3; ch += 2)
-				for (let v = 0; v <= 1000; v++) {
+			for (let ch = 1; ch <= RECEIVER_CHANNELS_NUMBER; ch++)
+				for (let v = 0; v <= RECEIVER_CHANNEL_RESOLUTION; v++) {
 					const r = rxStage1(v, perc, ch);
-					if (!Number.isInteger(r) || r < 0 || r > 999) return false;
+					if (!Number.isInteger(r) || r < 0 || r > RECEIVER_CHANNEL_RESOLUTION) return false;
 				}
 		return true;
 	})());
+	Tok('deadzone is monotonic non-decreasing in the input, dz 0..20 %, every channel', (function () {
+		for (let perc = 0; perc <= 20; perc++)
+			for (let ch = 1; ch <= RECEIVER_CHANNELS_NUMBER; ch++) {
+				let prev = -1;
+				for (let v = 0; v <= RECEIVER_CHANNEL_RESOLUTION; v++) {
+					const r = rxStage1(v, perc, ch);
+					if (r < prev) return false;
+					prev = r;
+				}
+			}
+		return true;
+	})());
 	T('ch1 bottom of travel snaps to 0 (dz 2%)', rxStage1(0, 2, 1), 0);
-	T('ch1 top of travel, store clamp caps it at 999 (dz 2%)', rxStage1(999, 2, 1), 999);
+	T('ch1 top of travel reaches the full resolution (dz 2%)', rxStage1(1000, 2, 1), 1000);
 	T('ch1 centre stays centred (dz 2%)', rxStage1(500, 2, 1), 500);
 	T('ch1 inside the centre band (dz 2%)', rxStage1(510, 2, 1), 500);
 	T('ch1 just outside the centre band (dz 2%)', rxStage1(511, 2, 1), 501);
-	T('ch1 extremes band snaps early (dz 2%)', rxStage1(980, 2, 1), 999);
+	T('ch1 extremes band snaps early (dz 2%)', rxStage1(980, 2, 1), 1000);
 	T('ch1 just below the extremes band (dz 2%)', rxStage1(979, 2, 1), 998);
-	T('ch1 extremes band at dz 10%', rxStage1(900, 10, 1), 999);
+	T('ch1 extremes band at dz 10%', rxStage1(900, 10, 1), 1000);
 	T('ch1 low extremes band at dz 10%', rxStage1(100, 10, 1), 0);
 	T('ch1 with dz 0 keeps the centre exact', rxStage1(500, 0, 1), 500);
-	T('ch1 with dz 0 still tops out at 999', rxStage1(999, 0, 1), 999);
+	T('ch1 with dz 0 reaches the top untouched', rxStage1(1000, 0, 1), 1000);
 	/* channel 3 has no return spring: extremes and bottom band only, no centre
 	 * re-centring, and the test is on the 1 BASED channel number */
 	T('ch3 keeps its bottom band (dz 2%)', rxStage1(20, 2, 3), 0);
 	T('ch3 just above the bottom band (dz 2%)', rxStage1(21, 2, 3), 1);
 	T('ch3 has NO centre deadzone', rxStage1(500, 2, 3), 510);
-	T('ch3 top extremes band (dz 2%)', rxStage1(960, 2, 3), 999);
+	T('ch3 top extremes band (dz 2%)', rxStage1(960, 2, 3), 1000);
 	T('ch3 differs from ch1 at mid stick', rxStage1(500, 2, 3) === rxStage1(500, 2, 1) ? 'same' : 'different', 'different');
-	/* the headline consequence, and it is asymmetric */
+	/* the store clamp is now a no-op in practice, but it is still a distinct
+	 * stage in the source and must still bound its argument */
+	T('store clamp caps at the resolution, not one below it', rxStoreClamp(1500), RECEIVER_CHANNEL_RESOLUTION);
+	T('store clamp passes the top of the domain through', rxStoreClamp(1000), 1000);
+	/* the headline consequence: the travel is SYMMETRIC and the centre is exact */
 	T('mix input at the bottom of travel', rxStage2(rxStage1(0, 2, 1), false), -1000);
-	T('mix input at the top of travel is +998, NOT +1000', rxStage2(rxStage1(999, 2, 1), false), 998);
-	T('reverse flag mirrors it', rxStage2(rxStage1(999, 2, 1), true), -998);
+	T('mix input at the top of travel is +1000, full travel is reachable', rxStage2(rxStage1(1000, 2, 1), false), 1000);
+	T('reverse flag mirrors it', rxStage2(rxStage1(1000, 2, 1), true), -1000);
+	T('stage 2 alone reaches +1000', rxStage2(RECEIVER_CHANNEL_RESOLUTION, false), 1000);
+	T('stage 2 alone reaches -1000', rxStage2(0, false), -1000);
+	T('the domain has an exact centre: 500 normalises to 0', rxStage2(500, false), 0);
+	/* m_from_range proves this identity on its own above. What is new is that the
+	 * CHAIN preserves it, because stage 1b no longer truncates the top. */
+	Tok('mix_input = 2*rx - 1000 holds across the whole chain, deadzone off', (function () {
+		for (let rx = 0; rx <= RECEIVER_CHANNEL_RESOLUTION; rx++)
+			if (rxStage2(rxStoreClamp(rx), false) !== 2 * rx - 1000) return false;
+		return true;
+	})());
 	T('a disabled channel setting forces zero', (function () { const ch = 0; return ch === 0 ? V_ZERO : 1; })(), 0);
+
+	/* --- the device end, mirrors of fac_mapper.c --- */
+	T('servo: full positive travel is the last position', SIM.servoPosition(1000), MAX_SERVO_VALUE);
+	T('servo: full negative travel is position 0', SIM.servoPosition(-1000), 0);
+	T('servo: the centre lands half a step low, 1000 steps have no exact middle', SIM.servoPosition(0), 499);
+	Tok('servo position stays inside [0, MAX_SERVO_VALUE] over the whole normalized range', (function () {
+		for (let v = V_MIN; v <= V_MAX; v++) {
+			const p = SIM.servoPosition(v);
+			if (!Number.isInteger(p) || p < 0 || p > MAX_SERVO_VALUE) return false;
+		}
+		return true;
+	})());
+	T('motor: full stick is the full resolution, a true 100 % duty', SIM.motorSpeed(1000), MOTOR_SPEED_RESOLUTION);
+	T('motor: the sign is carried as direction, not as speed', SIM.motorSpeed(-1000), MOTOR_SPEED_RESOLUTION);
+	Tok('motor speed is the IDENTITY on abs(v) - both resolutions are 1000', (function () {
+		for (let v = V_MIN; v <= V_MAX; v++) if (SIM.motorSpeed(v) !== Math.abs(v)) return false;
+		return true;
+	})());
 
 	/* --- group 4 --- */
 	T('raw abs of -3', NODES.raw_abs.sim(null, [-3], {}), 3);
@@ -2826,18 +2911,24 @@ function runSelfTest() {
 		const b = PAD.defaults()[0];
 		for (let i = -100; i <= 100; i++) {
 			const v = PAD.padToStage0(b, i / 100);
-			if (!Number.isInteger(v) || v < 0 || v > RECEIVER_CHANNEL_RESOLUTION - 1) return false;
+			if (!Number.isInteger(v) || v < 0 || v > RECEIVER_CHANNEL_RESOLUTION) return false;
 		}
 		return true;
 	})());
 	T('a pad axis at -1 becomes stage 0 = 0', PAD.padToStage0(PAD.defaults()[0], -1), 0);
-	T('a pad axis at +1 becomes stage 0 = 999', PAD.padToStage0(PAD.defaults()[0], 1), 999);
+	T('a pad axis at +1 becomes stage 0 = 1000', PAD.padToStage0(PAD.defaults()[0], 1), RECEIVER_CHANNEL_RESOLUTION);
+	/* 1001 values, so a centred axis lands exactly on the centre of the domain -
+	 * the pad and the sliders must agree on what "no stick" means */
+	T('a pad axis at 0 becomes stage 0 = 500, the exact centre', PAD.padToStage0(PAD.defaults()[0], 0), 500);
 
 	/* --- the simple tank preset must reproduce fac_simple_tank_mix.c --- */
 	(function () {
 		let proj;
 		try { proj = PRESETS.simple_tank(); } catch (e) { Tok('simple tank preset builds', false, e.message); return; }
-		const grid = [-1000, -999, -750, -500, -1, 0, 1, 500, 750, 998, 1000];
+		/* 998 stays in the set: it is still a legal input value, it is just no
+		 * longer the top of travel. 1000 is now a value the chain can actually
+		 * reach and not only a documented bound, so the grid covers 998/999/1000. */
+		const grid = [-1000, -999, -750, -500, -1, 0, 1, 500, 750, 998, 999, 1000];
 		let bad = null;
 		for (const t of grid) for (const s of grid) {
 			const want = tankReference(t, s);
@@ -3740,11 +3831,11 @@ function uiSim() {
 		[0, 25, 50, 100].map(x => '<option value="' + x + '"' + (Number(s.rcHz) === x ? ' selected' : '') + '>' + (x ? x + ' Hz' : 'as fast as polled') + '</option>').join('') + '</select>' +
 		'</div>' +
 		'<div style="' + GRID('30px 130px 40px 40px 90px 24px') + ';color:var(--muted)">' +
-		'<span></span><span>stage 0 (0..999)</span><span class="mono">s0</span><span class="mono">s1</span><span></span><span></span></div>';
+		'<span></span><span>stage 0 (0..1000)</span><span class="mono">s0</span><span class="mono">s1</span><span></span><span></span></div>';
 	for (let i = 0; i < RECEIVER_CHANNELS_NUMBER; i++) {
 		h += '<div style="' + GRID('30px 130px 40px 40px 90px 24px') + '">' +
 			'<span>CH' + (i + 1) + (i === 2 ? '*' : '') + '</span>' +
-			'<input type="range" class="s0" data-i="' + i + '" min="0" max="999" value="' + SIM.stage0[i] + '">' +
+			'<input type="range" class="s0" data-i="' + i + '" min="0" max="' + RECEIVER_CHANNEL_RESOLUTION + '" value="' + SIM.stage0[i] + '">' +
 			'<span class="mono s0v" data-i="' + i + '">0</span>' +
 			'<span class="mono s1v" data-i="' + i + '">0</span>' +
 			'<span class="s1b" data-i="' + i + '"></span>' +
@@ -3752,8 +3843,8 @@ function uiSim() {
 			'</div>';
 	}
 	h += '<div class="muted" style="font-size:10px;margin-top:4px">* CH3 has no return spring: extremes and bottom band only, no centre deadzone.<br>' +
-		'stage 1 is what <span class="mono">FAC_std_receiver_GET_channel()</span> returns. It is capped at <b>999</b> by ' +
-		'<span class="mono">FAC_std_receiver_SET_channel()</span> <i>after</i> the deadzone snapped the top to 1000, so a mix input reaches <b>-1000 &hellip; +998</b> and full positive travel is unreachable. That is the firmware, not the model.</div>' +
+		'stage 1 is what <span class="mono">FAC_std_receiver_GET_channel()</span> returns, an integer <b>0 &hellip; 1000</b> &mdash; 1001 values, so the domain has an <b>exact centre</b> at 500. ' +
+		'<span class="mono">FAC_math_from_range(ch, 0, 1000)</span> then resolves to exactly <span class="mono">2&times;ch &minus; 1000</span>, so a mix input covers the full <b>-1000 &hellip; +1000</b> and the stick centre is exactly 0.</div>' +
 		'</div>';
 
 	/* --- mix inputs / function inputs --- */
@@ -3916,10 +4007,14 @@ function uiRobot() {
 	};
 	$('#p-robot').innerHTML = '<div class="row" style="align-items:flex-start">' +
 		'<div class="card"><h4>Mapper links (fac_settings.c)</h4>' +
-		['M1', 'M2', 'M3', 'S1', 'S2'].map(k => '<div style="' + GRID('30px 150px 46px 90px') + '"><span>' + k + '</span>' +
+		['M1', 'M2', 'M3', 'S1', 'S2'].map(k => '<div style="' + GRID('30px 138px 46px 86px 76px') + '"><span>' + k + '</span>' +
 			'<select class="mapl" data-k="' + k + '">' + linkOpts(Number(m[k])) + '</select>' +
-			'<span class="mono dv" data-k="' + k + '">-</span><span class="db" data-k="' + k + '"></span></div>').join('') +
-		'<div class="muted" style="font-size:10px;margin-top:5px">Motors: sign is direction, magnitude is speed.<br>Servos: FAC_math_to_range(v, 0, 1000), so -1000 is one end of travel.<br>Only 100..109 and 200..210 are meaningful; the settings range cannot express the gap.</div>' +
+			'<span class="mono dv" data-k="' + k + '">-</span><span class="mono dvu muted" data-k="' + k + '"></span>' +
+			'<span class="db" data-k="' + k + '"></span></div>').join('') +
+		'<div class="muted" style="font-size:10px;margin-top:5px">The first column is the normalized output, the second what <span class="mono">fac_mapper.c</span> hands the device.<br>' +
+		'Motors: sign is direction, magnitude is speed. <span class="mono">abs(v) * 1000 / 1000</span>, exact, so <b>0..1000</b> and &plusmn;1000 is a true 100% duty.<br>' +
+		'Servos: <span class="mono">FAC_math_to_range(v, 0, MAX_SERVO_VALUE)</span> &rarr; <b>0..999</b>, so -1000 is one end of travel and the centre lands on 499.<br>' +
+		'Only 100..109 and 200..210 are meaningful; the settings range cannot express the gap.</div>' +
 		'</div>' +
 		'<div class="card"><h4>Top view <span class="muted" style="text-transform:none">&mdash; illustrative, not physical</span></h4>' +
 		'<canvas id="rbCanvas" width="360" height="230"></canvas>' +
@@ -3930,6 +4025,14 @@ function uiRobot() {
 function drawRobot() {
 	if ($('#p-robot').classList.contains('hidden')) return;
 	$$('.dv').forEach(e => { const v = SIM.deviceValue(P.sim.mapper[e.dataset.k]); e.textContent = v === null ? '-' : v; });
+	/* the device-unit column, straight through the mapper mirrors */
+	$$('.dvu').forEach(e => {
+		const k = e.dataset.k, v = SIM.deviceValue(P.sim.mapper[k]);
+		if (v === null) { e.textContent = ''; return; }
+		e.textContent = k.charAt(0) === 'S'
+			? 'pos ' + SIM.servoPosition(v)
+			: (v < 0 ? 'rev ' : 'fwd ') + SIM.motorSpeed(v);
+	});
 	$$('.db').forEach(e => { const v = SIM.deviceValue(P.sim.mapper[e.dataset.k]); e.innerHTML = v === null ? '' : barHtml(v, 1000); });
 	const cv = $('#rbCanvas'); if (!cv) return;
 	const c = cv.getContext('2d'), W = cv.width, H = cv.height;
@@ -3949,7 +4052,8 @@ function drawRobot() {
 		c.fillStyle = '#333'; c.fillRect(x - 6, y - 12, 12, 24);
 		if (v !== null) {
 			c.fillStyle = v >= 0 ? '#00adb5' : '#ff8a65';
-			const hgt = Math.abs(v) / 1000 * 12;
+			/* the bar is the speed the mapper would send, 0..MOTOR_SPEED_RESOLUTION */
+			const hgt = SIM.motorSpeed(v) / MOTOR_SPEED_RESOLUTION * 12;
 			c.fillRect(x - 6, v >= 0 ? y - hgt : y, 12, hgt);
 		}
 		c.fillStyle = '#888'; c.font = '9px sans-serif'; c.fillText(name, x - 7, y + 22);
@@ -3960,7 +4064,8 @@ function drawRobot() {
 	const drawServo = (x, y, v, name) => {
 		c.strokeStyle = '#555'; c.beginPath(); c.arc(x, y, 12, 0, Math.PI * 2); c.stroke();
 		if (v !== null) {
-			const ang = (m_to_range(v, 0, 1000) / 1000) * Math.PI - Math.PI / 2;
+			/* the horn follows the position the mapper would send, 0..MAX_SERVO_VALUE */
+			const ang = (SIM.servoPosition(v) / MAX_SERVO_VALUE) * Math.PI - Math.PI / 2;
 			c.strokeStyle = '#f0c2df'; c.lineWidth = 2.5;
 			c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(ang) * 12, y + Math.sin(ang) * 12); c.stroke();
 		}
@@ -4035,7 +4140,7 @@ function uiPad() {
 				: '<span class="chip">no pad seen yet</span><span class="muted">Chrome exposes nothing until you <b>press a button on the pad</b> - do that and this panel fills in.</span>') +
 			(PAD.pads.length > 1 ? ' <select id="padSel">' + PAD.pads.map(p => '<option value="' + p.index + '"' + (p.index === PAD.index ? ' selected' : '') + '>' + esc(p.id.slice(0, 40)) + '</option>').join('') + '</select>' : '') +
 			'<button id="padDef">restore default bindings</button></div>';
-		h += '<div class="muted" style="font-size:10px;margin-bottom:6px">The pad writes the <b>same eight stage-0 values 0..999</b> the sliders write. The firmware deadzone, the channel assignment, the reverse flag and the disabled-channel rule all still apply afterwards, unchanged. The float from the API dies in one conversion and never reaches the graph math.<br>' +
+		h += '<div class="muted" style="font-size:10px;margin-bottom:6px">The pad writes the <b>same eight stage-0 values 0..1000</b> the sliders write. The firmware deadzone, the channel assignment, the reverse flag and the disabled-channel rule all still apply afterwards, unchanged. The float from the API dies in one conversion and never reaches the graph math.<br>' +
 			'The Gamepad API needs a secure context. <span class="mono">file://</span> counts as one in current Chrome and Firefox; if yours refuses, serving this folder over <span class="mono">localhost</span> is a convenience, never a requirement.</div>';
 		h += '<div style="' + GRID('34px 92px 58px 44px 66px 60px 60px 74px 90px 54px 60px') + ';color:var(--muted);font-weight:600">' +
 			'<span></span><span>source</span><span>index</span><span>inv</span><span>centre</span><span>min</span><span>max</span><span>pad dz</span><span>button mode</span><span>raw</span><span>stage 0</span></div>';
@@ -4224,13 +4329,17 @@ function uiHelp() {
 		'The Self-test tab asserts that, and about a hundred other things, on every run.</p>' +
 		'<h4>The receiver chain has four stages, not two</h4>' +
 		'<table class="g"><tr><th class="l">stage</th><th class="l">range</th><th class="l">who</th></tr>' +
-		'<tr><td class="l">0 backend capture</td><td class="l">0 &hellip; 999</td><td class="l">the sliders, or a gamepad</td></tr>' +
+		'<tr><td class="l">0 backend capture</td><td class="l">0 &hellip; 1000</td><td class="l">the sliders, or a gamepad</td></tr>' +
 		'<tr><td class="l">1a deadzone</td><td class="l">0 &hellip; 1000</td><td class="l"><span class="mono">FAC_std_receiver_calculate_dead_zone()</span></td></tr>' +
-		'<tr><td class="l">1b store clamp</td><td class="l">0 &hellip; 999</td><td class="l"><span class="mono">FAC_std_receiver_SET_channel()</span></td></tr>' +
-		'<tr><td class="l">2 mix input</td><td class="l">-1000 &hellip; +998</td><td class="l"><span class="mono">FAC_math_from_range(ch, 0, 1000)</span></td></tr></table>' +
-		'<p>Stage 1b is easy to miss and it is why <b>full positive travel is unreachable</b>: the deadzone snaps the top of the stick to 1000 and the store ' +
-		'clamps it straight back to 999, so a mix input reaches <span class="mono">-1000</span> but only <span class="mono">+998</span>. ' +
-		'The travel is asymmetric, and that is the firmware, not the model. A channel value of <b>0 is not "no signal"</b>, it is full negative travel.</p>' +
+		'<tr><td class="l">1b store clamp</td><td class="l">clamp to 1000</td><td class="l"><span class="mono">FAC_std_receiver_SET_channel()</span></td></tr>' +
+		'<tr><td class="l">2 mix input</td><td class="l">-1000 &hellip; +1000</td><td class="l"><span class="mono">FAC_math_from_range(ch, 0, 1000)</span></td></tr></table>' +
+		'<p>The channel domain is <b>0 &hellip; 1000 inclusive &mdash; 1001 values</b>, so it has an exact centre: 500 normalises to exactly 0, and ' +
+		'<span class="mono">mix_input = 2&times;ch &minus; 1000</span> holds across the whole chain with no rounding. The stages are still modelled separately because ' +
+		'they are separate functions in the firmware with separate domains; collapsing them would either double-apply the deadzone or invent travel the hardware ' +
+		'does not have. A channel value of <b>0 is not "no signal"</b>, it is full negative travel.</p>' +
+		'<p>At the device end the mapper converts back: a servo gets <span class="mono">FAC_math_to_range(v, 0, MAX_SERVO_VALUE)</span> &rarr; ' +
+		'<b>0 &hellip; 999</b> (999 is the divisor of the pulse formula, so the centre lands on 499), a motor gets <span class="mono">abs(v)</span> &rarr; ' +
+		'<b>0 &hellip; 1000</b> with the sign carried as direction, and full stick is a true 100 % duty.</p>' +
 		'<h4>Cost model</h4>' +
 		'<p>Cortex-M0 at 48 MHz: no FPU, <b>no hardware divider</b>, no long multiply. Even <span class="mono">/1000</span> is a call to ' +
 		'<span class="mono">__aeabi_idiv</span>. Every block shows its division count and the readout at the bottom right keeps the running total. ' +
