@@ -188,6 +188,18 @@ pre.code{background:#000;color:#cfe9c8;font:11.5px Consolas,'Courier New',monosp
 .errbox{background:#3a1616;border:1px solid var(--err);border-radius:6px;padding:6px 9px;color:#f5bdb8;font-size:11px;margin:6px 0}
 .okbox{background:#16301a;border:1px solid var(--ok);border-radius:6px;padding:6px 9px;color:#b6e6bb;font-size:11px;margin:6px 0}
 canvas{display:block;background:#0b0b0b;border:1px solid var(--line2);border-radius:7px}
+/* ---- block documentation ---- */
+.bcard{margin-bottom:8px}
+.brow{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.brow h4{margin:0}
+.badv{color:var(--warn);font-size:9px;letter-spacing:0;text-transform:none}
+.bhelp{font-size:11px;line-height:1.5;color:#c9c9c9;margin-bottom:5px}
+.bmeta{width:100%;margin-bottom:5px}
+.bmeta td{vertical-align:top}
+.bmeta td:first-child{color:var(--muted);white-space:nowrap;width:120px}
+.bcode{max-height:none;margin-bottom:3px}
+.bhit{outline:2px solid var(--accent);outline-offset:2px}
+.blink{color:var(--accent);cursor:pointer;text-decoration:underline;font-size:10px}
 .chip{display:inline-block;background:#2a2a2a;border:1px solid var(--line2);border-radius:10px;padding:1px calc(8px*var(--k));font-size:10px;color:#bbb}
 .chip.on{background:var(--accent-dim);border-color:var(--accent);color:#fff}
 </style>
@@ -275,6 +287,7 @@ canvas{display:block;background:#0b0b0b;border:1px solid var(--line2);border-rad
 		<div class="tab" data-p="sensors">Sensors</div>
 		<div class="tab" data-p="pad">Gamepad</div>
 		<div class="tab" data-p="code">Generated code</div>
+		<div class="tab" data-p="blocks">Blocks</div>
 		<div class="tab" data-p="reg">Registration</div>
 		<div class="tab" data-p="test">Self-test</div>
 		<div style="flex:1 1 auto"></div>
@@ -286,6 +299,7 @@ canvas{display:block;background:#0b0b0b;border:1px solid var(--line2);border-rad
 	<div class="tabPanel hidden" id="p-sensors"></div>
 	<div class="tabPanel hidden" id="p-pad"></div>
 	<div class="tabPanel hidden" id="p-code"></div>
+	<div class="tabPanel hidden" id="p-blocks"></div>
 	<div class="tabPanel hidden" id="p-reg"></div>
 	<div class="tabPanel hidden" id="p-test"></div>
 </div>
@@ -3657,7 +3671,10 @@ function uiPalette() {
 			b.appendChild(el('span', null, d.label + (d.adv ? ' *' : '')));
 			const divs = d.divsOf ? '?' : d.divs;
 			b.appendChild(el('span', 'bd', d.sqrt ? '16 st' : (divs + ' div')));
-			b.title = d.help + (d.adv ? '\n\n(*) advanced' : '');
+			b.title = d.help + (d.adv ? '\n\n(*) advanced' : '') + '\n\nright click for its documentation';
+			/* the palette has no room for a link, and a right click is free here:
+			 * the canvas pan of §6 is bound on #viewport, not on the palette */
+			b.addEventListener('contextmenu', e => { e.preventDefault(); showBlockDoc(d.id); });
 			b.draggable = true;
 			b.addEventListener('dragstart', e => e.dataTransfer.setData('text/fac', d.id));
 			b.addEventListener('dblclick', () => {
@@ -4205,8 +4222,11 @@ function uiInspector() {
 	const n = nodeById(Array.from(selection)[0]);
 	if (!n) return;
 	const d = NODES[n.t];
-	const h = el('div', 'help'); h.innerHTML = '<b>' + esc(d.label) + '</b><br>' + esc(d.help);
+	const h = el('div', 'help');
+	h.innerHTML = '<b>' + esc(d.label) + '</b><br>' + esc(d.help) +
+		'<br><span class="blink" id="inspDoc">the C it emits, its range and its cost &rarr;</span>';
 	host.appendChild(h);
+	$('#inspDoc').onclick = () => showBlockDoc(d.id);
 
 	const rowText = (label, val, on) => {
 		const f = el('div', 'field'); f.appendChild(el('label', null, label));
@@ -4824,8 +4844,9 @@ function uiTest() {
 function modal(html) {
 	$('#modalBox').innerHTML = html + '<div class="row" style="margin-top:14px;justify-content:flex-end"><button id="mdClose">close</button></div>';
 	$('#modal').classList.remove('hidden');
-	$('#mdClose').onclick = () => $('#modal').classList.add('hidden');
+	$('#mdClose').onclick = closeModal;
 }
+function closeModal() { $('#modal').classList.add('hidden'); }
 
 function uiExport() {
 	analyse();
@@ -4887,6 +4908,245 @@ function uiExport() {
 	}
 }
 
+/* ==========================================================================
+ * SECTION: UI - block documentation
+ * Every card is DERIVED from NODES. Nothing here restates what a block already
+ * says about itself: the label, the ports, the parameters, the division count,
+ * the proven interval and the help string are read out of the catalogue entry,
+ * and the C is obtained by calling the block's OWN emit(). That is what makes
+ * the documentation unable to drift from the generator - if the two ever
+ * disagree, the page is wrong the moment the generator changes, not silently
+ * months later.
+ * ========================================================================== */
+
+/* Run a block's emit() in isolation and collect what it would produce.
+ *
+ * makeCtx() already returns a FRESH context every call - its statics, resets and
+ * name table are all local to it - so the throwaway context is simply one of
+ * those, discarded afterwards. Nothing here can register a static or a reset on
+ * the real generator, because the real generator has its own.
+ *
+ * A block whose emit needs more context than this can give falls back to a short
+ * note rather than to a wrong example. */
+function blockEmitDemo(id) {
+	const d = NODES[id];
+	if (!d || typeof d.emit !== 'function') return { err: 'this block emits nothing on its own' };
+	const node = { id: 'doc', t: id, x: 0, y: 0, p: {}, name: '', note: '', bind: 'never', grp: '' };
+	(d.params || []).forEach(pd => { node.p[pd.n] = pd.def; });
+	/* placeholder arguments: a1, a2, ... stand for whatever is wired in */
+	const args = (d.ins || []).map((ip, i) => 'a' + (i + 1));
+	try {
+		const ctx = makeCtx();
+		const r = d.emit(ctx, args, node.p, node) || {};
+		const lines = [];
+		ctx.rxLines.forEach(l => lines.push(l));
+		if (r.lines) r.lines.forEach(l => lines.push(l));
+		if (r.assign !== undefined) lines.push('outputs[i] = ' + r.assign + ';');
+		else if (r.expr !== undefined) lines.push(r.expr);
+		if (r.post) r.post.forEach(l => lines.push(l));
+		return {
+			statics: ctx.statics.slice(),
+			resets: ctx.resets.slice(),
+			lines: lines,
+			args: args
+		};
+	} catch (e) {
+		return { err: 'needs graph context to show an example (' + e.message + ')' };
+	}
+}
+
+/* the proven output interval, asked of the block itself */
+function blockRange(id) {
+	const d = NODES[id];
+	if (typeof d.range !== 'function') return null;
+	const node = { t: id, p: {} };
+	(d.params || []).forEach(pd => { node.p[pd.n] = pd.def; });
+	try {
+		const ins = (d.ins || []).map(() => IV_NORM);
+		const r = d.range(ins, node.p);
+		return r && isFinite(r.lo) && isFinite(r.hi) ? IV.str(r) : null;
+	} catch (e) { return null; }
+}
+
+function blockCardHtml(id) {
+	const d = NODES[id];
+	const dm = blockEmitDemo(id);
+	const rng = blockRange(id);
+	const divs = d.divsOf ? 'depends on its parameters' : String(d.divs);
+	let h = '<div class="card bcard" id="bdoc-' + esc(id) + '">';
+	h += '<div class="brow"><h4>' + esc(d.label) + (d.adv ? ' <span class="badv">advanced</span>' : '') + '</h4>' +
+		'<span class="mono muted">' + esc(id) + '</span>' +
+		'<span style="flex:1 1 auto"></span>' +
+		'<span class="chip">' + esc(CAT[d.cat] || d.cat) + '</span>' +
+		'<button class="tiny bcopy" data-id="' + esc(id) + '">copy</button></div>';
+
+	h += '<div class="bhelp">' + esc(d.help) + '</div>';
+
+	/* ports */
+	const ins = (d.ins || []).map((ip, i) => '<span class="mono">' + i + ':' + esc(ip.n) + '</span> <span class="muted">' + esc(ip.k) + '</span>').join(' &middot; ');
+	h += '<table class="g bmeta">';
+	h += '<tr><td class="l">inputs</td><td class="l">' + (ins || '<span class="muted">none</span>') + '</td></tr>';
+	h += '<tr><td class="l">output</td><td class="l">' + (d.out ? '<span class="mono">' + esc(d.out) + '</span>' : '<span class="muted">none, this is a sink</span>') +
+		(d.outKind ? ' <span class="muted">(depends on its parameters)</span>' : '') + '</td></tr>';
+	h += '<tr><td class="l">divisions</td><td class="l">' + esc(divs) + (d.sqrt ? ' <span class="muted">&mdash; no division, but always walks 16 steps</span>' : '') + '</td></tr>';
+	if (rng) h += '<tr><td class="l">proven range</td><td class="l"><span class="mono">' + esc(rng) + '</span> <span class="muted">for normalized inputs</span></td></tr>';
+	if (d.modes) h += '<tr><td class="l">only in</td><td class="l">' + esc(d.modes.join(', ')) + ' mode</td></tr>';
+	if (d.stateful) h += '<tr><td class="l">state</td><td class="l">keeps state between passes, so it needs a <b>reset / hold</b> policy and takes part in the disarm gap guard</td></tr>';
+	if (d.noGroup) h += '<tr><td class="l">grouping</td><td class="l">never grouped: it is a boundary of the graph and must stay visible</td></tr>';
+
+	/* parameters */
+	(d.params || []).forEach(pd => {
+		let v = '<span class="mono">' + esc(pd.t) + '</span>';
+		if (pd.t === 'sel' && pd.opts) v += ' &mdash; ' + pd.opts.map(o => '<span class="mono">' + esc(o[0]) + '</span>').join(', ');
+		else if (pd.min !== undefined) v += ' &mdash; <span class="mono">' + pd.min + ' &hellip; ' + pd.max + '</span>';
+		if (pd.def !== undefined) v += ' <span class="muted">default <span class="mono">' + esc(String(pd.def)) + '</span></span>';
+		h += '<tr><td class="l">param <span class="mono">' + esc(pd.n) + '</span></td><td class="l">' + v + '</td></tr>';
+	});
+	h += '</table>';
+
+	/* the real emitted C */
+	if (dm.err) {
+		h += '<div class="muted" style="font-size:11px;margin-top:5px">' + esc(dm.err) + '</div>';
+	} else {
+		const L = [];
+		if (dm.statics.length) { L.push('/* file scope */'); dm.statics.forEach(s => L.push(s)); L.push(''); }
+		dm.lines.forEach(l => L.push(l));
+		if (dm.resets.length) { L.push(''); L.push('/* on resume, when the policy is reset */'); dm.resets.forEach(s => L.push(s)); }
+		h += '<pre class="code bcode">' + esc(L.join('\n')) + '</pre>';
+		if (dm.args.length) h += '<div class="muted" style="font-size:10px">' +
+			dm.args.map(a => '<span class="mono">' + a + '</span>').join(', ') +
+			' stand for whatever is wired into the ports above. This is the block\'s own <span class="mono">emit()</span>, the one the generator calls.</div>';
+	}
+	h += '</div>';
+	return h;
+}
+
+/* Which blocks a filter selects, as a pure function of the two filter values.
+ * Kept out of the rendering so it can be checked without a DOM. */
+function blockDocList(q, cat) {
+	q = String(q || '').toLowerCase();
+	const groups = [];
+	Object.keys(CAT).forEach(c => {
+		if (cat && c !== cat) return;
+		const ids = Object.keys(NODES).filter(id => {
+			const d = NODES[id];
+			if (d.cat !== c) return false;
+			if (q && (d.label + ' ' + id + ' ' + d.help).toLowerCase().indexOf(q) < 0) return false;
+			return true;
+		});
+		if (ids.length) groups.push({ cat: c, ids: ids });
+	});
+	return groups;
+}
+
+/* Build the tab shell ONCE. Rebuilding it on every keystroke destroyed the very
+ * input being typed into - it took the focus and the caret with it, and the
+ * handlers had to be re-attached to fresh elements each time. Only the list of
+ * cards is re-rendered when a filter changes. */
+function uiBlocks() {
+	const host = $('#p-blocks');
+	/* already built: just bring it back in sync with BLOCKDOC, which showBlockDoc()
+	 * may have cleared to make sure the block it links to is actually visible */
+	if ($('#bdList')) {
+		const s = $('#bdSearch'), c = $('#bdCat');
+		if (s && s.value !== BLOCKDOC.q) s.value = BLOCKDOC.q;
+		if (c && c.value !== BLOCKDOC.cat) c.value = BLOCKDOC.cat;
+		renderBlockList();
+		return;
+	}
+
+	let h = '<div class="row" style="margin-bottom:8px">' +
+		'<input type="text" id="bdSearch" placeholder="filter blocks&hellip;" style="width:180px">' +
+		'<select id="bdCat"><option value="">every category</option>' +
+		Object.keys(CAT).map(c => '<option value="' + c + '">' + esc(CAT[c]) + '</option>').join('') +
+		'</select>' +
+		'<span class="muted" id="bdCount"></span></div>';
+
+	/* ---- the theory, which lives HERE and nowhere else ---- */
+	h += '<div class="card" style="margin-bottom:8px"><h4>How a value travels</h4>' +
+		'<table class="g"><tr><th class="l">stage</th><th class="l">range</th><th class="l">who</th></tr>' +
+		'<tr><td class="l">0 backend capture</td><td class="l">0 &hellip; 1000</td><td class="l">the sliders, or a gamepad</td></tr>' +
+		'<tr><td class="l">1a deadzone</td><td class="l">0 &hellip; 1000</td><td class="l"><span class="mono">FAC_std_receiver_calculate_dead_zone()</span></td></tr>' +
+		'<tr><td class="l">1b store clamp</td><td class="l">clamp to 1000</td><td class="l"><span class="mono">FAC_std_receiver_SET_channel()</span></td></tr>' +
+		'<tr><td class="l">2 mix input</td><td class="l">-1000 &hellip; +1000</td><td class="l"><span class="mono">FAC_math_from_range(ch, 0, 1000)</span></td></tr></table>' +
+		'<p style="font-size:11px;line-height:1.5">The channel domain is <b>0 &hellip; 1000 inclusive &mdash; 1001 values</b>, so it has an exact centre: 500 normalises to exactly 0, and ' +
+		'<span class="mono">mix_input = 2&times;ch &minus; 1000</span> holds across the whole chain with no rounding. The stages stay modelled separately because they are separate ' +
+		'functions in the firmware with separate domains; collapsing them would either double-apply the deadzone or invent travel the hardware does not have. ' +
+		'A channel value of <b>0 is not "no signal"</b>, it is full negative travel.<br><br>' +
+		'At the device end the mapper converts back: a servo gets <span class="mono">FAC_math_to_range(v, 0, MAX_SERVO_VALUE)</span> &rarr; <b>0 &hellip; 999</b> ' +
+		'(999 is the divisor of the pulse formula, so the centre lands on 499), a motor gets <span class="mono">abs(v)</span> &rarr; <b>0 &hellip; 1000</b> with the sign ' +
+		'carried as direction, and full stick is a true 100 % duty.</p></div>';
+
+	h += '<div class="card" style="margin-bottom:8px"><h4>What the four groups guarantee</h4>' +
+		'<table class="g"><tr><th class="l">group</th><th class="l">clamping</th><th class="l">overflow</th></tr>' +
+		'<tr><td class="l">1 &mdash; normalized</td><td class="l">clamps its <b>arguments</b> and then its <b>result</b>, in that order</td><td class="l">cannot overflow: everything is bounded to &plusmn;1000</td></tr>' +
+		'<tr><td class="l">2 &mdash; raw fixed point</td><td class="l">clamps <b>nothing</b></td><td class="l">every product is range checked; an <span class="mono">int32_t</span> overflow is undefined behaviour in C, so it is reported on the block and never wrapped silently</td></tr>' +
+		'<tr><td class="l">3 &mdash; angles</td><td class="l">wraps into <span class="mono">0 &hellip; 4095</span></td><td class="l">bounded by the wrap</td></tr>' +
+		'<tr><td class="l">4 &mdash; plain C</td><td class="l">none at all</td><td class="l">the interval analysis must <b>prove</b> the result fits <span class="mono">int32_t</span>, or it is an <b>error</b> and export is blocked &mdash; this group has no clamp and no guard</td></tr></table>' +
+		'<p style="font-size:11px;line-height:1.5">Group 4 exists because <span class="mono">fac_simple_tank_mix.c</span> deliberately lets its sums reach twice full scale before halving them, ' +
+		'and no group 1 primitive can express that. There is <b>no shift block</b> on purpose: <span class="mono">-3 &gt;&gt; 1</span> is <span class="mono">-2</span> while ' +
+		'<span class="mono">-3 / 2</span> is <span class="mono">-1</span>, so a shift is not a division and offering both would hand you two operations that look interchangeable and are not.</p></div>';
+
+	h += '<div class="card" style="margin-bottom:8px"><h4>What it costs on the MCU</h4>' +
+		'<p style="font-size:11px;line-height:1.5">Cortex-M0 at 48 MHz: no FPU, <b>no hardware divider</b>, no long multiply. Even <span class="mono">/1000</span> is a call to ' +
+		'<span class="mono">__aeabi_idiv</span>. Every card below shows its division count and the readout at the bottom right of the editor keeps the running total. ' +
+		'<span class="mono">expo</span> costs 3, <span class="mono">sin</span>/<span class="mono">cos</span> 4, <span class="mono">atan2</span> 6; ' +
+		'<span class="mono">sqrt</span> pays no division but always walks 16 steps.</p></div>';
+
+	h += '<div id="bdList"></div>';
+	host.innerHTML = h;
+
+	/* attached once, to elements that are never replaced again */
+	$('#bdSearch').value = BLOCKDOC.q;
+	$('#bdCat').value = BLOCKDOC.cat;
+	$('#bdSearch').oninput = e => { BLOCKDOC.q = e.target.value; renderBlockList(); };
+	$('#bdCat').onchange = e => { BLOCKDOC.cat = e.target.value; renderBlockList(); };
+	renderBlockList();
+}
+
+function renderBlockList() {
+	const list = $('#bdList'); if (!list) return;
+	const groups = blockDocList(BLOCKDOC.q, BLOCKDOC.cat);
+	let h = '', shown = 0;
+	groups.forEach(g => {
+		h += '<h4 style="color:var(--accent);margin:10px 0 4px;letter-spacing:.6px;text-transform:uppercase;font-size:11px">' + esc(CAT[g.cat]) + '</h4>';
+		g.ids.forEach(id => { h += blockCardHtml(id); shown++; });
+	});
+	if (!shown) h += '<div class="muted">no block matches that filter.</div>';
+	list.innerHTML = h;
+	$('#bdCount').textContent = shown + ' of ' + Object.keys(NODES).length + ' blocks';
+	$$('#bdList .bcopy').forEach(b => b.onclick = () => {
+		const card = $('#bdoc-' + b.dataset.id);
+		const pre = card ? card.querySelector('pre') : null;
+		copyText(pre ? pre.textContent : NODES[b.dataset.id].help);
+		b.textContent = 'copied'; setTimeout(() => { b.textContent = 'copy'; }, 900);
+	});
+}
+const BLOCKDOC = { q: '', cat: '' };
+
+/* offline, no clipboard permission prompt in the common case */
+function copyText(t) {
+	try {
+		const ta = document.createElement('textarea');
+		ta.value = t; ta.style.position = 'fixed'; ta.style.left = '-2000px';
+		document.body.appendChild(ta); ta.select();
+		document.execCommand('copy');
+		document.body.removeChild(ta);
+	} catch (e) { }
+}
+
+/* open the Blocks tab on a given block, from the palette or the inspector */
+function showBlockDoc(id) {
+	BLOCKDOC.q = ''; BLOCKDOC.cat = '';
+	openTab('blocks');
+	const card = $('#bdoc-' + id);
+	if (card) {
+		card.scrollIntoView({ block: 'start' });
+		card.classList.add('bhit');
+		setTimeout(() => card.classList.remove('bhit'), 1400);
+	}
+}
+
 function uiHelp() {
 	modal('<h3>F.A.C. V2 mix &amp; special function editor</h3>' +
 		'<p>Assemble a mix (8 inputs / 10 outputs) or a special function (1 in / 1 out) out of the closed set of integer blocks ' +
@@ -4897,30 +5157,9 @@ function uiHelp() {
 		'these can &mdash; and being integer, the browser and the Cortex-M0 produce the same value, not a close one. The single rule that makes it work is ' +
 		'that C division truncates toward zero, so this tool uses <span class="mono">Math.trunc</span> and never <span class="mono">Math.floor</span>. ' +
 		'The Self-test tab asserts that, and about a hundred other things, on every run.</p>' +
-		'<h4>The receiver chain has four stages, not two</h4>' +
-		'<table class="g"><tr><th class="l">stage</th><th class="l">range</th><th class="l">who</th></tr>' +
-		'<tr><td class="l">0 backend capture</td><td class="l">0 &hellip; 1000</td><td class="l">the sliders, or a gamepad</td></tr>' +
-		'<tr><td class="l">1a deadzone</td><td class="l">0 &hellip; 1000</td><td class="l"><span class="mono">FAC_std_receiver_calculate_dead_zone()</span></td></tr>' +
-		'<tr><td class="l">1b store clamp</td><td class="l">clamp to 1000</td><td class="l"><span class="mono">FAC_std_receiver_SET_channel()</span></td></tr>' +
-		'<tr><td class="l">2 mix input</td><td class="l">-1000 &hellip; +1000</td><td class="l"><span class="mono">FAC_math_from_range(ch, 0, 1000)</span></td></tr></table>' +
-		'<p>The channel domain is <b>0 &hellip; 1000 inclusive &mdash; 1001 values</b>, so it has an exact centre: 500 normalises to exactly 0, and ' +
-		'<span class="mono">mix_input = 2&times;ch &minus; 1000</span> holds across the whole chain with no rounding. The stages are still modelled separately because ' +
-		'they are separate functions in the firmware with separate domains; collapsing them would either double-apply the deadzone or invent travel the hardware ' +
-		'does not have. A channel value of <b>0 is not "no signal"</b>, it is full negative travel.</p>' +
-		'<p>At the device end the mapper converts back: a servo gets <span class="mono">FAC_math_to_range(v, 0, MAX_SERVO_VALUE)</span> &rarr; ' +
-		'<b>0 &hellip; 999</b> (999 is the divisor of the pulse formula, so the centre lands on 499), a motor gets <span class="mono">abs(v)</span> &rarr; ' +
-		'<b>0 &hellip; 1000</b> with the sign carried as direction, and full stick is a true 100 % duty.</p>' +
-		'<h4>Cost model</h4>' +
-		'<p>Cortex-M0 at 48 MHz: no FPU, <b>no hardware divider</b>, no long multiply. Even <span class="mono">/1000</span> is a call to ' +
-		'<span class="mono">__aeabi_idiv</span>. Every block shows its division count and the readout at the bottom right keeps the running total. ' +
-		'<span class="mono">expo</span> costs 3, <span class="mono">sin</span>/<span class="mono">cos</span> 4, <span class="mono">atan2</span> 6; ' +
-		'<span class="mono">sqrt</span> pays no division but always walks 16 steps.</p>' +
-		'<h4>Group 4 and why there is no shift block</h4>' +
-		'<p>Group 4 is plain C: unsaturated sums, a raw absolute value, multiply and divide by a literal, comparisons and a ternary. It exists because ' +
-		'<span class="mono">fac_simple_tank_mix.c</span> deliberately lets its sums reach twice full scale before halving them, and no group 1 primitive can express that. ' +
-		'There is no <span class="mono">&gt;&gt;</span> block on purpose: <span class="mono">-3 &gt;&gt; 1</span> is <span class="mono">-2</span> while ' +
-		'<span class="mono">-3 / 2</span> is <span class="mono">-1</span>, so a shift is not a division and swapping them changes behaviour around zero. ' +
-		'Every group 4 result must be <i>proven</i> to fit <span class="mono">int32_t</span> by the interval analysis, or it is an error &mdash; the group has no clamp and no guard.</p>' +
+		'<h4>The blocks, the value chain, the groups and the cost model</h4>' +
+		'<p>All of that lives in the <b>Blocks</b> tab at the bottom, one card per block, generated from the catalogue itself: ports, parameters, division count, proven range, and the <b>real C</b> each block emits. '+
+		'<button id="btHelpBlocks">open the Blocks tab</button></p>' +
 		'<h4>Keyboard</h4>' +
 		'<table class="g"><tr><td class="l">double click a palette block</td><td class="l">add it at the centre</td></tr>' +
 		'<tr><td class="l">drag port &rarr; port</td><td class="l">wire (drag from a connected input to detach)</td></tr>' +
@@ -4936,6 +5175,9 @@ function uiHelp() {
 		'<h4>What this tool will never do</h4>' +
 		'<p>Emit a <span class="mono">float</span>, a device write, a settings write, a blocking call, a new setting code, or a patch to your firmware. ' +
 		'It writes two files and tells you, in order, what to add by hand.</p>');
+	const b = $('#btHelpBlocks');
+	/* one copy of each explanation: the modal points at the tab, it does not repeat it */
+	if (b) b.onclick = () => { closeModal(); openTab('blocks'); };
 }
 
 /* ------------------------------------------------------------- clipboard */
@@ -5042,14 +5284,22 @@ function initKeys() {
 }
 
 /* ------------------------------------------------------------------ tabs */
+const TAB_RENDER = {
+	sim: uiSim, scope: uiScope, robot: uiRobot, sensors: uiSensors, pad: uiPad,
+	code: uiCode, blocks: uiBlocks, reg: uiReg, test: uiTest
+};
+/* one way in, so a link from the palette or the inspector opens a tab exactly
+ * the way clicking it does */
+function openTab(name) {
+	$$('#tabs .tab').forEach(x => x.classList.toggle('on', x.dataset.p === name));
+	$$('.tabPanel').forEach(p => p.classList.add('hidden'));
+	const panel = $('#p-' + name); if (panel) panel.classList.remove('hidden');
+	if (!UI.bottomOpen) { UI.bottomOpen = true; applyLayout(); saveUiPrefs(); }
+	const f = TAB_RENDER[name];
+	if (f) f();
+}
 function initTabs() {
-	$$('#tabs .tab').forEach(t => t.onclick = () => {
-		$$('#tabs .tab').forEach(x => x.classList.toggle('on', x === t));
-		$$('.tabPanel').forEach(p => p.classList.add('hidden'));
-		$('#p-' + t.dataset.p).classList.remove('hidden');
-		const f = { sim: uiSim, scope: uiScope, robot: uiRobot, sensors: uiSensors, pad: uiPad, code: uiCode, reg: uiReg, test: uiTest }[t.dataset.p];
-		if (f) f();
-	});
+	$$('#tabs .tab').forEach(t => t.onclick = () => openTab(t.dataset.p));
 	/* the bottom toggle now lives in initLayout(), with the other two, so that all
 	 * three collapse states persist through the same key */
 }

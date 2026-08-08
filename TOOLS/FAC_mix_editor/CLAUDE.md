@@ -37,6 +37,7 @@ One file, sections marked with banner comments — grep `SECTION:` to jump. Orde
 | `SIM` | fixed 1 ms loop driving a simulated `HAL_GetTick()` |
 | `GAMEPAD` | Gamepad API → the same stage-0 values the sliders write |
 | `SELFTEST`, `PRESETS`, `UI ×3` | |
+| `UI - block documentation` | `blockEmitDemo()`, `blockRange()`, `uiBlocks()` — the *Blocks* tab, derived entirely from `NODES` |
 
 ### The one invariant: no second implementation
 
@@ -100,9 +101,26 @@ Emission constraints worth not rediscovering:
 - Forbidden in generated code: `float`/`double`, `math.h`, `stdlib.h` (`abs()`), `main.h` (so `1`/`0`, never `TRUE`/`FALSE`), `malloc`, VLA, recursion, `HAL_Delay` or any wait loop, any device/settings/EEPROM write, and `map_int32()` as a block (it clamps only one end and costs a 64-bit helper call on an M0).
 - Tabs, K&R braces, English identifiers, `-Wall` clean, no unused locals, keep `__attribute__((unused))` on the ID marker.
 
+## Editor behaviour worth not rediscovering
+
+- **One `snapPos()`.** Every path that produces a node position goes through it — palette drop, double-click insert, paste, arrow nudge, drag, auto-layout. A drag snaps its **delta** against the block you grabbed (`snapDelta()`), never each node's absolute position: snapping absolutely makes a multi-selection drift apart. Paste snaps the offset once for the same reason. The snap bypass reads `e.ctrlKey` from the live mouse event — `keyState` goes stale, because its `keydown` handler returns early inside an input.
+- **A move drag resolves its DOM targets once**, at mousedown, into `dragState.doms` and `dragState.boxes`. A collapsed group's members are not rendered at all, so a per-frame `[data-id=…]` lookup finds nothing; the box tracks `min(x), min(y)` of its members and updates `GROUP_BOX` so the wires follow. Visual updates are coalesced into one `requestAnimationFrame`.
+- **The marquee previews live** and commits on mouseup; there is deliberately **no `click` listener** clearing the selection, because it fired after the mouseup and wiped what the marquee had just built. `refreshGeometry()` re-measures before a marquee so the hit test never guesses a width.
+- **Pan is decided first** in the mousedown handler — right, middle, Alt or Space — so a pan that starts on a block pans instead of dragging it. Bare letter shortcuts (`F`, `L`) are gated on no modifier, or `Ctrl+F` steals the browser's find.
+- **UI preferences live in `localStorage` under `facmix.layout.v1`**, never in the project file and never in `SCHEMA_VERSION`: pane sizes, collapse state, compact density and grid size are a property of the person, not of the mix. `AUTOSAVE_KEY` is a separate key and the two must not read each other. `applyLayout()` is the single place a preference becomes CSS.
+- **A collapsed group is visual only**, and blocks marked `noGroup` in the catalogue — the mix/function inputs and outputs — are never grouped: they are where the graph begins and ends. `loadProject()` strips a stale group off them, so the rule holds for older projects too.
+- **Auto-layout arranges layout units, not nodes**: a collapsed group is one unit at its box size and its members move rigidly inside it. Cycles are broken on the edge *into* a stateful block — the same edge that makes them legal. A freshly loaded preset is laid out once, with `undoSuspend` set, because the presets' hand-written coordinates overlap; a restored session keeps the user's positions.
+- **Positions are not semantics.** The generated C is identical before and after a layout. The `.c` is *not* byte-identical, because it carries the project as JSON for round-trip import and that JSON holds the coordinates — which is the point of it.
+
 ## Validation
 
 `analyse()` propagates an interval per wire and reports at graph-build time. A **group-4 (plain C) node whose interval cannot be *proven* to fit `int32_t` is an error, not a warning** — that group has no clamp and no guard, and the interval analysis is the only thing between the user and UB. Other errors: cycles without a stateful break, unconnected required ports, a duplicated output index, `raw_div_lit` with `k = 0`, a violated documented range constraint, IMU without preamble, unindexed multi-instance state.
+
+## Block documentation
+
+The *Blocks* bottom tab is **generated from `NODES` and nothing else**. Ports, parameters, division count, proven range and the `help` string are read out of the catalogue entry, and the C shown is obtained by calling the block's **own `emit()`** with placeholder arguments on a throwaway `makeCtx()` — which is already isolated, since every `makeCtx()` call returns a fresh context. That is what makes the documentation unable to drift: a hand-written sentence about a block that already says it in its `help` is a bug, and adding a `def({...})` must make a card appear with no other edit.
+
+The theory — the receiver chain, the group 1/2/3/4 clamp and overflow semantics, the cost model — lives **only** in that tab. The help modal keeps the shortcuts and the workflow and links to it. One copy of each explanation.
 
 ## Registration guide
 
