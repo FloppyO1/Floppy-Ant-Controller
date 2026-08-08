@@ -141,6 +141,12 @@ aside.collapsed{width:0 !important;min-width:0;overflow:hidden;border:0}
 /* ---- right pane ---- */
 .field{display:flex;align-items:center;gap:calc(6px*var(--k));padding:calc(3px*var(--k)) calc(8px*var(--k))}
 .field label{flex:0 0 96px;color:var(--muted);font-size:11px;text-align:right}
+/* a field whose label sits ABOVE its control, so the control gets the full
+ * width of the pane. For anything the user actually writes prose into, a
+ * 96px label column stealing a third of a narrow sidebar is not worth it. */
+.fieldv{display:flex;flex-direction:column;gap:3px;padding:calc(3px*var(--k)) calc(8px*var(--k))}
+.fieldv label{color:var(--muted);font-size:11px;text-align:left}
+.fieldv textarea,.fieldv input{width:100%;min-width:0}
 .field input[type=text]{flex:1 1 auto;min-width:0}
 .field select{flex:1 1 auto;min-width:0}
 .help{padding:calc(5px*var(--k)) calc(9px*var(--k));color:#9a9a9a;font-size:11px;line-height:1.45;border-bottom:1px solid var(--line);background:#1a1a1a}
@@ -206,6 +212,7 @@ canvas{display:block;background:#0b0b0b;border:1px solid var(--line2);border-rad
 	<button id="btUndo" title="Ctrl+Z">Undo</button>
 	<button id="btRedo" title="Ctrl+Y">Redo</button>
 	<button id="btFrame" title="Frame all (F)">Frame</button>
+	<button id="btLayout" title="Arrange the graph left to right by rank (L)">Layout</button>
 	<label>Grid</label>
 	<select id="uiGrid" title="snap step - hold Ctrl while dragging to bypass it" style="width:64px">
 		<option value="0">off</option>
@@ -3857,6 +3864,132 @@ function frameAll() {
 	applyView();
 }
 
+/* ==========================================================================
+ * AUTO LAYOUT
+ * Left to right by topological rank, so every block sits strictly to the right
+ * of everything that feeds it. It arranges LAYOUT UNITS, not nodes: a collapsed
+ * group is one unit at its box size, and its members are moved rigidly inside
+ * that footprint, so expanding it afterwards does not produce a pile.
+ * Positions are semantics-free - the exported .c is identical before and after.
+ * ========================================================================== */
+const LAYOUT_GUTTER = 70;    /* horizontal space between two columns */
+const LAYOUT_VGAP = 22;      /* vertical space between two units in a column */
+
+/* every node maps to its layout unit: itself, or the box that hides it */
+function layoutUnits() {
+	const units = new Map();   /* unitId -> {id,w,h,members:[node]} */
+	P.nodes.forEach(n => {
+		const uid = groupOf(n.id);            /* '#grp:name' when collapsed */
+		let u = units.get(uid);
+		if (!u) { u = { id: uid, w: 0, h: 0, members: [] }; units.set(uid, u); }
+		u.members.push(n);
+	});
+	units.forEach(u => {
+		const g = NODE_GEOM[u.id];
+		if (g && g.w) { u.w = g.w; u.h = g.h; return; }
+		/* a unit that was never measured falls back to a nominal block */
+		u.w = 130; u.h = 70;
+	});
+	return units;
+}
+
+function autoLayout() {
+	if (!P.nodes.length) return;
+	refreshGeometry();               /* real widths, not guessed ones (see §4) */
+	const units = layoutUnits();
+	const ids = Array.from(units.keys());
+	const uOf = (nodeId) => groupOf(nodeId);
+
+	/* ---- edges between units, cycles broken the same way topoOrder() breaks
+	 * them: an edge INTO a stateful block is what makes a cycle legal, so it is
+	 * also the edge to ignore when ranking. Without this a legal cyclic graph
+	 * would spin forever here. */
+	const succ = new Map(), pred = new Map();
+	ids.forEach(i => { succ.set(i, new Set()); pred.set(i, new Set()); });
+	P.wires.forEach(w => {
+		const a = nodeById(w.from), b = nodeById(w.to);
+		if (!a || !b) return;
+		if (NODES[b.t] && NODES[b.t].breaks) return;
+		const ua = uOf(w.from), ub = uOf(w.to);
+		if (ua === ub) return;        /* inside one collapsed group: not a column edge */
+		succ.get(ua).add(ub); pred.get(ub).add(ua);
+	});
+
+	/* ---- rank = longest path from the sources, by Kahn ---- */
+	const indeg = new Map(); ids.forEach(i => indeg.set(i, pred.get(i).size));
+	const rank = new Map(); ids.forEach(i => rank.set(i, 0));
+	const q = ids.filter(i => indeg.get(i) === 0);
+	const seen = new Set(q);
+	while (q.length) {
+		const i = q.shift();
+		succ.get(i).forEach(j => {
+			rank.set(j, Math.max(rank.get(j), rank.get(i) + 1));
+			indeg.set(j, indeg.get(j) - 1);
+			if (indeg.get(j) === 0) { q.push(j); seen.add(j); }
+		});
+	}
+	/* whatever Kahn could not reach sits in a cycle the breaker did not cut;
+	 * park it one column past its deepest predecessor rather than hanging */
+	ids.forEach(i => {
+		if (seen.has(i)) return;
+		let r = 0;
+		pred.get(i).forEach(p => { if (seen.has(p)) r = Math.max(r, rank.get(p) + 1); });
+		rank.set(i, r);
+	});
+
+	/* ---- sinks pinned to the last column, orphans to a trailing one ---- */
+	const isSink = (u) => u.members.some(n => NODES[n.t] && NODES[n.t].sink);
+	const isOrphan = (i) => !isSink(units.get(i)) && !pred.get(i).size && !succ.get(i).size;
+	let maxRank = 0; ids.forEach(i => { if (!isOrphan(i)) maxRank = Math.max(maxRank, rank.get(i)); });
+	ids.forEach(i => { if (isSink(units.get(i))) rank.set(i, maxRank); });
+	/* freshly dropped blocks would otherwise scatter through rank 0 */
+	ids.forEach(i => { if (isOrphan(i)) rank.set(i, maxRank + 1); });
+
+	/* ---- columns, then a few barycentre sweeps to undo the worst crossings ---- */
+	const cols = [];
+	ids.forEach(i => { const r = rank.get(i); (cols[r] = cols[r] || []).push(i); });
+	for (let c = 0; c < cols.length; c++) if (!cols[c]) cols[c] = [];
+	const rowOf = new Map();
+	const reindex = () => cols.forEach(c => c.forEach((i, k) => rowOf.set(i, k)));
+	reindex();
+	const bary = (i, side) => {
+		const s = side.get(i);
+		if (!s || !s.size) return rowOf.get(i);
+		let t = 0, n = 0;
+		s.forEach(j => { if (rowOf.has(j)) { t += rowOf.get(j); n++; } });
+		return n ? t / n : rowOf.get(i);
+	};
+	for (let pass = 0; pass < 3; pass++) {
+		for (let c = 1; c < cols.length; c++) { cols[c].sort((a, b) => bary(a, pred) - bary(b, pred)); reindex(); }
+		for (let c = cols.length - 2; c >= 0; c--) { cols[c].sort((a, b) => bary(a, succ) - bary(b, succ)); reindex(); }
+	}
+
+	/* ---- place. Column width comes from the widest unit actually in it, row
+	 * spacing from the measured heights, and every position goes through
+	 * snapPos() so the grid means the same thing here as everywhere else. */
+	pushUndo();
+	let x = 0;
+	cols.forEach(col => {
+		if (!col.length) return;
+		const colW = Math.max.apply(null, col.map(i => units.get(i).w));
+		const colH = col.reduce((t, i) => t + units.get(i).h, 0) + LAYOUT_VGAP * (col.length - 1);
+		let y = -colH / 2;                       /* columns centred on y = 0 */
+		col.forEach(i => {
+			const u = units.get(i);
+			const p = snapPos(x + (colW - u.w) / 2, y);   /* centred in its column */
+			/* a collapsed group moves rigidly: its members keep their relative
+			 * arrangement inside the footprint the box occupies */
+			const ox = Math.min.apply(null, u.members.map(m => m.x));
+			const oy = Math.min.apply(null, u.members.map(m => m.y));
+			u.members.forEach(m => { m.x = p.x + (m.x - ox); m.y = p.y + (m.y - oy); });
+			y += u.h + LAYOUT_VGAP;
+		});
+		x += colW + LAYOUT_GUTTER;
+	});
+	refreshAll();
+	frameAll();
+}
+
 function initCanvas() {
 	const vp = $('#viewport');
 	vp.addEventListener('dragover', e => e.preventDefault());
@@ -4034,10 +4167,13 @@ function uiInspector() {
 			});
 			fg.appendChild(gi); host.appendChild(fg);
 		}
-		const f = el('div', 'field');
+		/* label above, control full width: the description is the one field here
+		 * that gets read and edited as prose */
+		const f = el('div', 'fieldv');
 		f.appendChild(el('label', null, 'description'));
 		const ta = document.createElement('textarea');
-		ta.style.cssText = 'flex:1 1 auto;height:96px;background:#161616;border:1px solid var(--line2);border-radius:5px;padding:4px';
+		ta.style.cssText = 'height:150px;min-height:60px;resize:vertical;background:#161616;' +
+			'border:1px solid var(--line2);border-radius:5px;padding:5px;line-height:1.45';
 		ta.value = P.description || '';
 		ta.addEventListener('change', () => { P.description = ta.value; refreshAll(); });
 		f.appendChild(ta);
@@ -4092,7 +4228,8 @@ function uiInspector() {
 	sb.addEventListener('change', () => { pushUndo(); n.bind = sb.value; refreshAll(); });
 	fb.appendChild(sb); host.appendChild(fb);
 
-	const fn = el('div', 'field');
+	/* same treatment as the project description: prose gets the full width */
+	const fn = el('div', 'fieldv');
 	fn.appendChild(el('label', null, 'note'));
 	const ta = document.createElement('input'); ta.type = 'text'; ta.value = n.note || '';
 	ta.addEventListener('change', () => { pushUndo(); n.note = ta.value; refreshAll(); });
@@ -4769,6 +4906,7 @@ function uiHelp() {
 		'<tr><td class="l">Ctrl+C / Ctrl+V</td><td class="l">copy and paste a subgraph</td></tr>' +
 		'<tr><td class="l">Ctrl+Z / Ctrl+Y</td><td class="l">undo / redo</td></tr>' +
 		'<tr><td class="l">F</td><td class="l">frame all (bare F only, so Ctrl+F still opens the browser find)</td></tr>' +
+		'<tr><td class="l">L</td><td class="l">auto layout: left to right by rank, sinks in the last column, unconnected blocks in a trailing one. Positions are not semantics &mdash; the generated code is identical before and after, and one Ctrl+Z puts everything back</td></tr>' +
 		'<tr><td class="l">arrows / shift+arrows</td><td class="l">nudge the selection by one grid step, or five</td></tr>' +
 		'<tr><td class="l">right / middle / space / alt drag</td><td class="l">pan &middot; wheel zooms &middot; ctrl-drag ignores the grid snap. A stationary right click does nothing: there is no context menu of our own, and the browser one is suppressed inside the canvas only</td></tr>' +
 		'<tr><td class="l">group field in the inspector</td><td class="l">name a group, then use the chips at the top left to collapse it behind one box. Purely visual: the graph, the analysis and the generated code are identical either way</td></tr></table>' +
@@ -4865,6 +5003,7 @@ function initKeys() {
 		 * here would inherit the same trap. Shift stays free, so 'F' still works. */
 		const noMod = !e.ctrlKey && !e.metaKey && !e.altKey;
 		if (noMod && (e.key === 'f' || e.key === 'F')) frameAll();
+		if (noMod && (e.key === 'l' || e.key === 'L')) autoLayout();
 		const ARROW = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
 		if (ARROW[e.key] && noMod) {
 			const k = snapStep() * (e.shiftKey ? 5 : 1);
@@ -4943,6 +5082,7 @@ function initToolbar() {
 	$('#btUndo').onclick = doUndo;
 	$('#btRedo').onclick = doRedo;
 	$('#btFrame').onclick = frameAll;
+	$('#btLayout').onclick = autoLayout;
 	$('#btExport').onclick = uiExport;
 	$('#btSelfTest').onclick = () => { runSelfTest(); $$('#tabs .tab').forEach(x => { if (x.dataset.p === 'test') x.click(); }); };
 	$('#btHelp').onclick = uiHelp;
