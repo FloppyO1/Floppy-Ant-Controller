@@ -609,7 +609,7 @@ function def(d) { NODES[d.id] = d; return d; }
 
 /* ------------------------------------------------------------------ SOURCES */
 def({
-	id: 'mix_input', label: 'Mix input', cat: 'source', modes: ['mix'], ins: [], out: 'NORM', divs: 0,
+	id: 'mix_input', label: 'Mix input', cat: 'source', modes: ['mix'], ins: [], out: 'NORM', divs: 0, noGroup: true,
 	params: [{ n: 'idx', label: 'index', t: 'int', min: 0, max: 7, def: 0 },
 	{ n: 'name', label: 'name', t: 'text', def: 'THROTTLE' }],
 	help: 'inputs[INPUT_<NAME>] - a receiver channel already normalized to [-1000,+1000] by the framework. 0 div. The INDEX IS POSITIONAL and must never be renumbered.',
@@ -618,7 +618,7 @@ def({
 	range: () => IV_INPUT
 });
 def({
-	id: 'fn_input', label: 'Function input', cat: 'source', modes: ['function'], ins: [], out: 'NORM', divs: 0,
+	id: 'fn_input', label: 'Function input', cat: 'source', modes: ['function'], ins: [], out: 'NORM', divs: 0, noGroup: true,
 	params: [], help: 'the single input of a special function, already normalized. 0 div.',
 	sim: (c) => c.fnInput, emit: () => ({ expr: 'input' }), range: () => IV_INPUT
 });
@@ -1178,7 +1178,7 @@ def({
 
 /* ---------------------------------------------------------------- SINKS */
 def({
-	id: 'mix_output', label: 'Mix output', cat: 'sink', modes: ['mix'], out: null, divs: 0, sink: true,
+	id: 'mix_output', label: 'Mix output', cat: 'sink', modes: ['mix'], out: null, divs: 0, sink: true, noGroup: true,
 	ins: [{ n: 'v', k: 'NORM' }],
 	params: [{ n: 'idx', label: 'index', t: 'int', min: 0, max: 9, def: 0 },
 	{ n: 'name', label: 'name', t: 'text', def: 'MOTOR_LEFT' }],
@@ -1188,7 +1188,7 @@ def({
 	range: (r) => r[0]
 });
 def({
-	id: 'fn_output', label: 'Function output', cat: 'sink', modes: ['function'], out: null, divs: 0, sink: true,
+	id: 'fn_output', label: 'Function output', cat: 'sink', modes: ['function'], out: null, divs: 0, sink: true, noGroup: true,
 	ins: [{ n: 'v', k: 'NORM' }], params: [],
 	help: 'the single output of a special function. The boilerplate clamps it before writing it back.',
 	sim: (c, a) => { c.fnOutput = a[0]; return a[0]; },
@@ -2321,6 +2321,9 @@ function loadProject(o) {
 	uid = 1;
 	P.nodes.forEach(n => { const k = parseInt(String(n.id).slice(1), 10); if (k >= uid) uid = k + 1; });
 	P.nodes.forEach(n => { if (n.bind === undefined) n.bind = 'auto'; if (n.note === undefined) n.note = ''; if (n.grp === undefined) n.grp = ''; });
+	/* an older project may carry an input or an output inside a group; strip it,
+	 * so the rule holds for every graph and not only for newly built ones */
+	P.nodes.forEach(n => { if (!canGroup(n)) n.grp = ''; });
 	if (!P.collapsed || typeof P.collapsed !== 'object') P.collapsed = {};
 	undoStack = []; redoStack = []; selection = new Set();
 	SIM.reset();
@@ -3707,6 +3710,12 @@ function groupOf(id) {
 	const n = nodeById(id);
 	return (n && n.grp && P.collapsed[n.grp]) ? '#grp:' + n.grp : id;
 }
+/* A block marked noGroup in the catalogue is a BOUNDARY of the graph - a mix or
+ * function input or output. Hiding one behind a collapsed box would hide where
+ * the graph starts and where it ends, so they are never grouped: the inspector
+ * refuses to put them in a group, and loadProject() strips a group off them if
+ * an older project has one. */
+function canGroup(n) { const d = NODES[n.t]; return !(d && d.noGroup); }
 function isHidden(n) { return !!(n.grp && P.collapsed[n.grp]); }
 function uiGroups() {
 	const host = $('#groups'); host.innerHTML = '';
@@ -3990,6 +3999,17 @@ function autoLayout() {
 	frameAll();
 }
 
+/* A preset's coordinates are hand written and overlap, so a freshly loaded one
+ * is laid out once. It must NOT become an undo step: this is simply how the
+ * preset is meant to look, and Ctrl+Z right after opening one should not put
+ * the blocks back on top of each other. Must run after a render, because the
+ * layout measures real node widths. */
+function layoutFreshPreset() {
+	undoSuspend = true;
+	try { autoLayout(); } finally { undoSuspend = false; }
+	undoStack = []; redoStack = [];
+}
+
 function initCanvas() {
 	const vp = $('#viewport');
 	vp.addEventListener('dragover', e => e.preventDefault());
@@ -4150,7 +4170,7 @@ function uiInspector() {
 	host.innerHTML = '';
 	if (selection.size !== 1) {
 		const d = el('div', 'help');
-		d.innerHTML = selection.size ? '<b>' + selection.size + ' blocks selected.</b><br>Del removes them, Ctrl+C / Ctrl+V copies the subgraph. Naming a group here collapses them behind one box - a purely visual device, the generated code is identical either way.'
+		d.innerHTML = selection.size ? '<b>' + selection.size + ' blocks selected.</b><br>Del removes them, Ctrl+C / Ctrl+V copies the subgraph. Naming a group here collapses them behind one box - a purely visual device, the generated code is identical either way. Inputs and outputs are left out of every group: they are where the graph begins and ends and must stay visible.'
 			: 'Select a block to edit it.<br><br><b>Project</b> description feeds the generated DESCRIPTION comment.';
 		host.appendChild(d);
 		if (selection.size) {
@@ -4162,7 +4182,9 @@ function uiInspector() {
 			gi.addEventListener('change', () => {
 				pushUndo();
 				const g = gi.value.trim();
-				selection.forEach(id => { const m = nodeById(id); if (m) m.grp = g; });
+				/* inputs and outputs stay out of every group: they are where the
+				 * graph begins and ends and must always be visible */
+				selection.forEach(id => { const m = nodeById(id); if (m && canGroup(m)) m.grp = g; });
 				refreshAll();
 			});
 			fg.appendChild(gi); host.appendChild(fg);
@@ -4240,11 +4262,12 @@ function uiInspector() {
 	const fg = el('div', 'field');
 	fg.appendChild(el('label', null, 'group'));
 	const gi = document.createElement('input'); gi.type = 'text'; gi.value = n.grp || '';
-	gi.placeholder = 'none';
+	gi.placeholder = canGroup(n) ? 'none' : 'inputs and outputs are never grouped';
+	gi.disabled = !canGroup(n);
 	gi.addEventListener('change', () => {
 		pushUndo();
 		const g = gi.value.trim();
-		selection.forEach(id => { const m = nodeById(id); if (m) m.grp = g; });
+		selection.forEach(id => { const m = nodeById(id); if (m && canGroup(m)) m.grp = g; });
 		refreshAll();
 	});
 	fg.appendChild(gi); host.appendChild(fg);
@@ -5077,7 +5100,8 @@ function initToolbar() {
 		if (!k || !PRESETS[k]) return;
 		if (P.nodes.length && !confirm('Replace the current graph with the "' + k.replace(/_/g, ' ') + '" preset?')) return;
 		loadProject(PRESETS[k]());
-		syncToolbar(); uiPalette(); refreshAll(); uiSim(); frameAll();
+		syncToolbar(); uiPalette(); refreshAll(); uiSim();
+		layoutFreshPreset();
 	};
 	$('#btUndo').onclick = doUndo;
 	$('#btRedo').onclick = doRedo;
@@ -5137,7 +5161,9 @@ function boot() {
 	if (!restored) loadProject(PRESETS.simple_tank());
 	syncToolbar(); uiPalette(); refreshAll(); uiSim();
 	runSelfTest();
-	frameAll();
+	/* a restored session keeps the positions the user left; only a preset is
+	 * laid out, because its own coordinates overlap */
+	if (restored) frameAll(); else layoutFreshPreset();
 	requestAnimationFrame(loop);
 }
 boot();
