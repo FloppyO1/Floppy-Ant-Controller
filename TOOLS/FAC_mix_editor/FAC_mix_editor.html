@@ -138,6 +138,33 @@ aside.collapsed{width:0 !important;min-width:0;overflow:hidden;border:0}
 #selbox{position:absolute;border:1px dashed var(--accent);background:rgba(0,173,181,.12);pointer-events:none}
 #editHint{position:absolute;right:8px;top:8px;font-size:10px;color:#555;pointer-events:none;text-align:right;line-height:1.5}
 
+/* ---- robot view: one panel, three homes. Floating it is absolutely positioned
+   inside #editor; docked it becomes an ordinary block in its host and gives up
+   its own geometry, which is why every position rule is overridden below. ---- */
+#rbPanel{position:absolute;z-index:60;display:flex;flex-direction:column;overflow:hidden;
+	background:rgba(20,20,20,.94);border:1px solid var(--line2);border-radius:8px;box-shadow:0 6px 22px rgba(0,0,0,.6)}
+#rbPanel.docked{position:relative;left:auto;top:auto;width:auto;margin:0;border-radius:0;border:0;
+	border-top:1px solid var(--line);box-shadow:none;background:var(--panel)}
+#rbPanel.dockRight{height:260px}
+#rbPanel.dockTab{height:340px;min-width:320px;border:1px solid var(--line2);border-radius:7px}
+#rbPanel.folded #rbBody,#rbPanel.folded #rbCtl,#rbPanel.folded #rbGrip{display:none}
+#rbHead{display:flex;align-items:center;gap:5px;padding:3px 4px 3px 8px;background:#232323;border-bottom:1px solid var(--line);
+	font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.6px;cursor:move;user-select:none;flex:0 0 auto}
+#rbPanel.docked #rbHead{cursor:default}
+#rbHead .grow{flex:1 1 auto}
+#rbBody{position:relative;flex:1 1 auto;min-height:0}
+#rbCanvas{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:0}
+#rbCtl{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:4px 6px;
+	background:#191919;border-top:1px solid var(--line);font-size:10px}
+#rbCtl label{color:var(--muted)}
+#rbGrip{position:absolute;right:0;bottom:0;width:15px;height:15px;cursor:nwse-resize;z-index:2;
+	background:linear-gradient(135deg,transparent 48%,var(--line2) 48%,var(--line2) 62%,transparent 62%,transparent 74%,var(--line2) 74%,var(--line2) 88%,transparent 88%)}
+#rbPanel.docked #rbGrip{display:none}
+/* the host is a flex child of #right, next to a flex:1 pane body: it has to
+   claim its own height or the panel gets squashed to nothing */
+#rbHostRight{flex:0 0 auto;display:flex;flex-direction:column}
+#rbHostRight:empty{display:none}
+
 /* ---- right pane ---- */
 .field{display:flex;align-items:center;gap:calc(6px*var(--k));padding:calc(3px*var(--k)) calc(8px*var(--k))}
 .field label{flex:0 0 96px;color:var(--muted);font-size:11px;text-align:right}
@@ -225,6 +252,7 @@ canvas{display:block;background:#0b0b0b;border:1px solid var(--line2);border-rad
 	<button id="btRedo" title="Ctrl+Y">Redo</button>
 	<button id="btFrame" title="Frame all (F)">Frame</button>
 	<button id="btLayout" title="Arrange the graph left to right by rank (L)">Layout</button>
+	<button id="btRobotView" title="show or hide the live robot view (R)">Robot view</button>
 	<label>Grid</label>
 	<select id="uiGrid" title="snap step - hold Ctrl while dragging to bypass it" style="width:64px">
 		<option value="0">off</option>
@@ -263,6 +291,37 @@ canvas{display:block;background:#0b0b0b;border:1px solid var(--line2);border-rad
 		<div id="groups"></div>
 		<div id="editHint">drag from a palette block &middot; drag port&rarr;port to wire<br>del = delete &middot; ctrl+C/V &middot; wheel = zoom &middot; right/middle/space/alt drag = pan<br>arrows = nudge (shift = &times;5) &middot; ctrl while dragging = ignore grid</div>
 		<div id="hud"></div>
+
+		<!-- The robot view. ONE panel and ONE renderer with three possible homes:
+		     floating over the graph (default), docked in the right column, or
+		     docked in the Robot tab. It draws whenever the simulator runs, so the
+		     closed loop is visible without giving up the bottom panel. -->
+		<div id="rbPanel" class="hidden">
+			<div id="rbHead"><span>Robot</span><span class="grow"></span>
+				<input type="range" id="rbOpa" min="30" max="100" value="94" title="opacity" style="width:54px">
+				<select id="rbDockSel" title="where this panel lives" style="font-size:10px;padding:1px 2px">
+					<option value="float">float</option>
+					<option value="right">dock right</option>
+					<option value="tab">dock in tab</option>
+				</select>
+				<button class="tiny" id="rbFold" title="collapse to the title bar">&#9650;</button>
+				<button class="tiny" id="rbClose" title="hide it - the Robot view button in the toolbar brings it back">&times;</button>
+			</div>
+			<div id="rbBody"><canvas id="rbCanvas"></canvas></div>
+			<!-- built once, in the markup, and only ever synced afterwards: a strip
+			     that rebuilds itself takes the focus out of whatever is being used -->
+			<div id="rbCtl">
+				<button class="tiny" id="rbPause" title="freeze the robot, the simulator keeps running">pause</button>
+				<button class="tiny" id="rbReset" title="back to the origin, heading +X">reset pose</button>
+				<button class="tiny" id="rbClear">clear trail</button>
+				<label title="keep the robot in the middle of the view"><input type="checkbox" id="rbFollow"> follow</label>
+				<label><input type="checkbox" id="rbTrail"> trail</label>
+				<label title="0 = fit the trail automatically">cm/px <input type="number" id="rbScale" min="0" max="200" step="0.1" value="0" style="width:52px"></label>
+				<label title="what the IMU blocks read">IMU <select id="rbImu" style="font-size:10px;padding:1px 2px">
+					<option value="robot">robot</option><option value="manual">sliders</option></select></label>
+			</div>
+			<div id="rbGrip" title="drag to resize"></div>
+		</div>
 	</section>
 
 	<div class="vsplit" id="splitRight" title="drag to resize"></div>
@@ -274,6 +333,7 @@ canvas{display:block;background:#0b0b0b;border:1px solid var(--line2);border-rad
 		<div class="paneHead">Validation <span id="vCount"></span></div>
 		<div class="paneBody" id="valBody"></div>
 		<div id="costBox"></div>
+		<div id="rbHostRight"></div>
 	</aside>
 </div>
 
@@ -330,6 +390,13 @@ const RECEIVER_CHANNELS_NUMBER = 8;            /* config.h */
 const MOTOR_SPEED_RESOLUTION = 1000;           /* config.h - equals the receiver resolution */
 const MAX_SERVO_VALUE = 999;                   /* fac_servo.h - (RECEIVER_CHANNEL_RESOLUTION-1),
                                                 * the divisor of the pulse formula, fac_servo.c:98 */
+/* the sensor end, so the simulated robot can hand the graph the SAME counts the
+ * driver would. Both are the sensitivity of the full scale the init functions
+ * actually program - changing one there without the other silently rescales
+ * every reading, which is why they are quoted with their line. */
+const GYRO_MDPS_PER_COUNT = 70;                /* LSM6DS3.h:130 - +-2000 dps full scale */
+const ACCEL_UG_PER_COUNT = 488;                /* LSM6DS3.h:129 - +-16 g full scale, 0.488 mg/LSB */
+const I16_MIN = -32768, I16_MAX = 32767;       /* LSM6DS3.h:137-138 - the driver hands over int16_t */
 const MIXES_MAX_INPUTS_NUMBER = 8;             /* fac_mixes.h */
 const MIXES_MAX_OUTPUTS_NUMBER = 10;           /* fac_mixes.h */
 const SPECIAL_FUNCITONS_NUMBER = 20;           /* fac_functions.h - spelling is API, do not fix */
@@ -1235,7 +1302,11 @@ function camel(s) {
  * is no implicit fan-in, a user who wants to combine two signals has to say
  * with which block. Fan-out is unlimited.
  * ========================================================================== */
-const SCHEMA_VERSION = 1;
+/* 2 since the simulated robot got physical units: unlike the pane sizes and the
+ * grid, a track width and a top speed DESCRIBE THE MACHINE THE MIX IS FOR, so
+ * they belong to the project file and travel with it. An older file is loaded by
+ * mergeSim() below, which defaults every new field and re-saves at 2. */
+const SCHEMA_VERSION = 2;
 let P = null;              /* the project */
 let uid = 1;
 function newId() { return 'n' + (uid++); }
@@ -1262,8 +1333,23 @@ function blankProject(mode) {
 			stage0: [500, 500, 0, 500, 500, 500, 500, 500],
 			mapper: { M1: 100, M2: 101, M3: 0, S1: 200, S2: 0 },
 			rcHz: 50, speed: 1, disarmMs: 3000,
+			/* the manual resting values are left exactly as they were before the robot
+			 * loop existed, so switching the IMU source to `manual` reproduces the
+			 * pre-robot behaviour bit for bit */
 			gyro: [0, 0, 0], accel: [0, 0, 1000], gen: 'const', genAmp: 8000, genHz: 1,
-			imuFail: 0, batteryMv: 8000, cells: 2, adc: [2048, 2048, 1500], rxConnected: 1
+			imuFail: 0, batteryMv: 8000, cells: 2, adc: [2048, 2048, 1500], rxConnected: 1,
+			/* the machine the mix is for. Schema 2. */
+			robot: {
+				lenCm: 20, widCm: 16, trackCm: 14,   /* chassis, and the wheel base the yaw rate comes from */
+				maxSpeedCms: 120,                    /* ground speed at full stick */
+				kin: 'diff',                         /* 'diff' = one device a side, 'skid' = a pair a side */
+				left: 'M1', right: 'M2',             /* fac_settings.c:103-104 defaults */
+				leftB: 'M3', rightB: '',             /* the second device of each side, 'skid' only */
+				imuSource: 'robot',                  /* 'robot' | 'manual' */
+				noise: 0,                            /* peak noise in RAW COUNTS, 0 = off */
+				cmPerPx: 0,                          /* 0 = auto fit */
+				follow: 1, trail: 1
+			}
 		},
 		pad: { index: 0, bindings: null }
 	};
@@ -2324,13 +2410,38 @@ function projectForSave() {
 		reg: P.reg, sim: P.sim, pad: { index: P.pad.index, bindings: PAD.bindings }
 	};
 }
+/* Merge a saved `sim` block onto the defaults. Object.assign is SHALLOW, so a
+ * schema 1 file - which has no `sim.robot` at all - would keep the defaults by
+ * luck, while a schema 2 file saved by an older build with only some of the
+ * robot fields would replace the whole sub-object and lose the rest. One nested
+ * merge per sub-object is what makes both cases behave, and it is a pure
+ * function so the self-test can exercise the real one. */
+function mergeSim(base, inc) {
+	const out = Object.assign({}, base, inc || {});
+	out.robot = Object.assign({}, base.robot, (inc && inc.robot) || {});
+	return out;
+}
+/* A saved project of ANY schema -> a complete project at SCHEMA_VERSION.
+ *
+ * Pure, and it never writes into the defaults: `Object.assign(b, o)` used to be
+ * done first and then `b.sim` used as the base of the merge, by which point
+ * b.sim WAS o.sim - so a file that carried a sim block was merged onto itself
+ * and nothing it omitted was ever defaulted. That is why a schema 1 file came
+ * back with chAssign, disarmMs and reg.fnCount undefined. Building a new object
+ * from a blankProject() that is left alone is what makes the defaulting real,
+ * and being pure is what lets the self-test run this exact function. */
+function migrateProject(o) {
+	const b = blankProject(o.mode || 'mix');
+	const p = Object.assign({}, b, o);
+	p.schemaVersion = SCHEMA_VERSION;
+	p.sim = mergeSim(b.sim, o.sim);
+	p.reg = Object.assign({}, b.reg, o.reg || {});
+	p.pad = Object.assign({ index: 0, bindings: null }, o.pad || {});
+	return p;
+}
 function loadProject(o) {
 	if (!o || !o.nodes) throw new Error('not a F.A.C. mix editor project');
-	const b = blankProject(o.mode || 'mix');
-	P = Object.assign(b, o);
-	P.sim = Object.assign(b.sim, o.sim || {});
-	P.reg = Object.assign(b.reg, o.reg || {});
-	P.pad = Object.assign({ index: 0, bindings: null }, o.pad || {});
+	P = migrateProject(o);
 	if (P.pad.bindings) PAD.bindings = P.pad.bindings;
 	uid = 1;
 	P.nodes.forEach(n => { const k = parseInt(String(n.id).slice(1), 10); if (k >= uid) uid = k + 1; });
@@ -2364,7 +2475,15 @@ function importFromC(text) {
  * It also reproduces the two structures the generator wraps around the graph,
  * because both change behaviour: the IMU status guard with its fallback, and
  * the disarm gap guard with its per block reset/hold policy.
+ *
+ * It also carries the closed loop: the mix drives the mapper, the mapper drives
+ * a kinematic robot, and the robot drives the simulated IMU the graph reads
+ * back. See integrateRobot() and robotImuCounts() below.
  * ========================================================================== */
+const ROBOT_G_CM_S2 = 980.665;     /* one g, so an accel readout is in real mg */
+const ROBOT_ACC_TAU = 0.02;        /* s - the lag on the longitudinal acceleration estimate */
+const ROBOT_TRAIL_MS = 20;         /* one trail point every 20 simulated ms */
+const ROBOT_TRAIL_MAX = 900;       /* ~18 s of trail, bounded by time and not by uptime */
 const SIM = {
 	tick: 0, running: true, stepOnce: false, acc: 0, lastFrameMs: 0,
 	stage0: [500, 500, 0, 500, 500, 500, 500, 500],
@@ -2380,13 +2499,26 @@ const SIM = {
 	lastRcFrame: 0, held0: null,
 	disarmLeft: 0, passes: 0, lastError: '',
 	scope: { traces: [], cap: 30000, idx: 0, count: 0, paused: false, windowMs: 3000 },
-	robot: { x: 0, y: 0, th: 0 },
+	/* the kinematic sketch. cm, cm/s, rad, rad/s, cm/s^2 - SI-ish and floating,
+	 * because this is a physical model and not graph math. Everything it produces
+	 * for the graph goes through robotImuCounts() first, see there. */
+	robot: null,
+
+	newRobot: function () {
+		return {
+			x: 0, y: 0, th: 0,        /* pose: cm, cm, rad (world frame, th = 0 is +X) */
+			v: 0, w: 0,               /* body speed cm/s, yaw rate rad/s */
+			ax: 0, ay: 0,             /* body acceleration cm/s^2: longitudinal, lateral */
+			trail: [], trailT: 0,
+			paused: false
+		};
+	},
 
 	reset: function () {
 		this.tick = 0; this.st = {}; this.lastRun = {}; this.values = {}; this.errors = {};
 		this.outputs.fill(0); this.fnOut.fill(0); this.imuHold = null; this.imuHoldFn = {};
 		this.disarmLeft = 0; this.passes = 0; this.lastError = '';
-		this.robot = { x: 0, y: 0, th: 0 };
+		this.robot = this.newRobot();
 		this.scope.idx = 0; this.scope.count = 0;
 		this.scope.traces.forEach(t => t.buf.fill(0));
 	},
@@ -2450,6 +2582,10 @@ const SIM = {
 		const N = P.mode === 'function' ? Math.max(1, Number(P.instances) || 1) : 1;
 		if (P.mode === 'mix') this.outputs.fill(0);
 		for (let slot = 0; slot < N; slot++) this.runGraph(a, slot);
+		/* AFTER the graph, deliberately: the pass reads the counts the previous
+		 * millisecond produced, which is what a sensor is - a measurement of the
+		 * past. Integrating first would let a mix react to its own command in the
+		 * same pass and close the loop with no delay at all. */
 		this.integrateRobot();
 		this.pushScope();
 	},
@@ -2533,6 +2669,10 @@ const SIM = {
 
 	applyGenerators: function () {
 		const s = P.sim;
+		/* every generator target is a gyro or an accel axis, so while the robot
+		 * drives the IMU there is nothing here that would not be overwritten one
+		 * line later. Returning is honest; writing and then losing it is not. */
+		if (s.robot.imuSource === 'robot') return;
 		if (!s.genTarget || s.genTarget === 'none') return;
 		const t = this.tick / 1000, A = Number(s.genAmp) || 0, f = Number(s.genHz) || 1;
 		let v = 0;
@@ -2544,18 +2684,111 @@ const SIM = {
 		if (m) s[m[1]][+m[2]] = Math.max(-32768, Math.min(32767, v));
 	},
 
+	/* the normalized value the mapper would hand a device, 0 when it is unlinked.
+	 * `key` is a mapper row name ('M1'..'S2'); '' is "no second device". */
+	sideValue: function (key) {
+		if (!key) return null;
+		const v = this.deviceValue(P.sim.mapper[key]);
+		return v === null ? null : v;
+	},
+	/* one side of the drive, as a fraction of full stick. A pair averages, which
+	 * is what a skid-steer chassis does mechanically anyway. An unlinked device
+	 * contributes 0 - it is stopped, not absent. */
+	sideDrive: function (a, b) {
+		const va = this.sideValue(a), vb = this.sideValue(b);
+		if (va === null && vb === null) return 0;
+		if (vb === null) return va / V_MAX;
+		if (va === null) return vb / V_MAX;
+		return ((va + vb) / 2) / V_MAX;
+	},
+
+	/* ------------------------------------------------------------------ robot
+	 * ILLUSTRATIVE, A KINEMATIC SKETCH AND NOT A DYNAMICS SIMULATION: there is no
+	 * mass, no traction limit and no slip, so a step on the stick is a step in
+	 * ground speed. It exists to close the loop - what the mix commands turns the
+	 * chassis, and the turn is what the IMU blocks read - not to predict a lap
+	 * time.
+	 *
+	 * Unicycle model over the two sides:
+	 *     v = (vL + vR) / 2          cm/s
+	 *     w = (vR - vL) / track      rad/s
+	 * with vL, vR the mapper values scaled by the user's top speed. */
 	integrateRobot: function () {
-		/* ILLUSTRATIVE ONLY, not a physical model: a plain differential drive on
-		 * whatever the mapper sends to M1 and M2 */
-		const l = this.deviceValue(P.sim.mapper.M1), r = this.deviceValue(P.sim.mapper.M2);
-		const L = (l === null ? 0 : l) / 1000, R = (r === null ? 0 : r) / 1000;
-		const v = (L + R) / 2, w = (R - L) / 2;
-		const dt = 0.001;
-		this.robot.th += w * 4 * dt;
-		this.robot.x += Math.cos(this.robot.th) * v * 120 * dt;
-		this.robot.y += Math.sin(this.robot.th) * v * 120 * dt;
-		this.robot.x = Math.max(-160, Math.min(160, this.robot.x));
-		this.robot.y = Math.max(-110, Math.min(110, this.robot.y));
+		const R = P.sim.robot, S = this.robot, dt = 0.001;
+		if (S.paused) return;
+		const pair = R.kin === 'skid';
+		const vmax = Number(R.maxSpeedCms) || 0;
+		const track = Math.max(0.1, Number(R.trackCm) || 0.1);   /* a zero track is an infinite yaw rate */
+		const vL = this.sideDrive(R.left, pair ? R.leftB : '') * vmax;
+		const vR = this.sideDrive(R.right, pair ? R.rightB : '') * vmax;
+		const v = (vL + vR) / 2;
+		const w = (vR - vL) / track;
+
+		/* Longitudinal acceleration is the derivative of a value that changes in
+		 * 1 ms steps, so the raw difference quotient is a spike of hundreds of g
+		 * on any stick movement. It is passed through a first order lag of
+		 * ROBOT_ACC_TAU, which leaves a ramp exactly right and only rounds the
+		 * corners of a step - the same thing the chassis' own inertia would do,
+		 * for the same reason it is not modelled properly. */
+		const k = dt / (ROBOT_ACC_TAU + dt);
+		S.ax += ((v - S.v) / dt - S.ax) * k;
+		S.ay = v * w;                       /* centripetal, body Y (positive = to the left) */
+		S.v = v; S.w = w;
+
+		S.th += w * dt;
+		if (S.th > Math.PI) S.th -= 2 * Math.PI;
+		else if (S.th < -Math.PI) S.th += 2 * Math.PI;
+		S.x += Math.cos(S.th) * v * dt;
+		S.y += Math.sin(S.th) * v * dt;
+
+		/* one trail point every ROBOT_TRAIL_MS, so the memory is bounded by time
+		 * and not by how long the tab has been open */
+		if (R.trail && ((this.tick - S.trailT) >>> 0) >= ROBOT_TRAIL_MS) {
+			S.trailT = this.tick;
+			S.trail.push(S.x, S.y);
+			if (S.trail.length > ROBOT_TRAIL_MAX * 2) S.trail.splice(0, S.trail.length - ROBOT_TRAIL_MAX * 2);
+		}
+
+		if (R.imuSource === 'robot') this.writeRobotImu();
+	},
+
+	/* THE SECOND AND LAST FLOAT BOUNDARY OF THIS PROGRAM. The first is a gamepad
+	 * axis, which dies in PAD.padToStage0(); this is where the robot's physical
+	 * state dies, and for the same reason: a non-integer reaching the graph means
+	 * the browser and the Cortex-M0 have stopped agreeing.
+	 *
+	 * Pure on purpose - the self-test sweeps it directly. Everything is rounded
+	 * AND clamped to int16_t here, because that is what the driver hands over
+	 * (LSM6DS3.h:137-138); noise is added before the rounding so it cannot slip
+	 * a fraction past it.
+	 *
+	 * Axis convention, and the panel says so too: X forward, Y left, Z up, a
+	 * right handed frame in which a left turn is a positive gyro Z. That is a
+	 * choice about how the board is MOUNTED - the firmware only ever passes the
+	 * sensor's own X/Y/Z through (enum AXIS, LSM6DS3.h:143-147). */
+	robotImuCounts: function (w, ax, ay, noise) {
+		const nz = Number(noise) || 0;
+		const n = () => nz > 0 ? (Math.random() * 2 - 1) * nz : 0;
+		const i16 = (x) => Math.max(I16_MIN, Math.min(I16_MAX, Math.round(x)));
+		/* rad/s -> mdps -> counts */
+		const gz = (w * 180000 / Math.PI) / GYRO_MDPS_PER_COUNT;
+		/* cm/s^2 -> mg -> counts. 1 g = 980.665 cm/s^2, and 1 mg = 1000 ug */
+		const mg = (a) => (a / ROBOT_G_CM_S2) * 1000;
+		const cnt = (m) => m * 1000 / ACCEL_UG_PER_COUNT;
+		return {
+			g: [i16(n()), i16(n()), i16(gz + n())],
+			a: [i16(cnt(mg(ax)) + n()), i16(cnt(mg(ay)) + n()), i16(cnt(1000) + n())]
+		};
+	},
+	/* gyro X and Y stay at zero: the sketch is planar, so roll and pitch rate are
+	 * zero by construction and not by omission. Z carries gravity, always. */
+	writeRobotImu: function () {
+		const c = this.robotImuCounts(this.robot.w, this.robot.ax, this.robot.ay, P.sim.robot.noise);
+		for (let i = 0; i < 3; i++) { P.sim.gyro[i] = c.g[i]; P.sim.accel[i] = c.a[i]; }
+	},
+	resetRobot: function () {
+		this.robot = this.newRobot();
+		if (P.sim.robot.imuSource === 'robot') this.writeRobotImu();
 	},
 
 	traceValue: function (t) {
@@ -2581,6 +2814,7 @@ const SIM = {
 	},
 	disarm: function () { this.disarmLeft = Math.max(1, Number(P.sim.disarmMs) | 0); }
 };
+SIM.robot = SIM.newRobot();   /* the literal cannot call its own method */
 
 /* ==========================================================================
  * SECTION: GAMEPAD
@@ -3061,6 +3295,117 @@ function runSelfTest() {
 		} finally { P = save; }
 	})();
 
+	/* --- the robot loop: the second float boundary --- */
+	/* Same contract as the gamepad one above. The robot model is floating point
+	 * by nature, so the ONLY thing that matters is that nothing fractional ever
+	 * reaches the arrays the IMU blocks read. */
+	Tok('the robot IMU conversion only ever produces int16 counts', (function () {
+		const ws = [0, 0.001, -0.001, 1, -1, 12.7, -12.7, 500, -500];
+		const as = [0, 1, -1, 980.665, -980.665, 1e5, -1e5, 1e9, -1e9];
+		for (const w of ws) for (const a of as) for (const noise of [0, 40]) {
+			const c = SIM.robotImuCounts(w, a, -a, noise);
+			for (const v of c.g.concat(c.a))
+				if (!Number.isInteger(v) || v < I16_MIN || v > I16_MAX) return false;
+		}
+		return true;
+	})());
+	/* the two sensitivities, read back through the conversion that uses them */
+	T('the robot at rest reads 1 g on accel Z', SIM.robotImuCounts(0, 0, 0, 0).a[2], Math.round(1000 * 1000 / ACCEL_UG_PER_COUNT));
+	T('the robot at rest reads zero on every gyro axis', String(SIM.robotImuCounts(0, 0, 0, 0).g), '0,0,0');
+	/* 1 rad/s = 57295.78 mdps, and one count is 70 mdps */
+	T('1 rad/s of yaw is 819 gyro Z counts', SIM.robotImuCounts(1, 0, 0, 0).g[2], Math.round((180000 / Math.PI) / GYRO_MDPS_PER_COUNT));
+	T('yaw counts are symmetric about zero', SIM.robotImuCounts(-1, 0, 0, 0).g[2], -SIM.robotImuCounts(1, 0, 0, 0).g[2]);
+	/* +-2000 dps is 34.9 rad/s: past that the sensor saturates and so must this */
+	T('a yaw rate beyond the full scale saturates instead of wrapping', SIM.robotImuCounts(100, 0, 0, 0).g[2], I16_MAX);
+	T('a longitudinal acceleration beyond +-16 g saturates', SIM.robotImuCounts(0, 1e6, 0, 0).a[0], I16_MAX);
+	T('one g of longitudinal acceleration is 2049 counts', SIM.robotImuCounts(0, ROBOT_G_CM_S2, 0, 0).a[0], Math.round(1000 * 1000 / ACCEL_UG_PER_COUNT));
+
+	/* --- a scripted run of the loop, over both extremes of both sticks --- */
+	(function () {
+		const saveP = P, saveRobot = SIM.robot, saveOut = SIM.outputs.slice(), saveTick = SIM.tick;
+		try {
+			P = blankProject('mix');            /* mapper defaults: M1 <- out 0, M2 <- out 1 */
+			P.sim.robot.imuSource = 'robot';
+			const grid = [-1000, -999, -500, -1, 0, 1, 500, 999, 1000];
+			let bad = null;
+			for (const l of grid) for (const r of grid) {
+				SIM.robot = SIM.newRobot();
+				SIM.outputs[0] = l; SIM.outputs[1] = r;
+				for (let k = 0; k < 40 && !bad; k++) {
+					SIM.tick = (SIM.tick + 1) >>> 0;
+					SIM.integrateRobot();
+					P.sim.gyro.concat(P.sim.accel).forEach((v, i) => {
+						if (!Number.isInteger(v) || v < I16_MIN || v > I16_MAX)
+							bad = 'L=' + l + ' R=' + r + ' index ' + i + ' = ' + v;
+					});
+				}
+				if (bad) break;
+			}
+			Tok('a scripted run with the robot driving the IMU writes nothing but int16 counts', !bad, bad || '');
+
+			/* straight ahead is no yaw, and full opposite is no translation */
+			SIM.robot = SIM.newRobot();
+			SIM.outputs[0] = 1000; SIM.outputs[1] = 1000;
+			SIM.integrateRobot();
+			T('both sides at full stick give the top speed and no yaw',
+				SIM.robot.v.toFixed(3) + '/' + SIM.robot.w.toFixed(6), (120).toFixed(3) + '/' + (0).toFixed(6));
+			SIM.robot = SIM.newRobot();
+			SIM.outputs[0] = -1000; SIM.outputs[1] = 1000;
+			SIM.integrateRobot();
+			/* w = (vR - vL) / track = 240 / 14 */
+			T('full opposite sticks spin on the spot at 2*v/track',
+				SIM.robot.v.toFixed(3) + '/' + SIM.robot.w.toFixed(4), (0).toFixed(3) + '/' + (240 / 14).toFixed(4));
+
+			/* --- manual source: the sensor path is exactly what it was before --- */
+			P.sim.robot.imuSource = 'manual';
+			P.sim.gyro = [11, 22, 33]; P.sim.accel = [44, 55, 66];
+			SIM.robot = SIM.newRobot();
+			SIM.outputs[0] = 1000; SIM.outputs[1] = -1000;
+			for (let k = 0; k < 50; k++) SIM.integrateRobot();
+			Tok('with the IMU source on manual the robot writes nothing to the sensor arrays',
+				String(P.sim.gyro) === '11,22,33' && String(P.sim.accel) === '44,55,66',
+				String(P.sim.gyro) + ' / ' + String(P.sim.accel));
+		} finally {
+			P = saveP; SIM.robot = saveRobot; SIM.tick = saveTick;
+			for (let i = 0; i < saveOut.length; i++) SIM.outputs[i] = saveOut[i];
+		}
+	})();
+
+	/* --- schema 1 files load with the new fields defaulted, and re-save at 2 --- */
+	/* These go through migrateProject(), the function loadProject() itself calls.
+	 * Asserting on mergeSim() alone passed while the real path was broken: the
+	 * defaults were being overwritten before the merge ever saw them. */
+	(function () {
+		const d = blankProject('mix').sim, dr = blankProject('mix').reg;
+		/* a REAL schema 1 file - the point is that it HAS a sim block, and that
+		 * block has no `robot` and is missing fields a newer default provides */
+		const v1 = {
+			schemaVersion: 1, mode: 'mix', nodes: [], wires: [],
+			sim: { deadzonePerc: 7, rcHz: 50, gyro: [1, 2, 3], mapper: { M1: 100, M2: 101, M3: 0, S1: 200, S2: 0 } },
+			reg: { mixCount: 5 }
+		};
+		const m = migrateProject(JSON.parse(JSON.stringify(v1)));
+		T('a schema 1 project keeps the sim fields it carried', m.sim.deadzonePerc, 7);
+		T('a schema 1 project has the sim fields it omitted defaulted', String(m.sim.chAssign), String(d.chAssign));
+		T('a schema 1 project has the disarm window defaulted', m.sim.disarmMs, d.disarmMs);
+		T('a schema 1 project has the robot block defaulted', m.sim.robot.trackCm, d.robot.trackCm);
+		T('a schema 1 project defaults to the robot driving the IMU', m.sim.robot.imuSource, 'robot');
+		T('a partial reg block keeps what it set', m.reg.mixCount, 5);
+		T('a partial reg block defaults what it omitted', m.reg.fnCount, dr.fnCount);
+		T('a migrated project carries the current schema version', m.schemaVersion, SCHEMA_VERSION);
+		/* a partially written robot block must not wipe the fields it omits */
+		const m2 = migrateProject({ mode: 'mix', nodes: [], wires: [], sim: { robot: { trackCm: 30 } } });
+		T('a partial robot block keeps the field it set', m2.sim.robot.trackCm, 30);
+		T('a partial robot block defaults the fields it omitted', m2.sim.robot.maxSpeedCms, d.robot.maxSpeedCms);
+		/* the defaults are a fresh object every time, so loading one project can
+		 * never edit the next one through a shared reference */
+		const a1 = migrateProject({ mode: 'mix', nodes: [], wires: [] });
+		a1.sim.robot.trackCm = 999;
+		T('one loaded project cannot edit the defaults of the next', migrateProject({ mode: 'mix', nodes: [], wires: [] }).sim.robot.trackCm, d.robot.trackCm);
+		T('a project is saved at the current schema version', projectForSave().schemaVersion, SCHEMA_VERSION);
+		T('the current schema version is 2', SCHEMA_VERSION, 2);
+	})();
+
 	SELFTEST.ran = true;
 	uiSelfTestBanner();
 	uiTest();
@@ -3317,8 +3662,16 @@ const UI_DEFAULTS = {
 	grid: 10,
 	palW: 196, rightW: 300, inspH: 240, bottomH: 262,
 	palOpen: true, rightOpen: true, bottomOpen: true,
-	dense: false
+	dense: false,
+	/* the robot view panel. Where a window sits, how big it is and how much of
+	 * the graph it is allowed to hide are the same kind of preference as a pane
+	 * width - they belong to the person and never to the .facmix.json. The robot
+	 * itself (track width, top speed, which output drives which side) is the
+	 * opposite: it describes the machine, so it lives in P.sim.robot. */
+	rbShow: true, rbDock: 'float', rbOpen: true, rbOpacity: 94,
+	rbX: null, rbY: null, rbW: 340, rbH: 260   /* null = bottom right on first paint */
 };
+const RB_DOCKS = ['float', 'right', 'tab'];
 const UI = Object.assign({}, UI_DEFAULTS);
 
 function loadUiPrefs() {
@@ -3339,7 +3692,14 @@ function loadUiPrefs() {
 		num('rightW', PANE_LIMITS.rightW[0], PANE_LIMITS.rightW[1]);
 		num('inspH', PANE_LIMITS.inspH[0], PANE_LIMITS.inspH[1]);
 		num('bottomH', PANE_LIMITS.bottomH[0], PANE_LIMITS.bottomH[1]);
-		['palOpen', 'rightOpen', 'bottomOpen', 'dense'].forEach(k => {
+		num('rbW', PANE_LIMITS.rbW[0], PANE_LIMITS.rbW[1]);
+		num('rbH', PANE_LIMITS.rbH[0], PANE_LIMITS.rbH[1]);
+		num('rbOpacity', 30, 100);
+		/* the panel position is re-clamped against the editor on every paint, so
+		 * here it only has to be a finite number at all */
+		['rbX', 'rbY'].forEach(k => { if (isFinite(Number(o[k])) && o[k] !== null) UI[k] = Number(o[k]); });
+		if (RB_DOCKS.indexOf(o.rbDock) >= 0) UI.rbDock = o.rbDock;
+		['palOpen', 'rightOpen', 'bottomOpen', 'dense', 'rbShow', 'rbOpen'].forEach(k => {
 			if (typeof o[k] === 'boolean') UI[k] = o[k];
 		});
 	} catch (e) { }   /* a corrupt pref must never stop the editor from opening */
@@ -3357,7 +3717,8 @@ function resetUiPrefs() {
  * against the window width in clampPane() below. */
 const PANE_LIMITS = {
 	palW: [120, 480], rightW: [180, 640],
-	inspH: [60, 1200], bottomH: [26, 2000]
+	inspH: [60, 1200], bottomH: [26, 2000],
+	rbW: [220, 1400], rbH: [150, 1400]
 };
 function clampPane(key, v) {
 	const L = PANE_LIMITS[key];
@@ -3391,6 +3752,7 @@ function applyLayout() {
 
 	const dn = $('#uiDense'); if (dn) dn.checked = !!UI.dense;
 	const gr = $('#uiGrid'); if (gr) gr.value = String(UI.grid);
+	applyRobotPanel();
 
 	/* the pane sizes changed, so the grid pattern must be redrawn against the new
 	 * viewport - but P.view.z is NOT touched: resizing a panel is not zooming */
@@ -3441,6 +3803,139 @@ function initSplitter(splitId, key, axis, sign, reopenTargets) {
 	});
 }
 
+/* ------------------------------------------------------- robot view panel
+ * Where the panel lives. The dock target may not exist yet - the Robot tab
+ * builds its host the first time it renders - so a dock with no host falls back
+ * to floating instead of putting a position:relative panel in the middle of the
+ * graph. */
+function rbHost() {
+	if (UI.rbDock === 'tab') return $('#rbHostTab');
+	if (UI.rbDock === 'right') return $('#rbHostRight');
+	return $('#editor');
+}
+/* THE single place a robot-panel preference becomes CSS, exactly like
+ * applyLayout() is for the panes. Called from applyLayout(), so nothing else
+ * has to remember to. */
+function applyRobotPanel() {
+	const p = $('#rbPanel'); if (!p) return;
+	const bt = $('#btRobotView'); if (bt) bt.classList.toggle('on', !!UI.rbShow);
+	p.classList.toggle('hidden', !UI.rbShow);
+
+	const host = rbHost() || $('#editor');
+	const floating = UI.rbDock === 'float' || !rbHost();
+	if (p.parentNode !== host) host.appendChild(p);
+	p.classList.toggle('docked', !floating);
+	p.classList.toggle('dockRight', !floating && UI.rbDock === 'right');
+	p.classList.toggle('dockTab', !floating && UI.rbDock === 'tab');
+	p.classList.toggle('folded', !UI.rbOpen);
+
+	const ds = $('#rbDockSel'); if (ds) ds.value = UI.rbDock;
+	const op = $('#rbOpa'); if (op) op.value = String(UI.rbOpacity);
+	const fd = $('#rbFold'); if (fd) fd.innerHTML = UI.rbOpen ? '&#9650;' : '&#9660;';
+
+	if (floating) {
+		const ed = $('#editor');   /* the floating panel's coordinates are #editor's */
+		UI.rbW = clampPane('rbW', UI.rbW);
+		UI.rbH = clampPane('rbH', UI.rbH);
+		/* first paint, or a window that shrank under a saved position: the panel
+		 * must always end up somewhere the user can grab its header */
+		if (UI.rbX === null) UI.rbX = ed.clientWidth - UI.rbW - 10;
+		if (UI.rbY === null) UI.rbY = ed.clientHeight - UI.rbH - 10;
+		UI.rbX = Math.max(0, Math.min(Math.max(0, ed.clientWidth - 90), Math.round(UI.rbX)));
+		UI.rbY = Math.max(0, Math.min(Math.max(0, ed.clientHeight - 24), Math.round(UI.rbY)));
+		p.style.left = UI.rbX + 'px'; p.style.top = UI.rbY + 'px';
+		p.style.width = UI.rbW + 'px';
+		p.style.height = UI.rbOpen ? UI.rbH + 'px' : 'auto';
+		p.style.opacity = String(UI.rbOpacity / 100);
+	} else {
+		/* docked it owns none of its geometry: the host decides */
+		p.style.left = p.style.top = p.style.width = p.style.height = '';
+		p.style.opacity = '1';
+	}
+	syncRobotCtl();
+}
+/* the strip is never rebuilt, only pushed at - see the markup comment */
+function syncRobotCtl() {
+	const R = P && P.sim ? P.sim.robot : null; if (!R) return;
+	const set = (id, f) => { const e = $(id); if (e) f(e); };
+	set('#rbFollow', e => e.checked = !!R.follow);
+	set('#rbTrail', e => e.checked = !!R.trail);
+	set('#rbImu', e => e.value = R.imuSource);
+	set('#rbScale', e => { if (document.activeElement !== e) e.value = String(R.cmPerPx || 0); });
+	set('#rbPause', e => { e.textContent = SIM.robot.paused ? 'resume' : 'pause'; e.classList.toggle('on', !!SIM.robot.paused); });
+}
+/* one way in, because the selector exists in two places - the panel strip and
+ * the Sensors tab - and they must never disagree about which one is live */
+function setImuSource(v) {
+	P.sim.robot.imuSource = v === 'manual' ? 'manual' : 'robot';
+	if (P.sim.robot.imuSource === 'robot') SIM.writeRobotImu();
+	syncRobotCtl();
+	if (!$('#p-sensors').classList.contains('hidden')) uiSensors();
+}
+
+/* One pointer drag on the panel: `move` gets the delta and the geometry the
+ * drag started from. Pointer capture, like the splitters, so it survives
+ * leaving the window. */
+function rbDrag(handle, move) {
+	if (!handle) return;
+	handle.addEventListener('pointerdown', e => {
+		if (e.button !== 0) return;
+		if (UI.rbDock !== 'float' && rbHost()) return;      /* docked: nothing to move */
+		if (e.target.closest('button,select,input')) return; /* the header controls are not a grab */
+		e.preventDefault(); e.stopPropagation();
+		handle.setPointerCapture(e.pointerId);
+		const base = { x: UI.rbX, y: UI.rbY, w: UI.rbW, h: UI.rbH };
+		const sx = e.clientX, sy = e.clientY;
+		const onMove = ev => { move(ev.clientX - sx, ev.clientY - sy, base); applyRobotPanel(); };
+		const onUp = () => {
+			handle.releasePointerCapture(e.pointerId);
+			handle.removeEventListener('pointermove', onMove);
+			handle.removeEventListener('pointerup', onUp);
+			handle.removeEventListener('pointercancel', onUp);
+			saveUiPrefs();
+		};
+		handle.addEventListener('pointermove', onMove);
+		handle.addEventListener('pointerup', onUp);
+		handle.addEventListener('pointercancel', onUp);
+	});
+}
+function initRobotPanel() {
+	const p = $('#rbPanel'); if (!p) return;
+	/* the panel is a sibling of #viewport, so its presses never reach the pan or
+	 * the marquee - but the right button still has to be swallowed here */
+	p.addEventListener('contextmenu', e => e.preventDefault());
+	rbDrag($('#rbHead'), (dx, dy, b) => { UI.rbX = b.x + dx; UI.rbY = b.y + dy; });
+	rbDrag($('#rbGrip'), (dx, dy, b) => { UI.rbW = clampPane('rbW', b.w + dx); UI.rbH = clampPane('rbH', b.h + dy); });
+	/* the control strip: these edit P.sim.robot, which is the MIX's, not the
+	 * person's - the same fields the Robot tab edits, through the same handlers */
+	$('#rbPause').onclick = () => { SIM.robot.paused = !SIM.robot.paused; syncRobotCtl(); };
+	$('#rbReset').onclick = () => { SIM.resetRobot(); };
+	$('#rbClear').onclick = () => { SIM.robot.trail.length = 0; };
+	$('#rbFollow').onchange = e => { P.sim.robot.follow = e.target.checked ? 1 : 0; };
+	$('#rbTrail').onchange = e => { P.sim.robot.trail = e.target.checked ? 1 : 0; if (!e.target.checked) SIM.robot.trail.length = 0; };
+	$('#rbScale').onchange = e => { P.sim.robot.cmPerPx = Math.max(0, Number(e.target.value) || 0); };
+	$('#rbImu').onchange = e => { setImuSource(e.target.value); };
+	/* fold and opacity are geometry only: nothing outside the panel describes them */
+	$('#rbFold').onclick = () => { UI.rbOpen = !UI.rbOpen; applyRobotPanel(); saveUiPrefs(); };
+	$('#rbOpa').oninput = e => { UI.rbOpacity = Number(e.target.value) || 100; applyRobotPanel(); };
+	$('#rbOpa').onchange = saveUiPrefs;
+	$('#rbClose').onclick = () => { UI.rbShow = false; robotViewChanged(); };
+	$('#rbDockSel').onchange = e => {
+		UI.rbDock = RB_DOCKS.indexOf(e.target.value) >= 0 ? e.target.value : 'float';
+		robotViewChanged();
+	};
+	$('#btRobotView').onclick = () => { UI.rbShow = !UI.rbShow; robotViewChanged(); };
+}
+/* THE one place a change of home or visibility is pushed out. The Robot tab both
+ * HOSTS the panel and says where it is, so it has to be rebuilt with it - and
+ * uiRobot() ends in applyRobotPanel(), which is what actually moves the element. */
+function robotViewChanged() {
+	saveUiPrefs();
+	if (UI.rbShow && UI.rbDock === 'tab') openTab('robot');     /* renders the tab, host included */
+	else if (!$('#p-robot').classList.contains('hidden')) uiRobot();
+	else applyRobotPanel();
+}
+
 function initLayout() {
 	initSplitter('#splitPalette', 'palW', 'x', 1, 'palOpen');
 	initSplitter('#splitRight', 'rightW', 'x', -1, 'rightOpen');
@@ -3454,6 +3949,7 @@ function initLayout() {
 
 	$('#uiDense').onchange = e => { UI.dense = !!e.target.checked; applyLayout(); saveUiPrefs(); };
 	$('#btResetLayout').onclick = () => { resetUiPrefs(); applyLayout(); };
+	initRobotPanel();
 
 	/* shrinking the window can invalidate a pane size that was fine before */
 	window.addEventListener('resize', () => {
@@ -4371,6 +4867,7 @@ function refreshAll() {
 	renderNodes(); renderWires(); applyView(); uiGroups();
 	uiInspector(); uiValidation(); uiCost();
 	uiCode(); uiReg();
+	syncRobotCtl();   /* P may have just been replaced, and the strip reads P.sim.robot */
 	autosave();
 }
 function refreshLive() {   /* every animation frame: values only, no relayout */
@@ -4587,17 +5084,32 @@ function drawScope() {
 }
 
 /* --------------------------------------------------------------- robot */
+const MAPPER_KEYS = ['M1', 'M2', 'M3', 'S1', 'S2'];   /* fac_settings.c:103-107, in that order */
 function uiRobot() {
-	const m = P.sim.mapper;
+	const m = P.sim.mapper, r = P.sim.robot, pair = r.kin === 'skid';
 	const linkOpts = (sel) => {
 		let o = '<option value="0"' + (sel === 0 ? ' selected' : '') + '>0 - unused</option>';
 		for (let i = 0; i < MIXES_MAX_OUTPUTS_NUMBER; i++) o += '<option value="' + (100 + i) + '"' + (sel === 100 + i ? ' selected' : '') + '>' + (100 + i) + ' - mix out ' + i + '</option>';
 		for (let i = 0; i <= 10; i++) o += '<option value="' + (200 + i) + '"' + (sel === 200 + i ? ' selected' : '') + '>' + (200 + i) + ' - function ' + i + '</option>';
 		return o;
 	};
+	/* one physical field: label, the P.sim.robot key it edits, and its unit */
+	const num = (label, k, unit, lo, hi) =>
+		'<div style="' + GRID('86px 96px 220px') + '"><span>' + label + '</span>' +
+		'<input type="number" id="rbf_' + k + '" min="' + lo + '" max="' + hi + '" value="' + (Number(r[k]) || 0) + '" style="width:90px">' +
+		'<span class="muted" style="font-size:10px">' + unit + '</span></div>';
+	/* a drive selector over the mapper rows that actually exist */
+	const devOpts = (id, sel) => '<select id="' + id + '"><option value=""' + (sel ? '' : ' selected') + '>none</option>' +
+		MAPPER_KEYS.map(k => '<option value="' + k + '"' + (sel === k ? ' selected' : '') + '>' + k + '</option>').join('') + '</select>';
+
+	/* the panel may be living inside this very subtree, and innerHTML is about to
+	 * destroy it: park it in #editor first and let applyRobotPanel() re-home it */
+	const panel = $('#rbPanel');
+	if (panel && panel.parentNode && $('#p-robot').contains(panel)) $('#editor').appendChild(panel);
+
 	$('#p-robot').innerHTML = '<div class="row" style="align-items:flex-start">' +
 		'<div class="card"><h4>Mapper links (fac_settings.c)</h4>' +
-		['M1', 'M2', 'M3', 'S1', 'S2'].map(k => '<div style="' + GRID('30px 138px 46px 86px 76px') + '"><span>' + k + '</span>' +
+		MAPPER_KEYS.map(k => '<div style="' + GRID('30px 138px 46px 86px 76px') + '"><span>' + k + '</span>' +
 			'<select class="mapl" data-k="' + k + '">' + linkOpts(Number(m[k])) + '</select>' +
 			'<span class="mono dv" data-k="' + k + '">-</span><span class="mono dvu muted" data-k="' + k + '"></span>' +
 			'<span class="db" data-k="' + k + '"></span></div>').join('') +
@@ -4606,81 +5118,341 @@ function uiRobot() {
 		'Servos: <span class="mono">FAC_math_to_range(v, 0, MAX_SERVO_VALUE)</span> &rarr; <b>0..999</b>, so -1000 is one end of travel and the centre lands on 499.<br>' +
 		'Only 100..109 and 200..210 are meaningful; the settings range cannot express the gap.</div>' +
 		'</div>' +
-		'<div class="card"><h4>Top view <span class="muted" style="text-transform:none">&mdash; illustrative, not physical</span></h4>' +
-		'<canvas id="rbCanvas" width="360" height="230"></canvas>' +
-		'<div class="row" style="margin:5px 0 0"><button id="rbReset">reset pose</button></div></div></div>';
+		'<div class="card"><h4>Robot model <span class="muted" style="text-transform:none">&mdash; part of the mix, saved with it</span></h4>' +
+		num('length', 'lenCm', 'cm', 1, 300) + num('width', 'widCm', 'cm', 1, 300) +
+		num('track', 'trackCm', 'cm', 1, 300) + num('top speed', 'maxSpeedCms', 'cm/s', 1, 2000) +
+		'<div style="' + GRID('86px 96px 220px') + '"><span>max yaw</span><span class="mono" id="rbYawMax"></span>' +
+		'<span class="muted" style="font-size:10px">derived, never entered: <span class="mono">maxSpeed / track</span></span></div>' +
+		'<div style="' + GRID('86px 96px 220px') + '"><span>kinematics</span>' +
+		'<select id="rbKin"><option value="diff"' + (r.kin === 'diff' ? ' selected' : '') + '>2 wheel</option>' +
+		'<option value="skid"' + (r.kin === 'skid' ? ' selected' : '') + '>skid, a pair a side</option></select>' +
+		'<span class="muted" style="font-size:10px">a pair averages, which is what the axle does anyway</span></div>' +
+		'<div style="' + GRID('86px 96px 96px') + '"><span>left side</span>' + devOpts('rbLeft', r.left) + (pair ? devOpts('rbLeftB', r.leftB) : '') + '</div>' +
+		'<div style="' + GRID('86px 96px 96px') + '"><span>right side</span>' + devOpts('rbRight', r.right) + (pair ? devOpts('rbRightB', r.rightB) : '') + '</div>' +
+		'<div style="' + GRID('86px 96px 220px') + '"><span>IMU source</span>' +
+		'<select id="rbImuTab"><option value="robot"' + (r.imuSource === 'robot' ? ' selected' : '') + '>this robot</option>' +
+		'<option value="manual"' + (r.imuSource === 'manual' ? ' selected' : '') + '>the sliders</option></select>' +
+		'<span class="muted" style="font-size:10px">on <b>this robot</b> the sensor sliders and the generator are driven, not read</span></div>' +
+		'<div style="' + GRID('86px 96px 220px') + '"><span>noise</span>' +
+		'<input type="number" id="rbNoise" min="0" max="4000" value="' + (Number(r.noise) || 0) + '" style="width:90px">' +
+		'<span class="muted" style="font-size:10px">peak, in raw counts. 0 = off</span></div>' +
+		'<div class="muted" style="font-size:10px;margin-top:5px">' +
+		'<b>Illustrative, a kinematic sketch and not a dynamics simulation.</b> No mass, no traction limit, no slip: a step on the stick is a step in ground speed. ' +
+		'It is here to close the loop &mdash; what the mix commands turns the chassis, and the turn is what the IMU blocks read back.<br>' +
+		'<b>Axes.</b> X forward, Y left, Z up, right handed, so a <b>left turn is a positive gyro Z</b>. That is a statement about how the board is <b>mounted</b>: the firmware only passes the sensor\'s own X/Y/Z through (<span class="mono">enum AXIS</span>, <span class="mono">LSM6DS3.h:143-147</span>). Mount it another way and the signs are yours to fix.<br>' +
+		'<b>Counts.</b> gyro <span class="mono">' + GYRO_MDPS_PER_COUNT + ' mdps/count</span> (<span class="mono">LSM6DS3.h:130</span>), accel <span class="mono">0.' + ACCEL_UG_PER_COUNT + ' mg/count</span> (<span class="mono">LSM6DS3.h:129</span>), both clamped to int16 like the driver\'s own buffers. The graph reads the counts of the <b>previous</b> millisecond, because a sensor measures the past.<br>' +
+		'<b>Only three motor rows exist</b> (<span class="mono">fac_settings.c:103-107</span>): M1, M2, M3. A true four motor skid needs a fourth row in the firmware, so the second device of a side is free to be anything &mdash; or nothing.</div>' +
+		'</div></div>' +
+		'<div id="rbHostTab"></div>' +
+		'<div id="rbTabNote" class="muted" style="font-size:11px;margin-top:6px"></div>';
 	$$('.mapl').forEach(s => s.onchange = e => { P.sim.mapper[e.target.dataset.k] = Number(e.target.value); });
-	$('#rbReset').onclick = () => { SIM.robot = { x: 0, y: 0, th: 0 }; };
-}
-function drawRobot() {
-	if ($('#p-robot').classList.contains('hidden')) return;
-	$$('.dv').forEach(e => { const v = SIM.deviceValue(P.sim.mapper[e.dataset.k]); e.textContent = v === null ? '-' : v; });
-	/* the device-unit column, straight through the mapper mirrors */
-	$$('.dvu').forEach(e => {
-		const k = e.dataset.k, v = SIM.deviceValue(P.sim.mapper[k]);
-		if (v === null) { e.textContent = ''; return; }
-		e.textContent = k.charAt(0) === 'S'
-			? 'pos ' + SIM.servoPosition(v)
-			: (v < 0 ? 'rev ' : 'fwd ') + SIM.motorSpeed(v);
+	const fnum = (id, k, lo, hi) => { const e = $(id); if (e) e.onchange = ev => { r[k] = Math.max(lo, Math.min(hi, Number(ev.target.value) || lo)); ev.target.value = r[k]; }; };
+	fnum('#rbf_lenCm', 'lenCm', 1, 300); fnum('#rbf_widCm', 'widCm', 1, 300);
+	fnum('#rbf_trackCm', 'trackCm', 1, 300); fnum('#rbf_maxSpeedCms', 'maxSpeedCms', 1, 2000);
+	$('#rbNoise').onchange = e => { r.noise = Math.max(0, Number(e.target.value) || 0); e.target.value = r.noise; };
+	$('#rbKin').onchange = e => { r.kin = e.target.value === 'skid' ? 'skid' : 'diff'; uiRobot(); };
+	['rbLeft', 'rbLeftB', 'rbRight', 'rbRightB'].forEach(id => {
+		const e = $('#' + id); if (!e) return;
+		e.onchange = ev => { r[id.slice(2, 3).toLowerCase() + id.slice(3)] = ev.target.value; };
 	});
-	$$('.db').forEach(e => { const v = SIM.deviceValue(P.sim.mapper[e.dataset.k]); e.innerHTML = v === null ? '' : barHtml(v, 1000); });
-	const cv = $('#rbCanvas'); if (!cv) return;
-	const c = cv.getContext('2d'), W = cv.width, H = cv.height;
-	c.clearRect(0, 0, W, H);
-	c.strokeStyle = '#1e1e1e';
-	for (let x = 0; x < W; x += 20) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, H); c.stroke(); }
-	for (let y = 0; y < H; y += 20) { c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke(); }
-	const R = SIM.robot;
-	c.save();
-	c.translate(W / 2 + R.x, H / 2 - R.y);
-	c.rotate(-R.th);
-	c.fillStyle = '#242424'; c.strokeStyle = '#00adb5'; c.lineWidth = 2;
-	c.beginPath(); c.rect(-26, -20, 52, 40); c.fill(); c.stroke();
-	c.beginPath(); c.moveTo(26, 0); c.lineTo(38, 0); c.stroke();
-	const mv = (k) => { const v = SIM.deviceValue(P.sim.mapper[k]); return v === null ? null : v; };
-	const drawMotor = (x, y, v, name) => {
-		c.fillStyle = '#333'; c.fillRect(x - 6, y - 12, 12, 24);
-		if (v !== null) {
-			c.fillStyle = v >= 0 ? '#00adb5' : '#ff8a65';
-			/* the bar is the speed the mapper would send, 0..MOTOR_SPEED_RESOLUTION */
-			const hgt = SIM.motorSpeed(v) / MOTOR_SPEED_RESOLUTION * 12;
-			c.fillRect(x - 6, v >= 0 ? y - hgt : y, 12, hgt);
+	$('#rbImuTab').onchange = e => { setImuSource(e.target.value); };
+	/* the tab does not own a canvas: it hosts the one panel, or says where it is */
+	const note = $('#rbTabNote');
+	if (UI.rbDock === 'tab') note.innerHTML = 'The robot view is docked here. Its <b>float</b> option puts it back over the graph, where it stays visible whatever tab is open.';
+	else note.innerHTML = 'The robot view is <b>' + (UI.rbShow ? (UI.rbDock === 'right' ? 'docked in the right column' : 'floating over the graph') : 'hidden') + '</b>. <span class="blink" id="rbDockHere">dock it here</span>' + (UI.rbShow ? '' : ' &middot; <span class="blink" id="rbShowIt">show it</span>');
+	const dh = $('#rbDockHere');
+	if (dh) dh.onclick = () => { UI.rbDock = 'tab'; UI.rbShow = true; robotViewChanged(); };
+	const sh = $('#rbShowIt');
+	if (sh) sh.onclick = () => { UI.rbShow = true; robotViewChanged(); };
+	applyRobotPanel();
+}
+/* The tab owns the mapper columns and the derived readout; it does NOT own a
+ * canvas. The view is the panel's, and the panel draws whatever tab is open. */
+function drawRobot() {
+	if (!$('#p-robot').classList.contains('hidden')) {
+		$$('.dv').forEach(e => { const v = SIM.deviceValue(P.sim.mapper[e.dataset.k]); e.textContent = v === null ? '-' : v; });
+		/* the device-unit column, straight through the mapper mirrors */
+		$$('.dvu').forEach(e => {
+			const k = e.dataset.k, v = SIM.deviceValue(P.sim.mapper[k]);
+			if (v === null) { e.textContent = ''; return; }
+			e.textContent = k.charAt(0) === 'S'
+				? 'pos ' + SIM.servoPosition(v)
+				: (v < 0 ? 'rev ' : 'fwd ') + SIM.motorSpeed(v);
+		});
+		$$('.db').forEach(e => { const v = SIM.deviceValue(P.sim.mapper[e.dataset.k]); e.innerHTML = v === null ? '' : barHtml(v, 1000); });
+		const ym = $('#rbYawMax');
+		if (ym) {
+			const r = P.sim.robot, one = (r.maxSpeedCms / Math.max(0.1, r.trackCm)) * 180 / Math.PI;
+			ym.textContent = one.toFixed(0) + ' deg/s';
+			ym.title = 'one side at full stick. Spinning on the spot, both sides opposite, is twice that: ' + (2 * one).toFixed(0) + ' deg/s';
 		}
-		c.fillStyle = '#888'; c.font = '9px sans-serif'; c.fillText(name, x - 7, y + 22);
+	}
+	const p = $('#rbPanel');
+	if (p && !p.classList.contains('hidden') && !p.classList.contains('folded')) drawRobotView($('#rbCanvas'));
+}
+
+/* ---- THE robot renderer. One function, whatever the panel's home happens to
+ * be: a second copy would be a second answer to "where is the robot". ---- */
+const RB_COL = {
+	x: '#ff6b6b', y: '#9ede9f', z: '#b8cdf0', acc: '#e4e9a8',
+	head: '#00adb5', rev: '#ff8a65', horn: '#f0c2df', trail: '#3d7f84'
+};
+/* cm per pixel. 0 in the project means "fit what there is to see", with a floor
+ * so a robot standing still is not drawn the size of the panel. */
+function robotScale(w, h) {
+	const R = P.sim.robot, S = SIM.robot;
+	const man = Number(R.cmPerPx) || 0;
+	if (man > 0) return man;
+	const body = Math.max(1, Number(R.lenCm) || 1, Number(R.widCm) || 1);
+	const cX = R.follow ? S.x : 0, cY = R.follow ? S.y : 0;
+	let ex = body, ey = body;
+	for (let i = 0; i < S.trail.length; i += 2) {
+		ex = Math.max(ex, Math.abs(S.trail[i] - cX));
+		ey = Math.max(ey, Math.abs(S.trail[i + 1] - cY));
+	}
+	ex = Math.max(ex, Math.abs(S.x - cX) + body);
+	ey = Math.max(ey, Math.abs(S.y - cY) + body);
+	return Math.max(2 * ex / Math.max(40, w - 30), 2 * ey / Math.max(40, h - 30),
+		body * 3 / Math.max(40, Math.min(w, h)));
+}
+function drawRobotView(cv) {
+	if (!cv) return;
+	/* the canvas follows its box, and a box of zero size means the host is hidden
+	 * - a collapsed right pane, a tab that is not open - so there is nothing to do */
+	const w = cv.clientWidth | 0, h = cv.clientHeight | 0;
+	if (w < 8 || h < 8) return;
+	if (cv.width !== w) cv.width = w;
+	if (cv.height !== h) cv.height = h;
+
+	const c = cv.getContext('2d'), R = P.sim.robot, S = SIM.robot;
+	const sc = robotScale(w, h);
+	const cX = R.follow ? S.x : 0, cY = R.follow ? S.y : 0;
+	/* world -> screen. The screen's y grows downwards and the world's does not. */
+	const sx = (X) => w / 2 + (X - cX) / sc, sy = (Y) => h / 2 - (Y - cY) / sc;
+	const px = (cm) => cm / sc;
+
+	c.setTransform(1, 0, 0, 1, 0, 0);
+	c.fillStyle = '#0b0b0b'; c.fillRect(0, 0, w, h);
+
+	/* --- world grid in cm, so the ground slides under the robot and not with it --- */
+	const steps = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000];
+	let g = steps[steps.length - 1];
+	for (const s of steps) if (s / sc >= 26) { g = s; break; }
+	c.lineWidth = 1; c.strokeStyle = '#191919';
+	const x0 = Math.ceil((cX - w / 2 * sc) / g) * g, x1 = cX + w / 2 * sc;
+	const y0 = Math.ceil((cY - h / 2 * sc) / g) * g, y1 = cY + h / 2 * sc;
+	if ((x1 - x0) / g < 400 && (y1 - y0) / g < 400) {
+		for (let X = x0; X <= x1; X += g) { const p = Math.round(sx(X)) + 0.5; c.beginPath(); c.moveTo(p, 0); c.lineTo(p, h); c.stroke(); }
+		for (let Y = y0; Y <= y1; Y += g) { const p = Math.round(sy(Y)) + 0.5; c.beginPath(); c.moveTo(0, p); c.lineTo(w, p); c.stroke(); }
+	}
+	/* the origin, which is where reset pose puts the robot */
+	c.strokeStyle = '#333';
+	c.beginPath(); c.moveTo(sx(0) - 7, sy(0)); c.lineTo(sx(0) + 7, sy(0));
+	c.moveTo(sx(0), sy(0) - 7); c.lineTo(sx(0), sy(0) + 7); c.stroke();
+
+	/* --- the trail, in a handful of alpha bands rather than one stroke a point --- */
+	if (R.trail && S.trail.length >= 4) {
+		const n = S.trail.length / 2, bands = 6;
+		c.lineWidth = 1.5; c.strokeStyle = RB_COL.trail;
+		for (let b = 0; b < bands; b++) {
+			const from = Math.floor(n * b / bands), to = Math.min(n - 1, Math.floor(n * (b + 1) / bands));
+			if (to <= from) continue;
+			c.globalAlpha = 0.18 + 0.72 * (b + 1) / bands;
+			c.beginPath();
+			for (let i = from; i <= to; i++) {
+				const X = sx(S.trail[i * 2]), Y = sy(S.trail[i * 2 + 1]);
+				if (i === from) c.moveTo(X, Y); else c.lineTo(X, Y);
+			}
+			c.stroke();
+		}
+		c.globalAlpha = 1;
+	}
+
+	/* --- the chassis, in the body frame: +X forward, +Y to the left --- */
+	const L = Math.max(1, Number(R.lenCm) || 1), Wd = Math.max(1, Number(R.widCm) || 1);
+	const rx = sx(S.x), ry = sy(S.y);
+	const mv = (k) => k ? SIM.deviceValue(P.sim.mapper[k]) : null;
+	c.save();
+	c.translate(rx, ry);
+	c.rotate(-S.th);                       /* world CCW is screen CCW once y is flipped */
+	const B = (bx, by) => [px(bx), -px(by)];
+	/* a label that rides with the body but stays the right way up */
+	const label = (bx, by, txt) => {
+		const p = B(bx, by);
+		c.save(); c.translate(p[0], p[1]); c.rotate(S.th);
+		c.fillStyle = '#8b8b8b'; c.font = '9px Consolas,monospace'; c.textAlign = 'center';
+		c.fillText(txt, 0, 0); c.restore(); c.textAlign = 'left';
 	};
-	drawMotor(-30, -0, mv('M1'), 'M1');
-	drawMotor(30, 0, mv('M2'), 'M2');
-	drawMotor(0, -26, mv('M3'), 'M3');
-	const drawServo = (x, y, v, name) => {
-		c.strokeStyle = '#555'; c.beginPath(); c.arc(x, y, 12, 0, Math.PI * 2); c.stroke();
-		if (v !== null) {
+	c.fillStyle = 'rgba(34,34,34,.92)'; c.strokeStyle = RB_COL.head; c.lineWidth = 1.6;
+	c.beginPath(); c.rect(-px(L / 2), -px(Wd / 2), px(L), px(Wd)); c.fill(); c.stroke();
+	/* a nose, so the front is unmistakable even at the size of a thumbnail */
+	c.fillStyle = RB_COL.head;
+	c.beginPath();
+	c.moveTo(px(L / 2), -px(Wd * 0.16)); c.lineTo(px(L / 2) + Math.max(4, px(L * 0.1)), 0); c.lineTo(px(L / 2), px(Wd * 0.16));
+	c.closePath(); c.fill();
+
+	const drive = { };
+	drive[R.left] = ['L', 1, 0.22]; drive[R.right] = ['R', -1, 0.22];
+	if (R.kin === 'skid') { if (R.leftB) drive[R.leftB] = ['L', 1, -0.22]; if (R.rightB) drive[R.rightB] = ['R', -1, -0.22]; }
+	delete drive[''];
+	/* a traction device is drawn where its wheel is; anything else mapped is drawn
+	 * where it cannot be mistaken for one - a weapon on M1 was the whole problem */
+	let spare = 0, servo = 0;
+	MAPPER_KEYS.forEach(k => {
+		const v = mv(k);
+		if (v === null && !drive[k]) return;
+		if (drive[k]) {
+			const d = drive[k], bx = L * d[2], by = d[1] * Wd / 2;
+			const wl = Math.max(6, px(L * 0.3)), wt = Math.max(3, px(Wd * 0.16)), p = B(bx, by);
+			c.save(); c.translate(p[0], p[1]);
+			c.fillStyle = '#2a2a2a'; c.strokeStyle = '#555'; c.lineWidth = 1;
+			c.beginPath(); c.rect(-wl / 2, -wt / 2, wl, wt); c.fill(); c.stroke();
+			if (v !== null) {
+				/* the bar is the speed the mapper would send, 0..MOTOR_SPEED_RESOLUTION */
+				c.fillStyle = v >= 0 ? RB_COL.head : RB_COL.rev;
+				const len = wl * SIM.motorSpeed(v) / MOTOR_SPEED_RESOLUTION;
+				c.fillRect(v >= 0 ? 0 : -len, -wt / 2, len, wt);
+			}
+			c.restore();
+			label(bx, by + d[1] * Wd * 0.22, k + (v === null ? ' -' : ''));
+		} else if (k.charAt(0) === 'S') {
+			const bx = L * 0.3, by = (servo++ === 0 ? 1 : -1) * Wd * 0.26, p = B(bx, by);
+			const rr = Math.max(5, px(Math.min(L, Wd) * 0.16));
+			c.strokeStyle = '#555'; c.lineWidth = 1;
+			c.beginPath(); c.arc(p[0], p[1], rr, 0, Math.PI * 2); c.stroke();
 			/* the horn follows the position the mapper would send, 0..MAX_SERVO_VALUE */
 			const ang = (SIM.servoPosition(v) / MAX_SERVO_VALUE) * Math.PI - Math.PI / 2;
-			c.strokeStyle = '#f0c2df'; c.lineWidth = 2.5;
-			c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(ang) * 12, y + Math.sin(ang) * 12); c.stroke();
+			c.strokeStyle = RB_COL.horn; c.lineWidth = 2;
+			c.beginPath(); c.moveTo(p[0], p[1]); c.lineTo(p[0] + Math.cos(ang) * rr, p[1] + Math.sin(ang) * rr); c.stroke();
+			label(bx, by - Wd * 0.2, k);
+		} else {
+			const bx = -L * (0.34 + 0.12 * spare), by = 0, p = B(bx, by);
+			const bw = Math.max(5, px(L * 0.1)), bh = Math.max(6, px(Wd * 0.5)); spare++;
+			c.fillStyle = '#2a2a2a'; c.strokeStyle = '#555'; c.lineWidth = 1;
+			c.beginPath(); c.rect(p[0] - bw / 2, p[1] - bh / 2, bw, bh); c.fill(); c.stroke();
+			c.fillStyle = v >= 0 ? RB_COL.head : RB_COL.rev;
+			const len = bh * SIM.motorSpeed(v) / MOTOR_SPEED_RESOLUTION;
+			c.fillRect(p[0] - bw / 2, v >= 0 ? p[1] - len : p[1], bw, len);
+			label(bx, by - Wd * 0.36, k);
 		}
-		c.fillStyle = '#888'; c.font = '9px sans-serif'; c.fillText(name, x - 6, y + 24);
-	};
-	drawServo(-14, 30, mv('S1'), 'S1');
-	drawServo(14, 30, mv('S2'), 'S2');
+	});
 	c.restore();
+
+	/* --- the vectors, in screen space so they never shrink out of existence --- */
+	const bodyPx = Math.max(20, px(L));
+	/* a body direction (radians CCW from +X forward) as a canvas angle */
+	const scr = (a) => -(S.th + a);
+	const arrow = (a, len, col, wide, dash) => {
+		const ca = scr(a), ex = rx + Math.cos(ca) * len, ey = ry + Math.sin(ca) * len;
+		c.strokeStyle = col; c.fillStyle = col; c.lineWidth = wide;
+		c.setLineDash(dash || []);
+		c.beginPath(); c.moveTo(rx, ry); c.lineTo(ex, ey); c.stroke();
+		c.setLineDash([]);
+		const hs = Math.max(4, wide * 2.6);
+		c.beginPath();
+		c.moveTo(ex, ey);
+		c.lineTo(ex - Math.cos(ca - 0.4) * hs, ey - Math.sin(ca - 0.4) * hs);
+		c.lineTo(ex - Math.cos(ca + 0.4) * hs, ey - Math.sin(ca + 0.4) * hs);
+		c.closePath(); c.fill();
+	};
+	arrow(0, bodyPx * 1.35, RB_COL.head, 1.4);                 /* heading */
+	arrow(0, bodyPx * 0.6, RB_COL.x, 2.2);                     /* body X, forward */
+	arrow(Math.PI / 2, bodyPx * 0.6, RB_COL.y, 2.2);           /* body Y, to the left */
+	/* body Z: out of the plane, so it is drawn as the rotation it produces. The
+	 * arc's length and sense are the yaw rate. */
+	{
+		const r0 = Math.max(10, bodyPx * 0.34);
+		c.strokeStyle = RB_COL.z; c.lineWidth = 1.2;
+		c.beginPath(); c.arc(rx, ry, r0, 0, Math.PI * 2); c.stroke();
+		const sweep = Math.max(-4.6, Math.min(4.6, S.w));       /* 1 rad/s drawn as 1 rad */
+		if (Math.abs(sweep) > 0.02) {
+			const st = -Math.PI / 2, en = st - sweep;
+			c.lineWidth = 2.6;
+			c.beginPath(); c.arc(rx, ry, r0, st, en, sweep > 0); c.stroke();
+			const hx = rx + Math.cos(en) * r0, hy = ry + Math.sin(en) * r0;
+			const t = en + (sweep > 0 ? -Math.PI / 2 : Math.PI / 2);   /* tangent, in the direction of travel */
+			c.fillStyle = RB_COL.z;
+			c.beginPath();
+			c.moveTo(hx + Math.cos(t) * 6, hy + Math.sin(t) * 6);
+			c.lineTo(hx + Math.cos(t + 2.4) * 6, hy + Math.sin(t + 2.4) * 6);
+			c.lineTo(hx + Math.cos(t - 2.4) * 6, hy + Math.sin(t - 2.4) * 6);
+			c.closePath(); c.fill();
+		}
+	}
+	/* the acceleration, in the body frame and dashed so it cannot be read as the
+	 * heading. One g is 34 px. */
+	const amag = Math.hypot(S.ax, S.ay);
+	if (amag > ROBOT_G_CM_S2 * 0.02)
+		arrow(Math.atan2(S.ay, S.ax), Math.min(52, amag / ROBOT_G_CM_S2 * 34), RB_COL.acc, 1.8, [4, 3]);
+
+	/* --- world frame indicator: body versus world must never be a guess --- */
+	{
+		const ox = 16, oy = h - 16, ln = 13;
+		c.lineWidth = 1.4;
+		c.strokeStyle = RB_COL.x; c.beginPath(); c.moveTo(ox, oy); c.lineTo(ox + ln, oy); c.stroke();
+		c.strokeStyle = RB_COL.y; c.beginPath(); c.moveTo(ox, oy); c.lineTo(ox, oy - ln); c.stroke();
+		c.fillStyle = '#6a6a6a'; c.font = '9px Consolas,monospace';
+		c.fillText('world', ox - 2, oy + 10);
+	}
+
+	/* --- the numbers, including the counts the graph is actually reading --- */
+	const gy = P.sim.gyro, ac = P.sim.accel;
+	const lines = [
+		['v    ' + S.v.toFixed(1) + ' cm/s', RB_COL.head],
+		['yaw  ' + (S.w * 180 / Math.PI).toFixed(1) + ' deg/s', RB_COL.z],
+		['gyro  ' + gy[0] + ', ' + gy[1] + ', ' + gy[2], R.imuSource === 'robot' ? RB_COL.z : '#777'],
+		['accel ' + ac[0] + ', ' + ac[1] + ', ' + ac[2], R.imuSource === 'robot' ? RB_COL.acc : '#777'],
+		[sc.toFixed(2) + ' cm/px  grid ' + g + ' cm', '#6a6a6a']
+	];
+	c.font = '10px Consolas,monospace';
+	lines.forEach((l, i) => {
+		if (h < 96 + i * 12) return;
+		c.fillStyle = l[1]; c.fillText(l[0], 8, 14 + i * 12);
+	});
+	/* the legend is one line painted a word at a time, so each name carries the
+	 * colour of the thing it names */
+	if (h >= 96 + lines.length * 12) {
+		let lx = 8;
+		[['X fwd', RB_COL.x], ['Y left', RB_COL.y], ['Z yaw', RB_COL.z], ['accel', RB_COL.acc]]
+			.forEach(t => { c.fillStyle = t[1]; c.fillText(t[0], lx, 14 + lines.length * 12); lx += c.measureText(t[0]).width + 8; });
+	}
+	if (S.paused || R.imuSource === 'manual') {
+		const tag = (S.paused ? 'ROBOT PAUSED' : '') + (S.paused && R.imuSource === 'manual' ? '  ' : '') +
+			(R.imuSource === 'manual' ? 'IMU ON SLIDERS' : '');
+		c.fillStyle = '#f0c05a'; c.font = 'bold 10px Consolas,monospace';
+		c.fillText(tag, w - 8 - c.measureText(tag).width, 14);
+	}
+	if (h >= 170) {
+		c.fillStyle = '#4d4d4d'; c.font = '9px sans-serif';
+		c.fillText('illustrative: a kinematic sketch, not a dynamics simulation', 8, h - 6);
+	}
 }
 
 /* -------------------------------------------------------------- sensors */
 function uiSensors() {
 	const s = P.sim;
 	const ax = ['X', 'Y', 'Z'];
-	const sl = (cls, i, v, min, max) => '<input type="range" class="' + cls + '" data-i="' + i + '" min="' + min + '" max="' + max + '" value="' + v + '" style="width:130px">';
+	const sl = (cls, i, v, min, max, extra) => '<input type="range" class="' + cls + '" data-i="' + i + '" min="' + min + '" max="' + max + '" value="' + v + '" style="width:130px"' + (extra || '') + '>';
+	/* the robot owns the sensor arrays unless the user says otherwise, so the
+	 * sliders and the generator are shown DISABLED rather than quietly ignored */
+	const driven = s.robot.imuSource === 'robot';
+	const dis = driven ? ' disabled' : '';
 	let h = '<div class="row" style="align-items:flex-start">';
 	h += '<div class="card"><h4>IMU</h4>' +
-		ax.map((a, i) => '<div style="' + GRID('64px 130px 60px') + '"><span>gyro ' + a + '</span>' + sl('gy', i, s.gyro[i], -32768, 32767) + '<span class="mono gyv" data-i="' + i + '"></span></div>').join('') +
-		ax.map((a, i) => '<div style="' + GRID('64px 130px 60px') + '"><span>accel ' + a + '</span>' + sl('ac', i, s.accel[i], -32768, 32767) + '<span class="mono acv" data-i="' + i + '"></span></div>').join('') +
+		'<div class="row" style="margin:0 0 5px"><label>source</label>' +
+		'<select id="imuSrc"><option value="robot"' + (driven ? ' selected' : '') + '>the simulated robot</option>' +
+		'<option value="manual"' + (driven ? '' : ' selected') + '>these sliders</option></select>' +
+		'<span class="muted" style="font-size:10px">' + (driven
+			? 'the robot writes these six values every millisecond - move it with the sticks and watch them, or switch to the sliders to drive them by hand'
+			: 'the robot view still moves, but it no longer touches the sensor arrays') + '</span></div>' +
+		ax.map((a, i) => '<div style="' + GRID('64px 130px 60px') + '"><span>gyro ' + a + '</span>' + sl('gy', i, s.gyro[i], -32768, 32767, dis) + '<span class="mono gyv" data-i="' + i + '"></span></div>').join('') +
+		ax.map((a, i) => '<div style="' + GRID('64px 130px 60px') + '"><span>accel ' + a + '</span>' + sl('ac', i, s.accel[i], -32768, 32767, dis) + '<span class="mono acv" data-i="' + i + '"></span></div>').join('') +
 		'<div class="row" style="margin:5px 0 0"><label>generator</label>' +
-		'<select id="gnT"><option value="none">off</option>' +
+		'<select id="gnT"' + dis + '><option value="none">off</option>' +
 		[0, 1, 2].map(i => '<option value="gyro' + i + '"' + (s.genTarget === 'gyro' + i ? ' selected' : '') + '>gyro ' + ax[i] + '</option>').join('') +
 		[0, 1, 2].map(i => '<option value="accel' + i + '"' + (s.genTarget === 'accel' + i ? ' selected' : '') + '>accel ' + ax[i] + '</option>').join('') + '</select>' +
-		'<select id="gnW">' + ['const', 'sine', 'sweep', 'noise'].map(w => '<option' + (s.gen === w ? ' selected' : '') + '>' + w + '</option>').join('') + '</select>' +
-		'amp <input type="number" id="gnA" value="' + s.genAmp + '" style="width:70px"> Hz <input type="number" id="gnH" value="' + s.genHz + '" style="width:56px"></div>' +
+		'<select id="gnW"' + dis + '>' + ['const', 'sine', 'sweep', 'noise'].map(w => '<option' + (s.gen === w ? ' selected' : '') + '>' + w + '</option>').join('') + '</select>' +
+		'amp <input type="number" id="gnA" value="' + s.genAmp + '" style="width:70px"' + dis + '> Hz <input type="number" id="gnH" value="' + s.genHz + '" style="width:56px"' + dis + '></div>' +
 		'<div class="row" style="margin:6px 0 0"><label style="color:var(--err)"><input type="checkbox" id="imuFail"' + (s.imuFail ? ' checked' : '') + '> IMU failure</label>' +
 		'<span class="muted" style="font-size:10px">GET_status() returns HAL_ERROR while the accessors keep the last values &mdash; exactly how a dead sensor reads</span></div>' +
 		'<div class="row" style="margin:4px 0 0"><label>fallback</label><select id="imuFb">' +
@@ -4695,6 +5467,8 @@ function uiSensors() {
 		'<span class="muted" style="font-size:10px">latches TRUE on the robot and never comes back</span></div>' +
 		'</div></div>';
 	$('#p-sensors').innerHTML = h;
+	/* setImuSource() re-renders this panel itself - one way in, see there */
+	$('#imuSrc').onchange = e => setImuSource(e.target.value);
 	$$('.gy').forEach(i => i.oninput = e => { s.gyro[+e.target.dataset.i] = Number(e.target.value) | 0; });
 	$$('.ac').forEach(i => i.oninput = e => { s.accel[+e.target.dataset.i] = Number(e.target.value) | 0; });
 	$$('.ad').forEach(i => i.oninput = e => { s.adc[+e.target.dataset.i] = Number(e.target.value) | 0; });
@@ -4713,6 +5487,12 @@ function uiSensorsLive() {
 	const s = P.sim;
 	$$('.gyv').forEach(e => e.textContent = s.gyro[+e.dataset.i]);
 	$$('.acv').forEach(e => e.textContent = s.accel[+e.dataset.i]);
+	/* while the robot drives them the sliders are gauges, so they have to move:
+	 * a disabled control whose number changes under a fixed thumb reads as a bug */
+	if (s.robot.imuSource === 'robot') {
+		$$('.gy').forEach(e => e.value = String(s.gyro[+e.dataset.i]));
+		$$('.ac').forEach(e => e.value = String(s.accel[+e.dataset.i]));
+	}
 	$$('.adv').forEach(e => e.textContent = s.adc[+e.dataset.i]);
 	const cv = $('#btCv'); if (cv) cv.textContent = idiv(s.batteryMv, Math.max(1, s.cells)) + ' mV/cell';
 }
@@ -5157,6 +5937,9 @@ function uiHelp() {
 		'these can &mdash; and being integer, the browser and the Cortex-M0 produce the same value, not a close one. The single rule that makes it work is ' +
 		'that C division truncates toward zero, so this tool uses <span class="mono">Math.trunc</span> and never <span class="mono">Math.floor</span>. ' +
 		'The Self-test tab asserts that, and about a hundred other things, on every run.</p>' +
+		'<h4>The loop is closed</h4>' +
+		'<p>The mix drives the mapper, the mapper drives a <b>kinematic robot</b>, and the robot drives the simulated IMU the graph reads back &mdash; so a gyro block responds to the turn the mix itself commanded. ' +
+		'The robot, its size, its track and its top speed are part of the mix and are saved with it; where the view sits is not. It is a sketch and not a dynamics simulation, and the panel says so.</p>' +
 		'<h4>The blocks, the value chain, the groups and the cost model</h4>' +
 		'<p>All of that lives in the <b>Blocks</b> tab at the bottom, one card per block, generated from the catalogue itself: ports, parameters, division count, proven range, and the <b>real C</b> each block emits. '+
 		'<button id="btHelpBlocks">open the Blocks tab</button></p>' +
@@ -5169,6 +5952,7 @@ function uiHelp() {
 		'<tr><td class="l">Ctrl+Z / Ctrl+Y</td><td class="l">undo / redo</td></tr>' +
 		'<tr><td class="l">F</td><td class="l">frame all (bare F only, so Ctrl+F still opens the browser find)</td></tr>' +
 		'<tr><td class="l">L</td><td class="l">auto layout: left to right by rank, sinks in the last column, unconnected blocks in a trailing one. Positions are not semantics &mdash; the generated code is identical before and after, and one Ctrl+Z puts everything back</td></tr>' +
+		'<tr><td class="l">R</td><td class="l">show or hide the robot view. It floats over the graph, docks into the right column or into the Robot tab, and draws whatever tab is open</td></tr>' +
 		'<tr><td class="l">arrows / shift+arrows</td><td class="l">nudge the selection by one grid step, or five</td></tr>' +
 		'<tr><td class="l">right / middle / space / alt drag</td><td class="l">pan &middot; wheel zooms &middot; ctrl-drag ignores the grid snap. A stationary right click does nothing: there is no context menu of our own, and the browser one is suppressed inside the canvas only</td></tr>' +
 		'<tr><td class="l">group field in the inspector</td><td class="l">name a group, then use the chips at the top left to collapse it behind one box. Purely visual: the graph, the analysis and the generated code are identical either way</td></tr></table>' +
@@ -5269,6 +6053,7 @@ function initKeys() {
 		const noMod = !e.ctrlKey && !e.metaKey && !e.altKey;
 		if (noMod && (e.key === 'f' || e.key === 'F')) frameAll();
 		if (noMod && (e.key === 'l' || e.key === 'L')) autoLayout();
+		if (noMod && (e.key === 'r' || e.key === 'R')) { UI.rbShow = !UI.rbShow; robotViewChanged(); }
 		const ARROW = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
 		if (ARROW[e.key] && noMod) {
 			const k = snapStep() * (e.shiftKey ? 5 : 1);
@@ -5410,6 +6195,10 @@ function boot() {
 	} catch (e) { }
 	if (!restored) loadProject(PRESETS.simple_tank());
 	syncToolbar(); uiPalette(); refreshAll(); uiSim();
+	/* the Robot tab is rendered once at boot even though it is not the open tab:
+	 * it builds #rbHostTab, and a panel saved as docked-in-the-tab has nowhere to
+	 * go until that exists */
+	uiRobot();
 	runSelfTest();
 	/* a restored session keeps the positions the user left; only a preset is
 	 * laid out, because its own coordinates overlap */

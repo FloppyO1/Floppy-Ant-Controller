@@ -10,11 +10,14 @@ The whole premise is that a mix is a composition of ~30 known integer operations
 
 `PROMPT_FAC_MIX_EDITOR.md.initial` is the original build brief: the full requirement spec, decision log and acceptance criteria. Read it before any non-trivial change — but see *Precedence* below.
 
-### Work order V2 — phase 1 is DONE, phase 2 is not
+### Work order V2 — DONE, both phases
 
-`PROMPT_FAC_MIX_EDITOR_V2.md` is the second work order. **Phase 1 is complete and shipped**: §1 symmetric channel domain, §3 collapsed-group drag, §4 marquee selection, §5 grid snap, §6 right-button pan, §2 resizable panes, §7 auto-layout, §9 the *Blocks* tab. Everything those sections describe is in the file and is documented below — read this file, not the work order, for what the tool does today.
+`PROMPT_FAC_MIX_EDITOR_V2.md` is the second work order and **all ten items are shipped**. Phase 1: §1 symmetric channel domain, §3 collapsed-group drag, §4 marquee selection, §5 grid snap, §6 right-button pan, §2 resizable panes, §7 auto-layout, §9 the *Blocks* tab. Phase 2: §8, the live 2D robot view and the closed loop that drives the simulated IMU from the robot's motion. Everything those sections describe is in the file and is documented below — read this file, not the work order, for what the tool does today.
 
-**§8 is the only part left**, and the work order defers it explicitly: the live 2D robot view and the closed loop that drives the simulated IMU from the robot's motion. It is specified in full at the end of that document. Two things it will need that do not exist yet: `SCHEMA_VERSION` goes to **2** (it carries new `P.sim` physical-unit fields, which *do* belong to the project — unlike the UI preferences, see below), and `SIM.integrateRobot()` becomes the **second** float boundary in the program, so it must terminate in `Math.round()` before anything reaches `SIM.gyro` / `SIM.accel`, with a self-test assertion proving no non-integer ever gets there.
+Where §8 landed differently from the brief, and why:
+
+- The brief's skid-steer preset is `M1+M3 / M2+M4`. **There is no M4**: `fac_settings.c:103-107` has five mapper rows, three of them motors. The pair selectors are therefore over the rows that exist, the second device of a side may be *none*, and the panel says a real four-motor skid needs a fourth row in firmware.
+- Max yaw rate is displayed as the brief's `maxSpeed / track`, which is one side at full stick. Spinning on the spot is twice that; it is in the field's tooltip rather than being a second number to keep in step.
 
 Two corrections the work order itself records, so they do not get re-proposed: scaling the motor mapper by `MOTOR_SPEED_RESOLUTION - 1` recovers nothing and truncates the whole scale, and the `FAC_servo_SET_position` clamp is load-bearing (it bounds the pulse formula), not defensive.
 
@@ -23,7 +26,8 @@ Two corrections the work order itself records, so they do not get re-proposed: s
 There is no build, no package manager, no test runner.
 
 - **Run**: open `FAC_mix_editor.html` in Chrome/Edge/Firefox (`file://` works, offline).
-- **Tests**: the `SELFTEST` section is the test suite — **185 assertions** covering the `fac_math.h` port, the guarded returns, unsigned `sqrt`, the receiver-deadzone port swept over `value × deadzone × channel`, the mapper mirrors at the device end, and a `simple_tank` parity grid against a hand transcription of `fac_simple_tank_mix.c`. `runSelfTest()` runs **automatically at boot**; the *Self-test* bottom tab shows pass/fail and re-runs on demand. **Export is blocked while the self-test has not run or has any failure** — keep it that way.
+- **Tests**: the `SELFTEST` section is the test suite — **210 assertions** covering the `fac_math.h` port, the guarded returns, unsigned `sqrt`, the receiver-deadzone port swept over `value × deadzone × channel`, the mapper mirrors at the device end, a `simple_tank` parity grid against a hand transcription of `fac_simple_tank_mix.c`, the robot→IMU int16 boundary, and the schema migration. `runSelfTest()` runs **automatically at boot**; the *Self-test* bottom tab shows pass/fail and re-runs on demand. **Export is blocked while the self-test has not run or has any failure** — keep it that way.
+- Nothing in the self-test may mutate the live project or the live `SIM`. Where it has to (the scripted robot run), it saves and restores `P`, `SIM.robot`, `SIM.outputs` and `SIM.tick` in a `finally`. That is why the schema assertions call **`migrateProject()`**, which is pure, instead of `loadProject()`, which resets the simulator and would wipe the user's scope traces on every manual re-run.
 - Presets (`PRESETS`) double as regression fixtures; `simple_tank` is the acceptance test for the group-4 (plain-C) blocks, `headlessMix()` evaluates a project without the UI and is what the parity grid uses.
 - Only if a browser refuses the Gamepad API on `file://`: `python -m http.server` in this folder and open `localhost`. That is a convenience, never a requirement — the tool must stay fully usable with sliders and no pad.
 
@@ -32,7 +36,8 @@ There is no build, no package manager, no test runner.
 There is no test runner in the repo and there must not be one. When working from an agent that has no browser, build a **throwaway node harness in the scratchpad** and delete it afterwards — nothing test-shaped gets committed. What worked, and is worth rebuilding rather than reinventing:
 
 - **The pure sections evaluate under `node`.** Slice the file from the `SECTION: FAC_MATH` banner to `SECTION: UI - palette`, run it in a `vm` context, and you get `NODES`, `PRESETS`, `analyse()`, `generate()`, `runSelfTest()` and the whole `FAC_MATH` port. Two gotchas: `const`/`class` bindings are script-scoped and never land on the context, so append an epilogue that copies the names you want onto a global; and `P` is a `let`, so export a `setP`/`getP` pair to swap the active project.
-- **UI functions can still be tested** by extracting a single function's text by brace matching and evaluating it with stubs — `marqueeHits`, `snapDelta`, `collectMoveTargets`, `autoLayout`, `blockDocList` were all checked that way. Extracting the *real* function instead of restating its logic is the point: a copied assertion proves nothing.
+- **UI functions can still be tested** by extracting a single function's text by brace matching and evaluating it with stubs — `marqueeHits`, `snapDelta`, `collectMoveTargets`, `autoLayout`, `blockDocList`, `loadUiPrefs` and `drawRobotView` were all checked that way. Extracting the *real* function instead of restating its logic is the point: a copied assertion proves nothing. Two traps that cost time: an extracted function whose free variables are missing (`loadUiPrefs` without `LAYOUT_KEY`/`GRID_SIZES`) throws into its own `catch (e) {}` and **silently does nothing**, so every "rejected a bad value" case passes and every "kept a good value" case fails — if a whole class of assertions passes trivially, suspect the harness before the code. And a `vm` context whose `globalThis` you overwrite stops sharing bindings between scripts.
+- **A canvas renderer is worth smoke-testing** against a `Proxy` standing in for the 2D context that counts calls and throws on any non-finite coordinate. Run it over the awkward shapes — 0×0, tiny, huge, nothing mapped, no drive side selected, a 1 cm chassis, a long trail — which is how a renderer's real bugs (a division by a zero dimension, an undefined field) surface without a browser.
 - **A whole-script parse check** (`new vm.Script(...)` over the `<script>` body) catches what the pure-section harness cannot, since most of the UI lives outside it.
 - **Two standing regression gates**: dump the generated `.c`/`.h` of every preset before and after a change and diff them, and check that every `$('#id')` in the JS matches an id that exists in the markup.
 
@@ -52,13 +57,13 @@ One file, sections marked with banner comments — grep `SECTION:` to jump. Orde
 | `VALIDATE` | `analyse()` → range analysis + findings (`error` blocks export, `warn` does not) |
 | `CODEGEN` | `makeCtx()`, `genBody()`, `buildMixC/H`, `buildFunctionC/H` |
 | `REGISTRATION` | `registrationGuide()` — text only |
-| `PROJECT FILES` | `.facmix.json` save/load, autosave, round-trip import from a generated `.c` |
-| `SIM` | fixed 1 ms loop driving a simulated `HAL_GetTick()`, plus `servoPosition()` / `motorSpeed()` mirroring `fac_mapper.c` |
+| `PROJECT FILES` | `.facmix.json` save/load, autosave, round-trip import from a generated `.c`, `migrateProject()` / `mergeSim()` |
+| `SIM` | fixed 1 ms loop driving a simulated `HAL_GetTick()`, plus `servoPosition()` / `motorSpeed()` mirroring `fac_mapper.c`, and the robot loop: `integrateRobot()`, `robotImuCounts()`, `writeRobotImu()` |
 | `GAMEPAD` | Gamepad API → the same stage-0 values the sliders write |
 | `SELFTEST`, `PRESETS` | |
 | `UI - palette, canvas editor, …` | also the UI prefs (`UI`, `LAYOUT_KEY`, `applyLayout()`), `snapPos()`/`snapDelta()`, the drag and marquee machinery |
 | `AUTO LAYOUT` | `layoutUnits()`, `autoLayout()` — left to right by rank, over layout units |
-| `UI - bottom tabs`, `UI - export, help, keyboard, autosave, boot` | |
+| `UI - bottom tabs`, `UI - export, help, keyboard, autosave, boot` | also the robot view panel: `rbHost()`, `applyRobotPanel()`, `robotViewChanged()`, `rbDrag()`, `drawRobotView()` |
 | `UI - block documentation` | `blockEmitDemo()`, `blockRange()`, `blockDocList()`, `uiBlocks()` — the *Blocks* tab, derived entirely from `NODES` |
 
 ### The one invariant: no second implementation
@@ -70,7 +75,7 @@ A catalogue entry declares `sim(ctx, args, params, state)` **and** `emit(ctx, ar
 - `idiv(a,b) = Math.trunc(a/b)` — C truncates toward zero. **Never `Math.floor`, never bare `/`** on graph values.
 - Group 1 clamps arguments *then* result, in the C's order (`m_mul(2000,2000) === 1000`). Group 2 does not clamp — every product goes through `mulChecked` (BigInt) and raises `FacOverflow`, surfaced on the node. **Never wrap silently**: `int32_t` overflow is UB in C.
 - `m_sqrt` is the unsigned binary restoring method — `>>>` and `>>> 0`, not signed shifts.
-- **The only float in the program** is a gamepad axis, and it dies in the `Math.round(((axis+1)/2)*RECEIVER_CHANNEL_RESOLUTION)` conversion in `GAMEPAD`. Nothing downstream may see a non-integer.
+- **There are exactly two floats in the program, and both die at a named boundary.** (1) a gamepad axis, in `PAD.padToStage0()`'s `Math.round(((axis+1)/2)*RECEIVER_CHANNEL_RESOLUTION)`. (2) the simulated robot's physical state — cm, cm/s, rad/s are floating by nature — in **`SIM.robotImuCounts()`**, which rounds *and* clamps to `int16_t` because that is what the driver hands over (`LSM6DS3.h:137-138`). Nothing downstream of either may see a non-integer, and the self-test sweeps both. `robotImuCounts()` is kept **pure** for exactly that reason; noise is added *before* the rounding so it cannot slip a fraction past it.
 - No shift blocks are offered: `-3 >> 1` is `-2` while `-3 / 2` is `-1`, and a tool premised on bit-identical arithmetic must not hand the user two operations that look interchangeable.
 
 ### The channel chain — four stages, and the travel is symmetric
@@ -94,6 +99,16 @@ motor   abs(v), sign carried as direction      0 .. 1000    fac_mapper.c:77
 ```
 
 The servo targets `MAX_SERVO_VALUE` (999) because that is the divisor of the pulse formula at `fac_servo.c:98` — that makes the map uniform over the travel, at the price of the centre landing on 499. The motor conversion is exact (both resolutions are 1000) and `±1000` is a true 100 % duty.
+
+### The loop is closed — the robot drives the IMU
+
+The mix drives the mapper, the mapper drives a kinematic robot, and the robot drives the simulated IMU the graph reads back. Unicycle model over two sides, `v = (vL+vR)/2`, `ω = (vR−vL)/track`, integrated at the existing 1 ms step from the mapper values scaled by the user's top speed.
+
+- **`integrateRobot()` runs AFTER `runGraph()`**, so a pass reads the counts the previous millisecond produced. A sensor measures the past; integrating first would let a mix react to its own command with no delay at all.
+- **It is a kinematic sketch, not a dynamics simulation** — no mass, no traction limit, no slip, so a step on the stick is a step in ground speed. The panel says so and that caveat stays visible. The one concession: the longitudinal acceleration is a difference quotient over a 1 ms step, i.e. hundreds of g on any stick movement, so it goes through a first-order lag of `ROBOT_ACC_TAU` (20 ms). That leaves a ramp exactly right and only rounds the corners of a step.
+- **Axes: X forward, Y left, Z up**, right-handed, so a left turn is a positive gyro Z. That is a statement about how the board is *mounted* — the firmware only passes the sensor's own X/Y/Z through (`enum AXIS`, `LSM6DS3.h:143-147`).
+- Gyro Z from `ω` at `GYRO_MDPS_PER_COUNT` (70, `LSM6DS3.h:130`); gyro X/Y are zero *by construction*, the sketch being planar. Accel X from the filtered `dv/dt`, Y from `v·ω`, Z holds 1 g, all at `ACCEL_UG_PER_COUNT` (488, `LSM6DS3.h:129`).
+- The user can put the IMU back **on the sliders** (`P.sim.robot.imuSource`), and that path is bit-identical to the pre-§8 behaviour — including the resting `accel:[0,0,1000]` default, which was deliberately *not* "corrected" to 1 g. While the robot is driving, `applyGenerators()` returns early (every generator target is a gyro or accel axis, so writing and losing it one line later would be dishonest) and the Sensors tab shows the sliders **disabled but live**, as gauges.
 
 ### Precedence
 
@@ -129,12 +144,15 @@ Emission constraints worth not rediscovering:
 - **A move drag resolves its DOM targets once**, at mousedown, into `dragState.doms` and `dragState.boxes`. A collapsed group's members are not rendered at all, so a per-frame `[data-id=…]` lookup finds nothing; the box tracks `min(x), min(y)` of its members and updates `GROUP_BOX` so the wires follow. Visual updates are coalesced into one `requestAnimationFrame`.
 - **The marquee previews live** and commits on mouseup; there is deliberately **no `click` listener** clearing the selection, because it fired after the mouseup and wiped what the marquee had just built. `refreshGeometry()` re-measures before a marquee so the hit test never guesses a width.
 - **Pan is decided first** in the mousedown handler — right, middle, Alt or Space — so a pan that starts on a block pans instead of dragging it. Bare letter shortcuts (`F`, `L`) are gated on no modifier, or `Ctrl+F` steals the browser's find.
-- **UI preferences live in `localStorage` under `facmix.layout.v1`**, never in the project file and never in `SCHEMA_VERSION`: pane sizes, collapse state, compact density and grid size are a property of the person, not of the mix. `AUTOSAVE_KEY` is a separate key and the two must not read each other. `applyLayout()` is the single place a preference becomes CSS.
+- **UI preferences live in `localStorage` under `facmix.layout.v1`**, never in the project file and never in `SCHEMA_VERSION`: pane sizes, collapse state, compact density, grid size and the robot panel's geometry/dock/opacity are a property of the person, not of the mix. `AUTOSAVE_KEY` is a separate key and the two must not read each other. `applyLayout()` is the single place a preference becomes CSS, and it calls `applyRobotPanel()` so nothing else has to remember to.
+- **The line between the two stores runs through the robot.** Where the view sits is the person's (`UI.rb*`); *the machine* — track width, top speed, chassis size, which output drives which side, the IMU source — describes what the mix is for and is the project's (`P.sim.robot`, and the reason `SCHEMA_VERSION` is **2**).
+- **A saved project is completed by `migrateProject()`**, which is pure and builds onto a `blankProject()` it never writes into. The bug it fixes is worth not reintroducing: the old code did `P = Object.assign(b, o)` and *then* used `b.sim` as the base of the merge — by which point `b.sim` **was** `o.sim`, so a file carrying a `sim` block was merged onto itself and nothing it omitted was ever defaulted. `chAssign`, `disarmMs` and `reg.fnCount` came back `undefined` and had done so all along.
+- **The robot view is one panel, one renderer, three homes** — floating over `#editor`, docked in the right column, or docked in the Robot tab — and it draws whenever the simulator runs, whatever bottom tab is open. `drawRobotView(canvas)` takes its canvas as an argument and sizes it from `clientWidth/Height`, so a hidden host (collapsed pane, unopened tab) is a zero-size box and an early return rather than a special case. The Robot tab both *hosts* the panel and *describes where it is*, which is why `uiRobot()` parks the panel in `#editor` before overwriting its own `innerHTML`, and why every change of home or visibility goes through `robotViewChanged()`.
 - **A collapsed group is visual only**, and blocks marked `noGroup` in the catalogue — the mix/function inputs and outputs — are never grouped: they are where the graph begins and ends. `loadProject()` strips a stale group off them, so the rule holds for older projects too.
 - **Auto-layout arranges layout units, not nodes**: a collapsed group is one unit at its box size and its members move rigidly inside it. Cycles are broken on the edge *into* a stateful block — the same edge that makes them legal. A freshly loaded preset is laid out once, with `undoSuspend` set, because the presets' hand-written coordinates overlap; a restored session keeps the user's positions.
 - **Positions are not semantics.** The generated C is identical before and after a layout. The `.c` is *not* byte-identical, because it carries the project as JSON for round-trip import and that JSON holds the coordinates — which is the point of it. When a work order asks for a byte-identical `.c` across a layout, that is the clause it did not account for.
 - **`openTab()` is the one way a bottom tab opens**, so a link from the palette or the inspector behaves exactly like clicking it (and un-collapses the bottom panel if needed). `TAB_RENDER` maps a tab name to its render function.
-- **A list with a filter must not rebuild its own filter controls.** The *Blocks* tab builds its shell once and re-renders only `#bdList`; rebuilding the whole panel on every keystroke destroyed the input being typed into and took the focus and caret with it. The same shape applies to any filtered list added later.
+- **A list with a filter must not rebuild its own filter controls.** The *Blocks* tab builds its shell once and re-renders only `#bdList`; rebuilding the whole panel on every keystroke destroyed the input being typed into and took the focus and caret with it. The same shape applies to any filtered list added later — the robot panel's control strip is in the markup and is only ever *synced* (`syncRobotCtl()`), because `applyRobotPanel()` runs on every frame of a splitter or panel drag.
 - There is **no UI scale control**: it was built and then removed on the user's call, because the browser's own zoom covers the case. `--ui-dense` survives for the *compact* switch and multiplies chrome paddings only — fonts are plain px, and nothing in `.node`/`.port`/`.prow` uses it, which is what keeps node metrics fixed in world coordinates.
 
 ## Validation
@@ -145,7 +163,7 @@ Emission constraints worth not rediscovering:
 
 The *Blocks* bottom tab is **generated from `NODES` and nothing else**. Ports, parameters, division count, proven range and the `help` string are read out of the catalogue entry, and the C shown is obtained by calling the block's **own `emit()`** with placeholder arguments on a throwaway `makeCtx()` — which is already isolated, since every `makeCtx()` call returns a fresh context. That is what makes the documentation unable to drift: a hand-written sentence about a block that already says it in its `help` is a bug, and adding a `def({...})` must make a card appear with no other edit.
 
-The theory — the receiver chain, the group 1/2/3/4 clamp and overflow semantics, the cost model — lives **only** in that tab. The help modal keeps the shortcuts and the workflow and links to it. One copy of each explanation.
+The theory — the receiver chain, the group 1/2/3/4 clamp and overflow semantics, the cost model — lives **only** in that tab. The *simulator's* own theory — the kinematic model, the axis convention and its firmware citation, the two sensitivities, the one-pass sensor lag, the three-motor-row limit — lives **only** in the Robot tab, next to the controls it explains. The help modal keeps the shortcuts and the workflow and links to both. One copy of each explanation.
 
 ## Registration guide
 
