@@ -390,6 +390,11 @@ const RECEIVER_CHANNELS_NUMBER = 8;            /* config.h */
 const MOTOR_SPEED_RESOLUTION = 1000;           /* config.h - equals the receiver resolution */
 const MAX_SERVO_VALUE = 999;                   /* fac_servo.h - (RECEIVER_CHANNEL_RESOLUTION-1),
                                                 * the divisor of the pulse formula, fac_servo.c:98 */
+/* THE FIVE MAPPER ROWS THAT EXIST, in that order (fac_settings.c:103-107), and
+ * three of them are motors. A four wheel machine that needs four independent
+ * motor rows cannot be driven by this firmware today - the editor is allowed to
+ * describe one, and has to say so where the link is picked. */
+const MAPPER_KEYS = ['M1', 'M2', 'M3', 'S1', 'S2'];
 /* the sensor end, so the simulated robot can hand the graph the SAME counts the
  * driver would. Both are the sensitivity of the full scale the init functions
  * actually program - changing one there without the other silently rescales
@@ -1304,9 +1309,14 @@ function camel(s) {
  * ========================================================================== */
 /* 2 since the simulated robot got physical units: unlike the pane sizes and the
  * grid, a track width and a top speed DESCRIBE THE MACHINE THE MIX IS FOR, so
- * they belong to the project file and travel with it. An older file is loaded by
- * mergeSim() below, which defaults every new field and re-saves at 2. */
-const SCHEMA_VERSION = 2;
+ * they belong to the project file and travel with it.
+ *
+ * 3 since the robot stopped being two numbers and became a machine you lay out:
+ * a chassis outline, wheels with a position and a grip, device markers and an
+ * IMU that sits somewhere. `lenCm`, `widCm`, `trackCm`, `kin`, `left`, `right`,
+ * `leftB` and `rightB` are gone; mergeSim() below synthesises the geometry from
+ * them so an older file keeps its numbers, and re-saves at 3. */
+const SCHEMA_VERSION = 3;
 let P = null;              /* the project */
 let uid = 1;
 function newId() { return 'n' + (uid++); }
@@ -1338,13 +1348,31 @@ function blankProject(mode) {
 			 * pre-robot behaviour bit for bit */
 			gyro: [0, 0, 0], accel: [0, 0, 1000], gen: 'const', genAmp: 8000, genHz: 1,
 			imuFail: 0, batteryMv: 8000, cells: 2, adc: [2048, 2048, 1500], rxConnected: 1,
-			/* the machine the mix is for. Schema 2. */
+			/* THE MACHINE THE MIX IS FOR, as a layout and not as two numbers. Schema 3.
+			 * Everything here is cm in the BODY FRAME - X forward, Y left, Z up - and
+			 * the origin is the user's (0,0), deliberately not the polygon's centroid:
+			 * a centroid slides the machine out from under them the moment they move
+			 * a vertex. See SECTION: ROBOT MODEL for what reads it. */
 			robot: {
-				lenCm: 20, widCm: 16, trackCm: 14,   /* chassis, and the wheel base the yaw rate comes from */
-				maxSpeedCms: 120,                    /* ground speed at full stick */
-				kin: 'diff',                         /* 'diff' = one device a side, 'skid' = a pair a side */
-				left: 'M1', right: 'M2',             /* fac_settings.c:103-104 defaults */
-				leftB: 'M3', rightB: '',             /* the second device of each side, 'skid' only */
+				maxSpeedCms: 120,                    /* ground speed of a wheel at full stick */
+				/* the chassis outline, a free polygon. The default is the 20 x 16 cm
+				 * rectangle schema 2 described with lenCm/widCm, wound the same way. */
+				shape: [[10, 8], [10, -8], [-10, -8], [-10, 8]],
+				/* x, y   cm, where the contact patch is
+				 * deg    resting steering angle, 0 = pointing forward
+				 * grip   lateral grip 0..1: 1 a tyre, 0 an omni roller, between a track
+				 * link   the mapper row that drives it, '' = undriven (castor, idler)
+				 * steer  a mapper row that steers it while the mix runs, '' = fixed
+				 * steerDeg  the travel at full deflection
+				 * r      drawn radius, and nothing else - it is not a gearing */
+				wheels: [
+					{ x: 0, y: 7, deg: 0, grip: 1, link: 'M1', steer: '', steerDeg: 30, r: 3.5 },
+					{ x: 0, y: -7, deg: 0, grip: 1, link: 'M2', steer: '', steerDeg: 30, r: 3.5 }
+				],
+				/* MARKERS, and only markers: a position, a mapper row, a label and the
+				 * live value. No arm that rotates, no contribution to the motion. */
+				devices: [{ x: 8, y: 0, link: 'S1', label: '' }],
+				imu: { x: 0, y: 0 },                 /* off the centre of rotation it reads that */
 				imuSource: 'robot',                  /* 'robot' | 'manual' */
 				/* the sensor model, all four in RAW COUNTS and all four 0 = off. The
 				 * noises are one sigma of a gaussian redrawn at the sensor's own output
@@ -2415,6 +2443,58 @@ function projectForSave() {
 		reg: P.reg, sim: P.sim, pad: { index: P.pad.index, bindings: PAD.bindings }
 	};
 }
+/* schema 2 described the machine as a rectangle, a track width and two sides.
+ * Schema 3 describes it as wheels on a chassis, and the PHYSICS READS THE
+ * WHEELS - so the old fields have to become geometry rather than be dropped.
+ *
+ * The reconstruction is chosen so an old project keeps its numbers: the old
+ * model used trackCm and nothing else, so both wheels of a side land at
+ * y = +-trackCm/2 and a `diff` machine comes out bit for bit what it was. A
+ * `skid` machine gets its wheels at x = +-0.22*lenCm, which is where the old
+ * renderer drew them - and it therefore turns MORE SLOWLY than it used to once
+ * the solver reads them, because four wheels on a rigid frame really do resist
+ * yaw in proportion to the wheelbase. That is a correction and not a
+ * regression; migrating them to x = 0 to protect the old number would hide a
+ * real property of the machine.
+ *
+ * A side whose second device was 'none' contributes no wheel: the file said
+ * there was no device there, and inventing an undriven wheel would invent
+ * drag the user never described.
+ *
+ * `mapper` is needed too - every row that was linked but is not driving a wheel
+ * becomes a marker, laid out where the old renderer drew it so the picture does
+ * not jump. Pure: it reads `legacy` and `mapper` and writes only into `out`. */
+function migrateRobotGeometry(out, legacy, mapper) {
+	const num = (v, d) => { const n = Number(v); return isFinite(n) && n !== 0 ? n : d; };
+	const L = Math.max(1, num(legacy.lenCm, 20)), W = Math.max(1, num(legacy.widCm, 16));
+	const b = Math.max(0.05, num(legacy.trackCm, 14) / 2);
+	const a = 0.22 * L;
+	const skid = legacy.kin === 'skid';
+	/* wound exactly like the default: front-left, front-right, rear-right, rear-left */
+	out.shape = [[L / 2, W / 2], [L / 2, -W / 2], [-L / 2, -W / 2], [-L / 2, W / 2]];
+	out.imu = { x: 0, y: 0 };
+	const wheel = (x, y, link) => ({ x: x, y: y, deg: 0, grip: 1, link: link, steer: '', steerDeg: 30, r: 3.5 });
+	const left = legacy.left === undefined ? 'M1' : String(legacy.left || '');
+	const right = legacy.right === undefined ? 'M2' : String(legacy.right || '');
+	const leftB = legacy.leftB === undefined ? 'M3' : String(legacy.leftB || '');
+	const rightB = legacy.rightB === undefined ? '' : String(legacy.rightB || '');
+	out.wheels = [];
+	if (left) out.wheels.push(wheel(skid ? a : 0, b, left));
+	if (right) out.wheels.push(wheel(skid ? a : 0, -b, right));
+	if (skid && leftB) out.wheels.push(wheel(-a, b, leftB));
+	if (skid && rightB) out.wheels.push(wheel(-a, -b, rightB));
+	/* anything else the mapper drives is a marker: a weapon on M1 must not look
+	 * like a wheel, which is the mistake the drawn layout exists to end */
+	const taken = {};
+	out.wheels.forEach(w => { taken[w.link] = 1; });
+	out.devices = [];
+	let servo = 0, spare = 0;
+	MAPPER_KEYS.forEach(k => {
+		if (taken[k] || !mapper || !Number(mapper[k])) return;
+		if (k.charAt(0) === 'S') out.devices.push({ x: L * 0.3, y: (servo++ === 0 ? 1 : -1) * W * 0.26, link: k, label: '' });
+		else out.devices.push({ x: -L * (0.34 + 0.12 * spare++), y: 0, link: k, label: '' });
+	});
+}
 /* Merge a saved `sim` block onto the defaults. Object.assign is SHALLOW, so a
  * schema 1 file - which has no `sim.robot` at all - would keep the defaults by
  * luck, while a schema 2 file saved by an older build with only some of the
@@ -2424,6 +2504,7 @@ function projectForSave() {
 function mergeSim(base, inc) {
 	const out = Object.assign({}, base, inc || {});
 	out.robot = Object.assign({}, base.robot, (inc && inc.robot) || {});
+	out.robot.imu = Object.assign({}, base.robot.imu, (inc && inc.robot && inc.robot.imu) || {});
 	/* A file written before the sensor model was split carries ONE `noise` field:
 	 * the peak of a uniform draw, applied to both sensors alike. The two fields
 	 * that replaced it are one sigma each, and a uniform +-peak has an RMS of
@@ -2434,6 +2515,15 @@ function mergeSim(base, inc) {
 		out.robot.gyroNoise = sigma;
 		out.robot.accelNoise = sigma;
 	}
+	/* A file written before the robot became a layout describes it with a
+	 * rectangle, a track width and two sides. Only a block that actually carries
+	 * one of those keys is converted: a modern file that merely omits `wheels`
+	 * has no geometry to reconstruct and keeps the defaults it was given. */
+	const LEGACY_ROBOT_KEYS = ['lenCm', 'widCm', 'trackCm', 'kin', 'left', 'right', 'leftB', 'rightB'];
+	const legacy = (inc && inc.robot) || {};
+	if (legacy.wheels === undefined && LEGACY_ROBOT_KEYS.some(k => legacy[k] !== undefined))
+		migrateRobotGeometry(out.robot, legacy, out.mapper);
+	LEGACY_ROBOT_KEYS.forEach(k => { delete out.robot[k]; });
 	delete out.robot.noise;
 	return out;
 }
@@ -2482,6 +2572,201 @@ function importFromC(text) {
 	if (i < 0 || j < 0) throw new Error('this .c carries no embedded project (round-trip was off when it was exported)');
 	return JSON.parse(text.slice(i + 17, j).trim());
 }
+/* ==========================================================================
+ * SECTION: ROBOT MODEL
+ * The geometry of the machine, and the kinematics that reads it. Pure, and on
+ * its own so it can be read on its own: SIM is large enough already.
+ *
+ * Body frame throughout: X forward, Y left, Z up, right handed, so a left turn
+ * is a positive yaw. That is a statement about how the board is MOUNTED - the
+ * firmware only ever passes the sensor's own X/Y/Z through (enum AXIS,
+ * LSM6DS3.h:143-147).
+ * ========================================================================== */
+/* The chassis polygon's extent, and the ONE answer to "how big is this thing".
+ * A shape with fewer than two distinct points is not a chassis, so it falls
+ * back to a 1 cm box rather than handing a zero to everything downstream that
+ * divides by a size. */
+function chassisBounds(shape) {
+	let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+	(shape || []).forEach(p => {
+		if (!p) return;
+		const x = Number(p[0]), y = Number(p[1]);
+		if (!isFinite(x) || !isFinite(y)) return;
+		if (x < minX) minX = x;
+		if (x > maxX) maxX = x;
+		if (y < minY) minY = y;
+		if (y > maxY) maxY = y;
+	});
+	if (!isFinite(minX) || !isFinite(minY)) { minX = maxX = minY = maxY = 0; }
+	return {
+		minX: minX, maxX: maxX, minY: minY, maxY: maxY,
+		len: Math.max(1, maxX - minX), wid: Math.max(1, maxY - minY)
+	};
+}
+/* The track: the widest the wheels stand apart across the machine. It replaces
+ * schema 2's `trackCm` field, and for every machine that came out of the
+ * migration it is exactly the number that field held. */
+function wheelTrack(wheels) {
+	let lo = Infinity, hi = -Infinity;
+	(wheels || []).forEach(w => {
+		if (!w) return;
+		const y = Number(w.y);
+		if (!isFinite(y)) return;
+		if (y < lo) lo = y;
+		if (y > hi) hi = y;
+	});
+	/* a zero track is an infinite yaw rate, which is why this floor exists */
+	return hi > lo ? Math.max(0.1, hi - lo) : 0.1;
+}
+
+/* A wheel's LIVE steering angle, radians CCW from "pointing forward". `deg` is
+ * where it rests; a `steer` mapper row deflects it by up to `steerDeg` at full
+ * stick, so it moves while the mix runs. An unlinked steering row leaves the
+ * wheel at rest rather than at zero - the resting angle is the geometry. */
+function wheelAngle(w, valueOf) {
+	const base = (Number(w.deg) || 0) * Math.PI / 180;
+	if (!w.steer) return base;
+	const v = valueOf(w.steer);
+	if (v === null || v === undefined) return base;
+	return base + (v / V_MAX) * (Number(w.steerDeg) || 0) * Math.PI / 180;
+}
+/* grip is 0..1 and 1 is the default, so a wheel that never mentions it is a
+ * tyre. Note 0 must survive: it is the omni roller and not a missing field. */
+function wheelGrip(w) {
+	const g = Number(w.grip);
+	return isFinite(g) ? Math.max(0, Math.min(1, g)) : 1;
+}
+
+/* ---- the body twist ------------------------------------------------------
+ * THE PHYSICS READS THE WHEELS. Every wheel states two things about the body
+ * twist xi = (vx, vy, w), and the twist that best satisfies all of them at
+ * once is the machine's motion:
+ *
+ *   rolling   it rolls at the speed its motor was told, (u.d - s)^2, weight 1,
+ *             and only a wheel with a drive link says this at all
+ *   lateral   it does not slide sideways, (u.n)^2, weight `grip` - which is
+ *             what makes an omni wheel (grip 0) simply not say it, and a
+ *             scrubbing track say it weakly
+ *
+ * with u = (vx - w.y, vy + w.x) the contact patch's velocity, d = (cos a,
+ * sin a) the rolling axis and n = (-sin a, cos a) the lateral one. Each
+ * residual is linear in xi, so this is a plain weighted least squares:
+ *
+ *   a_roll = ( cos a, sin a,  x sin a - y cos a)   b = s
+ *   a_lat  = (-sin a, cos a,  x cos a + y sin a)   b = 0
+ *   M = SUM w a a^T   (symmetric 3x3)      c = SUM w a b      M xi = c
+ *
+ * Solved by explicit Cramer on the 3x3: no library, no iteration, and small
+ * enough to read. The per wheel residuals come back out with the answer - they
+ * are the SLIP, and the renderer and the panel show nothing that is not one of
+ * them.
+ *
+ * THE RIDGE, AND WHY IT IS NOT ALWAYS ON. A machine with no wheels, one wheel,
+ * or grip 0 everywhere genuinely leaves part of the twist unconstrained, and M
+ * is then singular: Cramer would divide by zero and hand the renderer a NaN.
+ * A Tikhonov ridge on the diagonal fixes that by pulling the unconstrained
+ * directions to zero, which is the right answer for them - c is zero in every
+ * null direction of M, so the ridge decides nothing it was not asked to.
+ *
+ * It is applied ONLY when M is singular, and that is a deliberate departure
+ * from the work order, which asks for it unconditionally. An always-on ridge
+ * perturbs every well posed machine too: it turns vx = (sL+sR)/2 into
+ * (sL+sR)/(2+lambda), and the two closed forms below - and a schema 2
+ * project's agreement with what it did before - are exact statements that a
+ * constant ridge would make merely approximate. Load bearing means it carries
+ * the degenerate case; it does not mean it taxes the others. */
+const TWIST_SINGULAR_REL = 1e-9;   /* |det| below this * scale^3 is not a solve */
+const TWIST_RIDGE_REL = 1e-6;      /* the ridge itself, relative to the same scale */
+function det3(m) {
+	return m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1])
+		- m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
+		+ m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+}
+function solveTwist(R, valueOf) {
+	const vmax = Number(R.maxSpeedCms) || 0;
+	const rows = [];
+	(R.wheels || []).forEach(w => {
+		if (!w) return;
+		const al = wheelAngle(w, valueOf);
+		const ca = Math.cos(al), sa = Math.sin(al);
+		const x = Number(w.x) || 0, y = Number(w.y) || 0;
+		const dv = w.link ? valueOf(w.link) : null;
+		const driven = dv !== null && dv !== undefined;
+		rows.push({
+			ang: al, x: x, y: y, grip: wheelGrip(w), driven: driven,
+			s: driven ? (dv / V_MAX) * vmax : 0,
+			d: [ca, sa, x * sa - y * ca],       /* rolling */
+			n: [-sa, ca, x * ca + y * sa]       /* lateral */
+		});
+	});
+	const M = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], c = [0, 0, 0];
+	const accum = (a, weight, b) => {
+		if (!weight) return;
+		for (let i = 0; i < 3; i++) {
+			for (let j = 0; j < 3; j++) M[i][j] += weight * a[i] * a[j];
+			c[i] += weight * a[i] * b;
+		}
+	};
+	rows.forEach(r => {
+		if (r.driven) accum(r.d, 1, r.s);
+		accum(r.n, r.grip, 0);
+	});
+
+	/* The ridge is applied in two steps, and the first one is why the closed forms
+	 * stay exact. A whole component of the twist being unconstrained shows up as a
+	 * ZERO ON THE DIAGONAL - grip 0 everywhere leaves M[1][1] at nothing, because
+	 * no wheel said anything about vy - and ridging only that entry rescues it
+	 * while leaving vx and w untouched. Ridging all three instead would tax the
+	 * two directions that were perfectly well determined: an omni machine's
+	 * forward speed came out 119.998 instead of 120, and the four wheel skid
+	 * missed its own closed form by 3e-7 at grip 0.
+	 * A rank deficiency that is NOT visible on the diagonal - one wheel, or every
+	 * wheel at the same point - needs the full ridge, so that is the second step. */
+	const scale = Math.max((M[0][0] + M[1][1] + M[2][2]) / 3, 1);
+	const lam = scale * TWIST_RIDGE_REL;
+	for (let i = 0; i < 3; i++) if (!(M[i][i] > scale * TWIST_SINGULAR_REL)) M[i][i] += lam;
+	let det = det3(M);
+	if (!(Math.abs(det) > TWIST_SINGULAR_REL * scale * scale * scale)) {
+		M[0][0] += lam; M[1][1] += lam; M[2][2] += lam;
+		det = det3(M);
+	}
+	const xi = [0, 0, 0];
+	if (isFinite(det) && det !== 0) {
+		for (let j = 0; j < 3; j++) {
+			const Mj = [M[0].slice(), M[1].slice(), M[2].slice()];
+			for (let i = 0; i < 3; i++) Mj[i][j] = c[i];
+			xi[j] = det3(Mj) / det;
+		}
+	}
+	/* the renderer's smoke test throws on a non-finite coordinate, and it is
+	 * right to: a NaN twist would poison the pose for the rest of the run. The
+	 * ridge should make this unreachable - this is the belt on top of it. */
+	if (!isFinite(xi[0]) || !isFinite(xi[1]) || !isFinite(xi[2])) { xi[0] = xi[1] = xi[2] = 0; }
+
+	/* the residuals ARE the slip, so they are read straight back off the answer
+	 * rather than computed a second way: lat is how fast the contact patch is
+	 * dragged sideways, lon how much it is spinning or being dragged along its
+	 * own axis. Both cm/s. */
+	const dot = (a) => a[0] * xi[0] + a[1] * xi[1] + a[2] * xi[2];
+	const slip = rows.map(r => ({
+		lat: dot(r.n), lon: r.driven ? dot(r.d) - r.s : 0,
+		ang: r.ang, x: r.x, y: r.y, driven: r.driven, grip: r.grip
+	}));
+	return { vx: xi[0], vy: xi[1], w: xi[2], slip: slip };
+}
+/* The yaw the machine can actually produce, ASKED OF THE SOLVER. A readout
+ * derived from a formula is a readout that can disagree with the machine it
+ * claims to describe, which is the whole reason this is not maxSpeed/track.
+ * mode 1 = one side at full stick, mode 2 = both sides opposite, on the spot. */
+function maxYawRate(R, mode) {
+	const cmd = {};
+	(R.wheels || []).forEach(w => {
+		if (!w || !w.link) return;
+		cmd[w.link] = ((Number(w.y) || 0) >= 0) ? V_MAX : (mode === 2 ? -V_MAX : 0);
+	});
+	return Math.abs(solveTwist(R, (k) => (cmd[k] === undefined ? null : cmd[k])).w);
+}
+
 /* ==========================================================================
  * SECTION: SIM
  * A fixed 1 ms step driving a simulated HAL_GetTick(). It calls exactly the
@@ -2540,8 +2825,14 @@ const SIM = {
 		const u = () => Math.random() * 2 - 1;
 		return {
 			x: 0, y: 0, th: 0,        /* pose: cm, cm, rad (world frame, th = 0 is +X) */
-			v: 0, w: 0,               /* body speed cm/s, yaw rate rad/s */
-			ax: 0, ay: 0,             /* body acceleration cm/s^2: longitudinal, lateral */
+			v: 0, vy: 0, w: 0,        /* body twist: cm/s forward, cm/s left, rad/s yaw */
+			/* the three LAGGED derivatives of the twist. They are state because the
+			 * lag is, and they are kept apart from ax/ay because ax/ay are what the
+			 * IMU at its own position reads, which is a different thing - see
+			 * integrateRobot(). */
+			dvx: 0, dvy: 0, dw: 0,
+			ax: 0, ay: 0,             /* what the accelerometer reads, cm/s^2, body frame */
+			slip: [],                 /* per wheel residuals, straight off the solve */
 			trail: [], trailT: 0,
 			paused: false,
 			/* the SENSOR's state, not the chassis'. `nz` is the held noise sample, in
@@ -2725,22 +3016,14 @@ const SIM = {
 		if (m) s[m[1]][+m[2]] = Math.max(-32768, Math.min(32767, v));
 	},
 
-	/* the normalized value the mapper would hand a device, 0 when it is unlinked.
-	 * `key` is a mapper row name ('M1'..'S2'); '' is "no second device". */
-	sideValue: function (key) {
+	/* the normalized value a MAPPER ROW would hand its device, null when that row
+	 * is not linked to anything. `key` is a row name ('M1'..'S2'), which is what
+	 * a wheel's `link` and a marker's `link` hold; '' is "nothing here".
+	 * The one row -> value accessor: the solver, the renderer and the tab all
+	 * read a device through this and can therefore never disagree about it. */
+	rowValue: function (key) {
 		if (!key) return null;
-		const v = this.deviceValue(P.sim.mapper[key]);
-		return v === null ? null : v;
-	},
-	/* one side of the drive, as a fraction of full stick. A pair averages, which
-	 * is what a skid-steer chassis does mechanically anyway. An unlinked device
-	 * contributes 0 - it is stopped, not absent. */
-	sideDrive: function (a, b) {
-		const va = this.sideValue(a), vb = this.sideValue(b);
-		if (va === null && vb === null) return 0;
-		if (vb === null) return va / V_MAX;
-		if (va === null) return vb / V_MAX;
-		return ((va + vb) / 2) / V_MAX;
+		return this.deviceValue(P.sim.mapper[key]);
 	},
 
 	/* ------------------------------------------------------------------ robot
@@ -2750,37 +3033,46 @@ const SIM = {
 	 * chassis, and the turn is what the IMU blocks read - not to predict a lap
 	 * time.
 	 *
-	 * Unicycle model over the two sides:
-	 *     v = (vL + vR) / 2          cm/s
-	 *     w = (vR - vL) / track      rad/s
-	 * with vL, vR the mapper values scaled by the user's top speed. */
+	 * The twist itself is SECTION: ROBOT MODEL's - solveTwist() reads the wheels
+	 * and hands back (vx, vy, w) plus the per wheel slip. Everything below is
+	 * the integration, the lag, the accelerometer's position and the trail. */
 	integrateRobot: function () {
 		const R = P.sim.robot, S = this.robot, dt = 0.001;
 		if (S.paused) return;
-		const pair = R.kin === 'skid';
-		const vmax = Number(R.maxSpeedCms) || 0;
-		const track = Math.max(0.1, Number(R.trackCm) || 0.1);   /* a zero track is an infinite yaw rate */
-		const vL = this.sideDrive(R.left, pair ? R.leftB : '') * vmax;
-		const vR = this.sideDrive(R.right, pair ? R.rightB : '') * vmax;
-		const v = (vL + vR) / 2;
-		const w = (vR - vL) / track;
+		const t = solveTwist(R, (k) => this.rowValue(k));
+		S.slip = t.slip;
 
-		/* Longitudinal acceleration is the derivative of a value that changes in
-		 * 1 ms steps, so the raw difference quotient is a spike of hundreds of g
-		 * on any stick movement. It is passed through a first order lag of
-		 * ROBOT_ACC_TAU, which leaves a ramp exactly right and only rounds the
-		 * corners of a step - the same thing the chassis' own inertia would do,
-		 * for the same reason it is not modelled properly. */
+		/* Each component of the twist changes in 1 ms steps, so its raw difference
+		 * quotient is a spike of hundreds of g on any stick movement. ALL THREE go
+		 * through a first order lag of ROBOT_ACC_TAU, which leaves a ramp exactly
+		 * right and only rounds the corners of a step - the same thing the chassis'
+		 * own inertia would do, for the same reason it is not modelled properly.
+		 * The yaw one matters as much as the others now: alpha appears in what the
+		 * accelerometer reads as soon as the IMU is off the centre of rotation. */
 		const k = dt / (ROBOT_ACC_TAU + dt);
-		S.ax += ((v - S.v) / dt - S.ax) * k;
-		S.ay = v * w;                       /* centripetal, body Y (positive = to the left) */
-		S.v = v; S.w = w;
+		S.dvx += ((t.vx - S.v) / dt - S.dvx) * k;
+		S.dvy += ((t.vy - S.vy) / dt - S.dvy) * k;
+		S.dw += ((t.w - S.w) / dt - S.dw) * k;
+		S.v = t.vx; S.vy = t.vy; S.w = t.w;
 
-		S.th += w * dt;
+		/* WHAT THE ACCELEROMETER READS, AT THE POINT IT IS BOLTED TO. A sensor off
+		 * the centre of rotation is carried around it, and reads the centripetal
+		 * and tangential terms that implies:
+		 *     a_x = vx' - w vy - alpha y - w^2 x
+		 *     a_y = vy' + w vx + alpha x - w^2 y
+		 * At the origin with vy = 0 this is (vx', w vx), which is exactly the model
+		 * before the IMU had a position - the general form CONTAINS the old one. */
+		const ix = Number(R.imu && R.imu.x) || 0, iy = Number(R.imu && R.imu.y) || 0;
+		S.ax = S.dvx - S.w * S.vy - S.dw * iy - S.w * S.w * ix;
+		S.ay = S.dvy + S.w * S.v + S.dw * ix - S.w * S.w * iy;
+
+		S.th += S.w * dt;
 		if (S.th > Math.PI) S.th -= 2 * Math.PI;
 		else if (S.th < -Math.PI) S.th += 2 * Math.PI;
-		S.x += Math.cos(S.th) * v * dt;
-		S.y += Math.sin(S.th) * v * dt;
+		/* the body twist carried into the world frame. vy is zero for anything that
+		 * cannot crab, so this is the old two term integration for those machines. */
+		S.x += (Math.cos(S.th) * S.v - Math.sin(S.th) * S.vy) * dt;
+		S.y += (Math.sin(S.th) * S.v + Math.cos(S.th) * S.vy) * dt;
 
 		/* one trail point every ROBOT_TRAIL_MS, so the memory is bounded by time
 		 * and not by how long the tab has been open */
@@ -3534,7 +3826,54 @@ function runSelfTest() {
 			T('full opposite sticks spin on the spot at 2*v/track',
 				SIM.robot.v.toFixed(3) + '/' + SIM.robot.w.toFixed(4), (0).toFixed(3) + '/' + (240 / 14).toFixed(4));
 
-			/* --- manual source: the sensor path is exactly what it was before --- */
+			/* THE MACHINE BECAME A LAYOUT AND THE PHYSICS DID NOT MOVE. A schema 2
+			 * file has to drive exactly as it drove before the wheels existed, so
+			 * the run below compares a migrated one against the default project -
+			 * which is the same machine, described the new way from the start. If
+			 * these ever part company, the reconstruction is wrong and not the run. */
+			const run300 = (proj) => {
+				P = proj;
+				SIM.robot = SIM.newRobot();
+				const out = [];
+				for (let t = 1; t <= 300; t++) {
+					SIM.tick = t;
+					/* a stick that ramps, so the yaw, the lag and the trail all move */
+					SIM.outputs[0] = Math.max(-1000, Math.min(1000, (t - 40) * 9));
+					SIM.outputs[1] = Math.max(-1000, Math.min(1000, (60 - t) * 5));
+					SIM.integrateRobot();
+					const S = SIM.robot;
+					if (t % 30 === 0) out.push([S.x, S.y, S.th, S.v, S.w, S.ax, S.ay].map(n => n.toFixed(12)).join(' ') +
+						'|' + P.sim.gyro.join(',') + '|' + P.sim.accel.join(','));
+				}
+				return out.join('\n');
+			};
+			const legacyFile = {
+				schemaVersion: 2, mode: 'mix', nodes: [], wires: [],
+				sim: {
+					mapper: { M1: 100, M2: 101, M3: 0, S1: 200, S2: 0 },
+					robot: {
+						lenCm: 20, widCm: 16, trackCm: 14, maxSpeedCms: 120, kin: 'diff',
+						left: 'M1', right: 'M2', leftB: 'M3', rightB: '', imuSource: 'robot'
+					}
+				}
+			};
+			T('a migrated schema 2 machine drives exactly as a new one does',
+				run300(migrateProject(JSON.parse(JSON.stringify(legacyFile)))), run300(blankProject('mix')));
+			/* the skid case is the one the reconstruction could get wrong quietly: a
+			 * pair averages, and a row that is not linked at all has to be ABSENT
+			 * from that mean rather than a zero in it - a zero would halve the side */
+			const skidFile = JSON.parse(JSON.stringify(legacyFile));
+			skidFile.sim.robot.kin = 'skid';
+			const skid = migrateProject(skidFile);
+			P = skid; SIM.robot = SIM.newRobot();
+			SIM.outputs[0] = 1000; SIM.outputs[1] = 1000;
+			SIM.integrateRobot();
+			T('an unlinked row is absent from its side, not a zero in it',
+				SIM.robot.v.toFixed(3) + '/' + SIM.robot.w.toFixed(6), (120).toFixed(3) + '/' + (0).toFixed(6));
+
+			/* --- manual source: the sensor path is exactly what it was before ---
+			 * a throwaway project again, never saveP: the lines below WRITE to it */
+			P = blankProject('mix');
 			P.sim.robot.imuSource = 'manual';
 			P.sim.gyro = [11, 22, 33]; P.sim.accel = [44, 55, 66];
 			SIM.robot = SIM.newRobot();
@@ -3573,6 +3912,17 @@ function runSelfTest() {
 			 * it stays a choice rather than becoming a bug */
 			P.sim.robot.viewCm = 0;
 			Tok('the auto fit view still grows with the trail', robotScale(W, H) > fixed * 4, String(robotScale(W, H)));
+			/* and it fits around what it is FOLLOWING. The trail above runs from the
+			 * origin to the machine, so both centres see the same 40 m of it and the
+			 * two scales agree - which is why this needs a trail that is SHORT and
+			 * FAR: riding with the machine then has almost nothing to take in, while
+			 * a view locked to the origin still has to reach all the way out to it. */
+			SIM.robot.trail.length = 0;
+			for (let i = 0; i < 20; i++) SIM.robot.trail.push(3990 + i, 3990 - i);
+			P.sim.robot.follow = 1; const fit1 = robotScale(W, H);
+			P.sim.robot.follow = 0; const fit0 = robotScale(W, H);
+			Tok('the auto fit centres on what it is following', fit0 > fit1 * 10, fit0 + ' vs ' + fit1);
+			P.sim.robot.follow = 1;
 
 			/* the same run, at the two extremes of the view: same pose, same counts */
 			const run = (viewCm) => {
@@ -3610,14 +3960,16 @@ function runSelfTest() {
 		T('a schema 1 project keeps the sim fields it carried', m.sim.deadzonePerc, 7);
 		T('a schema 1 project has the sim fields it omitted defaulted', String(m.sim.chAssign), String(d.chAssign));
 		T('a schema 1 project has the disarm window defaulted', m.sim.disarmMs, d.disarmMs);
-		T('a schema 1 project has the robot block defaulted', m.sim.robot.trackCm, d.robot.trackCm);
+		T('a schema 1 project has the robot block defaulted', m.sim.robot.maxSpeedCms, d.robot.maxSpeedCms);
+		T('a schema 1 project gets the default layout, not an empty one', m.sim.robot.wheels.length, 2);
 		T('a schema 1 project defaults to the robot driving the IMU', m.sim.robot.imuSource, 'robot');
 		T('a partial reg block keeps what it set', m.reg.mixCount, 5);
 		T('a partial reg block defaults what it omitted', m.reg.fnCount, dr.fnCount);
 		T('a migrated project carries the current schema version', m.schemaVersion, SCHEMA_VERSION);
-		/* a partially written robot block must not wipe the fields it omits */
+		/* a partially written robot block must not wipe the fields it omits. It is
+		 * also a LEGACY block - one old key is enough - so its track becomes wheels */
 		const m2 = migrateProject({ mode: 'mix', nodes: [], wires: [], sim: { robot: { trackCm: 30 } } });
-		T('a partial robot block keeps the field it set', m2.sim.robot.trackCm, 30);
+		T('a partial robot block keeps the field it set, as geometry', String(m2.sim.robot.wheels.map(w => w.y)), '15,-15');
 		T('a partial robot block defaults the fields it omitted', m2.sim.robot.maxSpeedCms, d.robot.maxSpeedCms);
 		/* a file written before the view was fixed carries no viewCm at all, and
 		 * must come back with one rather than falling into the auto fit */
@@ -3644,10 +3996,437 @@ function runSelfTest() {
 		/* the defaults are a fresh object every time, so loading one project can
 		 * never edit the next one through a shared reference */
 		const a1 = migrateProject({ mode: 'mix', nodes: [], wires: [] });
-		a1.sim.robot.trackCm = 999;
-		T('one loaded project cannot edit the defaults of the next', migrateProject({ mode: 'mix', nodes: [], wires: [] }).sim.robot.trackCm, d.robot.trackCm);
+		a1.sim.robot.maxSpeedCms = 999;
+		a1.sim.robot.wheels.push({ x: 1, y: 1, link: 'M3' });
+		a1.sim.robot.shape[0][0] = 999;
+		a1.sim.robot.imu.x = 999;
+		const a2 = migrateProject({ mode: 'mix', nodes: [], wires: [] });
+		T('one loaded project cannot edit the defaults of the next', a2.sim.robot.maxSpeedCms, d.robot.maxSpeedCms);
+		/* the lists are the half a shallow merge would have shared, and a layout that
+		 * followed the last project around is exactly the bug this pins down */
+		T('nor its wheel list', a2.sim.robot.wheels.length, d.robot.wheels.length);
+		T('nor its chassis polygon', a2.sim.robot.shape[0][0], d.robot.shape[0][0]);
+		T('nor where its IMU sits', a2.sim.robot.imu.x, d.robot.imu.x);
 		T('a project is saved at the current schema version', projectForSave().schemaVersion, SCHEMA_VERSION);
-		T('the current schema version is 2', SCHEMA_VERSION, 2);
+		T('the current schema version is 3', SCHEMA_VERSION, 3);
+
+		/* --- schema 2 -> 3: the machine becomes a layout ---------------------
+		 * The old model was a rectangle, a track width and two sides, and the ONLY
+		 * length its physics ever used was the track. So the reconstruction has to
+		 * put the wheels at +-track/2 and nothing else may change: the scripted run
+		 * below is what proves the pose and the counts did not move. */
+		const v2 = (extra) => migrateProject({
+			schemaVersion: 2, mode: 'mix', nodes: [], wires: [],
+			sim: {
+				mapper: { M1: 100, M2: 101, M3: 0, S1: 200, S2: 0 },
+				robot: Object.assign({
+					lenCm: 20, widCm: 16, trackCm: 14, maxSpeedCms: 120, kin: 'diff',
+					left: 'M1', right: 'M2', leftB: 'M3', rightB: ''
+				}, extra || {})
+			}
+		}).sim.robot;
+		const g2 = v2();
+		T('a schema 2 chassis becomes the rectangle it described', String(g2.shape), String([[10, 8], [10, -8], [-10, -8], [-10, 8]]));
+		T('a schema 2 diff machine becomes two wheels on the track', g2.wheels.map(w => w.link + '@' + w.x + ',' + w.y).join(' '), 'M1@0,7 M2@0,-7');
+		T('a migrated wheel is a plain tyre pointing forward', g2.wheels[0].deg + '/' + g2.wheels[0].grip + '/' + g2.wheels[0].steer, '0/1/');
+		T('a migrated machine puts the IMU on the body origin', g2.imu.x + ',' + g2.imu.y, '0,0');
+		/* a mapper row that was linked but drove nothing becomes a marker: a weapon
+		 * on M1 must never be mistaken for a wheel, which is why devices exist */
+		T('a linked row that drives no wheel becomes a marker', g2.devices.map(x => x.link).join(','), 'S1');
+		Tok('the legacy robot keys do not survive their own migration',
+			['lenCm', 'widCm', 'trackCm', 'kin', 'left', 'right', 'leftB', 'rightB'].every(k => g2[k] === undefined),
+			JSON.stringify(g2));
+		/* the track is no longer a field: it is where the wheels stand */
+		T('the track is read back off the wheels', wheelTrack(g2.wheels), 14);
+		/* skid: the wheels go where the old renderer drew them, and a side whose
+		 * second device was `none` contributes NO wheel - the file said there was
+		 * nothing there, and an invented undriven wheel would invent drag */
+		const g2s = v2({ kin: 'skid' });
+		T('a schema 2 skid machine keeps its wheelbase', g2s.wheels.map(w => w.link + '@' + w.x + ',' + w.y).join(' '), 'M1@4.4,7 M2@4.4,-7 M3@-4.4,7');
+		T('a side whose second device was none contributes no wheel', g2s.wheels.length, 3);
+		/* M3 drives a wheel here, so it is not also a marker */
+		T('a row that drives a wheel is not also a marker', g2s.devices.map(x => x.link).join(','), 'S1');
+		/* and a MODERN block that merely omits the wheels is not a legacy one: there
+		 * is no geometry to reconstruct, and reconstructing one would overwrite the
+		 * default layout with a machine the file never described. Comparing the wheel
+		 * COUNT against the default would not show that - the reconstruction happens
+		 * to build two wheels as well - so the chassis and the markers are what this
+		 * asks about, because those it would visibly overwrite. */
+		const g3 = migrateProject({
+			schemaVersion: 3, mode: 'mix', nodes: [], wires: [],
+			sim: { robot: { viewCm: 200, devices: [], shape: [[1, 1], [1, -1], [-1, -1]] } }
+		}).sim.robot;
+		T('a modern block that omits the wheels keeps its own chassis', String(g3.shape), String([[1, 1], [1, -1], [-1, -1]]));
+		T('and is not given markers it never asked for', g3.devices.length, 0);
+		T('and keeps the default layout it did omit', g3.wheels.length, d.robot.wheels.length);
+		T('and keeps the field it did set', g3.viewCm, 200);
+		/* the IMU is a sub-object, so a shallow merge would drop the axis the file
+		 * did not mention and leave it undefined all the way into the renderer */
+		const g5 = migrateProject({ schemaVersion: 3, mode: 'mix', nodes: [], wires: [], sim: { robot: { imu: { x: 3 } } } }).sim.robot;
+		T('an IMU position that names one axis gets the other defaulted', g5.imu.x + ',' + g5.imu.y, '3,0');
+		/* a file that already carries wheels is left exactly alone */
+		const g4 = migrateProject({
+			schemaVersion: 3, mode: 'mix', nodes: [], wires: [],
+			sim: { robot: { wheels: [{ x: 1, y: 2, deg: 3, grip: 0, link: 'M2', steer: 'S1', steerDeg: 45, r: 2 }] } }
+		}).sim.robot;
+		T('a schema 3 wheel list survives untouched', g4.wheels.map(w => w.link + '@' + w.x + ',' + w.y + '/' + w.grip + '/' + w.steer).join(' '), 'M2@1,2/0/S1');
+	})();
+
+	/* --- the geometry helpers, including what they do with a non-chassis ---- */
+	(function () {
+		const b = chassisBounds([[10, 8], [10, -8], [-10, -8], [-10, 8]]);
+		T('the bounds of the default chassis are its rectangle', [b.minX, b.maxX, b.minY, b.maxY, b.len, b.wid].join(','), '-10,10,-8,8,20,16');
+		/* nothing downstream may be handed a zero size: robotScale() divides by it */
+		T('an empty shape falls back to a 1 cm box', chassisBounds([]).len + 'x' + chassisBounds([]).wid, '1x1');
+		T('a one point shape falls back to a 1 cm box', chassisBounds([[3, 4]]).len + 'x' + chassisBounds([[3, 4]]).wid, '1x1');
+		/* a NaN never wins a `<` or a `>` and so could never have got in anyway; an
+		 * INFINITY wins both, and an infinite bound is a non-finite coordinate in
+		 * every canvas call downstream of it. That is the one the guard is for. */
+		T('a shape carrying a NaN vertex ignores it', chassisBounds([[0, 0], [4, 6], [NaN, 1]]).len, 4);
+		T('a shape carrying an infinite vertex ignores it', chassisBounds([[0, 0], [4, 6], [Infinity, 1]]).len, 4);
+		Tok('and the bounds it hands back stay finite',
+			[chassisBounds([[0, 0], [Infinity, -Infinity]])].every(b => isFinite(b.minX) && isFinite(b.maxX) && isFinite(b.minY) && isFinite(b.maxY)),
+			JSON.stringify(chassisBounds([[0, 0], [Infinity, -Infinity]])));
+		T('an off centre polygon keeps its own origin', chassisBounds([[0, 0], [30, 0], [30, 10], [0, 10]]).minX, 0);
+		/* the track is a span and not a mean, so a third wheel between the two
+		 * outer ones cannot narrow the machine */
+		T('the track is the widest the wheels stand apart', wheelTrack([{ y: 7 }, { y: -7 }, { y: 0 }]), 14);
+		T('one wheel has no track, and gets the floor instead of an infinity', wheelTrack([{ y: 5 }]), 0.1);
+		T('no wheels at all still gives a finite track', wheelTrack([]), 0.1);
+	})();
+
+	/* --- the solver, against CLOSED FORMS and never against itself -----------
+	 * A least squares solve that is only ever compared to its own output proves
+	 * nothing at all. Each of the three below is the algebra of the normal
+	 * equations worked out by hand, written here in the form the work order
+	 * states it, and the solver has to land on it. */
+	(function () {
+		const W = (x, y, link, grip, deg, steer, steerDeg) => ({
+			x: x, y: y, deg: deg || 0, grip: grip === undefined ? 1 : grip,
+			link: link, steer: steer || '', steerDeg: steerDeg === undefined ? 30 : steerDeg, r: 3.5
+		});
+		const mk = (wheels) => ({ maxSpeedCms: 120, wheels: wheels, imu: { x: 0, y: 0 } });
+		const cmd = (m) => (k) => (m[k] === undefined ? null : m[k]);
+		const sp = (v) => v / V_MAX * 120;
+		/* one ulp of room, and only where the algebra genuinely factors another
+		 * way - every assertion that CAN be exact is asserted exact */
+		const near = (name, got, want) => Tok(name, Math.abs(got - want) <= 1e-12 * Math.max(1, Math.abs(want)),
+			got.toExponential(18) + ' vs ' + want.toExponential(18));
+
+		/* 1. TWO PARALLEL WHEELS at x = 0, y = +-b, grip 1. M comes out diagonal,
+		 * (2, 2, 2b^2), c = (sL+sR, 0, b(sR-sL)) - so this is the model that was
+		 * here before the wheels existed, and it must hold TO THE BIT. This is the
+		 * first assertion to write and the last one to let fail. */
+		[[7, 1000, -400], [7, 1000, 1000], [3.5, -250, 900], [20, 1, -1]].forEach(([b, L, R]) => {
+			const t = solveTwist(mk([W(0, b, 'M1'), W(0, -b, 'M2')]), cmd({ M1: L, M2: R }));
+			const tag = ' (b=' + b + ' L=' + L + ' R=' + R + ')';
+			T('two parallel wheels give vx = (sL+sR)/2' + tag, t.vx, (sp(L) + sp(R)) / 2);
+			T('two parallel wheels cannot crab' + tag, t.vy, 0);
+			T('two parallel wheels give w = (sR-sL)/track' + tag, t.w, (sp(R) - sp(L)) / (2 * b));
+		});
+
+		/* 2. FOUR WHEELS at x = +-a, y = +-b, grip g, all forward. The lateral rows
+		 * add 4 g a^2 to M[2][2] and nothing else:
+		 *     w = (sR - sL) / (2b + 2 g a^2 / b)
+		 * The lateral grip fights the yaw with a term in the WHEELBASE SQUARED,
+		 * which is why a long tracked machine turns worse than a short one - and
+		 * why a skid migrated from schema 2 turns more slowly than it used to. */
+		[[6, 7, 1], [6, 7, 0.5], [6, 7, 0], [10, 4, 1], [2, 9, 0.25]].forEach(([a, b, g]) => {
+			const t = solveTwist(mk([W(a, b, 'M1', g), W(a, -b, 'M2', g), W(-a, b, 'M3', g), W(-a, -b, 'M4', g)]),
+				cmd({ M1: 1000, M2: -1000, M3: 1000, M4: -1000 }));
+			near('a four wheel skid turns by (sR-sL)/(2b + 2ga^2/b) (a=' + a + ' b=' + b + ' g=' + g + ')',
+				t.w, (sp(-1000) - sp(1000)) / (2 * b + 2 * g * a * a / b));
+		});
+		/* g = 0 has to return the two wheel answer exactly, which is the check that
+		 * the ridge is not quietly taxing a machine it was not needed for */
+		T('at grip 0 the wheelbase stops mattering and the two wheel answer returns',
+			solveTwist(mk([W(6, 7, 'M1', 0), W(6, -7, 'M2', 0), W(-6, 7, 'M3', 0), W(-6, -7, 'M4', 0)]),
+				cmd({ M1: 1000, M2: -1000, M3: 1000, M4: -1000 })).w,
+			solveTwist(mk([W(0, 7, 'M1'), W(0, -7, 'M2')]), cmd({ M1: 1000, M2: -1000 })).w);
+
+		/* 3. AN OMNI WHEEL IS grip = 0 AND NOTHING ELSE. Its lateral row vanishes,
+		 * the machine gains a vy, and mecanum needs no special case anywhere. */
+		{
+			const omni = mk([W(6, 7, 'M1', 0, 90), W(6, -7, 'M2', 0, 90), W(-6, 7, 'M3', 0, 90), W(-6, -7, 'M4', 0, 90)]);
+			const t = solveTwist(omni, cmd({ M1: 1000, M2: 1000, M3: 1000, M4: 1000 }));
+			near('four rollers turned sideways drive the machine sideways', t.vy, 120);
+			near('and not forwards', t.vx, 0);
+			const fwd = solveTwist(mk([W(6, 7, 'M1', 0), W(6, -7, 'M2', 0), W(-6, 7, 'M3', 0), W(-6, -7, 'M4', 0)]),
+				cmd({ M1: 1000, M2: 1000, M3: 1000, M4: 1000 }));
+			T('the same rollers pointing forward drive it forward at full speed', fwd.vx, 120);
+			T('a tyred machine cannot crab at all', solveTwist(mk([W(0, 7, 'M1'), W(0, -7, 'M2')]), cmd({ M1: 1000, M2: 1000 })).vy, 0);
+			/* AND THE LATERAL AXIS REALLY IS PERPENDICULAR TO THE ROLLING ONE. Every
+			 * layout above has its wheels pointing straight ahead, where sin(a) is 0
+			 * and n = (-sin a, cos a) cannot be told from (+sin a, cos a). Two tyres
+			 * mounted at 45 degrees is the layout that can: rolling says they must
+			 * roll at s, lateral says they must not slide, and the only twist that
+			 * satisfies both is a diagonal one at s/sqrt(2) on each axis. */
+			const diag = solveTwist(mk([W(0, 7, 'M1', 1, 45), W(0, -7, 'M2', 1, 45)]), cmd({ M1: 1000, M2: 1000 }));
+			near('two tyres mounted at 45 degrees drive the machine diagonally', diag.vx, 120 / Math.SQRT2);
+			near('and equally on both axes', diag.vy, 120 / Math.SQRT2);
+			near('with no yaw at all', diag.w, 0);
+		}
+
+		/* --- every degenerate layout still yields a finite twist ---------------
+		 * The renderer's smoke test throws on a non-finite coordinate, and a NaN
+		 * twist would poison the pose for the rest of the run. This is what the
+		 * ridge is for, and it is the whole list of ways M can go singular. */
+		[['no wheels at all', []],
+		['one wheel', [W(0, 0, 'M1')]],
+		['one wheel with no grip', [W(0, 0, 'M1', 0)]],
+		['grip 0 everywhere', [W(0, 7, 'M1', 0), W(0, -7, 'M2', 0)]],
+		['every wheel at the same point', [W(0, 0, 'M1'), W(0, 0, 'M2'), W(0, 0, 'M3')]],
+		['wheels 2 mm apart', [W(0, 0.001, 'M1'), W(0, -0.001, 'M2')]],
+		['no drive links anywhere', [W(0, 7, ''), W(0, -7, '')]],
+		['no links and no grip', [W(0, 7, '', 0), W(0, -7, '', 0)]],
+		['a wheel 100 m off the chassis', [W(10000, 10000, 'M1'), W(0, -7, 'M2')]]
+		].forEach(([name, ws]) => {
+			const t = solveTwist(mk(ws), cmd({ M1: 1000, M2: -1000, M3: 500 }));
+			Tok('a layout with ' + name + ' still solves to a finite twist',
+				isFinite(t.vx) && isFinite(t.vy) && isFinite(t.w) && t.slip.every(s => isFinite(s.lat) && isFinite(s.lon)),
+				[t.vx, t.vy, t.w].join(','));
+		});
+		/* an unconstrained direction is pulled to ZERO and not to something: c is
+		 * zero in every null direction of M, so the ridge decides nothing */
+		T('an unconstrained sideways velocity comes back as zero',
+			solveTwist(mk([W(0, 7, 'M1', 0), W(0, -7, 'M2', 0)]), cmd({ M1: 1000, M2: -1000 })).vy, 0);
+
+		/* --- steering ---------------------------------------------------------- */
+		{
+			const half = (k) => (k === 'S1' ? V_MAX / 2 : (k === 'M1' ? 1000 : null));
+			T('a wheel with no steering row sits at its resting angle', wheelAngle(W(0, 0, 'M1', 1, 25), () => null), 25 * Math.PI / 180);
+			T('an unlinked steering row leaves it there too', wheelAngle(W(0, 0, 'M1', 1, 25, 'S1', 30), () => null), 25 * Math.PI / 180);
+			/* null/V_MAX is 0 and would survive on its own; UNDEFINED is the one that
+			 * turns the angle into a NaN and every coordinate downstream with it */
+			T('and a steering row that answers nothing at all does not make it a NaN',
+				wheelAngle(W(0, 0, 'M1', 1, 25, 'S1', 30), () => undefined), 25 * Math.PI / 180);
+			near('half stick on the steering row is half the travel, on top of the rest angle',
+				wheelAngle(W(0, 0, 'M1', 1, 25, 'S1', 30), half), (25 + 15) * Math.PI / 180);
+			/* and the steering is LIVE: the same machine at two stick positions is
+			 * two different machines to the solver */
+			const st = (v) => solveTwist(mk([W(4, 7, 'M1', 1, 0, 'S1', 45), W(4, -7, 'M2', 1, 0, 'S1', 45), W(-4, 7, 'M3'), W(-4, -7, 'M4')]),
+				(k) => (k === 'S1' ? v : 1000));
+			Tok('steering the front wheels turns a machine that was driving straight',
+				Math.abs(st(V_MAX).w) > 0.5 && st(0).w === 0, st(0).w + ' -> ' + st(V_MAX).w);
+			near('and steering the other way turns it the other way', st(-V_MAX).w, -st(V_MAX).w);
+			T('grip defaults to a tyre when the field is missing', wheelGrip({}), 1);
+			T('grip 0 survives as an omni roller and is not read as missing', wheelGrip({ grip: 0 }), 0);
+			T('grip is clamped to the 0..1 it is documented as', wheelGrip({ grip: 5 }) + '/' + wheelGrip({ grip: -2 }), '1/0');
+		}
+
+		/* --- the slip IS the residual, never a second computation --------------
+		 * THE SKID IS THE SCRUB. Four tyred wheels on a rigid frame told to spin
+		 * on the spot cannot all do what they were told: the yaw settles below
+		 * what the tracks asked for, so each wheel is left rolling at the wrong
+		 * speed AND being dragged sideways by w*x. That is what a skid steer
+		 * actually does to its tyres, and every number on screen is one of these
+		 * two residuals. */
+		{
+			const a = 6, b = 7;
+			const t = solveTwist(mk([W(a, b, 'M1'), W(a, -b, 'M2'), W(-a, b, 'M3'), W(-a, -b, 'M4')]),
+				cmd({ M1: 1000, M2: -1000, M3: 1000, M4: -1000 }));
+			Tok('a four wheel skid scrubs sideways when it turns', t.slip.every(s => Math.abs(s.lat) > 1), String(t.slip.map(s => s.lat.toFixed(3))));
+			/* the lateral residual of a machine that is not crabbing is w*x, so the
+			 * wheels at the two ends are dragged in opposite directions */
+			near('the front and rear wheels are dragged opposite ways', t.slip[0].lat, -t.slip[2].lat);
+			Tok('and no wheel is rolling at the speed it was told', t.slip.every(s => Math.abs(s.lon) > 1), String(t.slip.map(s => s.lon.toFixed(3))));
+			/* WHAT THE WHEELBASE COSTS IS YAW, and that is the sentence the Robot tab
+			 * carries. Not the scrub SPEED: w falls as roughly 1/a^2 while the lever
+			 * grows as a, so w*x on a longer machine is smaller, not larger - it is
+			 * turning far less, not scrubbing less hard. */
+			const longer = solveTwist(mk([W(12, b, 'M1'), W(12, -b, 'M2'), W(-12, b, 'M3'), W(-12, -b, 'M4')]),
+				cmd({ M1: 1000, M2: -1000, M3: 1000, M4: -1000 }));
+			Tok('a longer machine turns worse, in the wheelbase squared', Math.abs(longer.w) < Math.abs(t.w),
+				longer.w + ' vs ' + t.w);
+			/* rollers instead of tyres: the same layout, the same command, no scrub */
+			const omni = solveTwist(mk([W(a, b, 'M1', 0), W(a, -b, 'M2', 0), W(-a, b, 'M3', 0), W(-a, -b, 'M4', 0)]),
+				cmd({ M1: 1000, M2: -1000, M3: 1000, M4: -1000 }));
+			Tok('rollers in the same layout do not scrub at all', omni.slip.every(s => Math.abs(s.lon) < 1e-9),
+				String(omni.slip.map(s => s.lon)));
+			/* and a machine that can do exactly what it was told slips nowhere */
+			const ok = solveTwist(mk([W(0, 7, 'M1'), W(0, -7, 'M2')]), cmd({ M1: 1000, M2: -1000 }));
+			Tok('a machine that can do what it was told has no slip at all',
+				ok.slip.every(s => Math.abs(s.lat) < 1e-9 && Math.abs(s.lon) < 1e-9), String(ok.slip.map(s => s.lat + '/' + s.lon)));
+			T('there is one slip entry per wheel, in wheel order', ok.slip.length, 2);
+			/* an undriven wheel has no rolling residual to report - it was never
+			 * told anything - but it is still dragged sideways like the rest. The
+			 * machine has to be MOVING FORWARD while it turns, or the castor's
+			 * rolling velocity is zero and "no rolling slip" passes for free. */
+			const castor = solveTwist(mk([W(0, 7, 'M1'), W(0, -7, 'M2'), W(-8, 0, '')]), cmd({ M1: 1000, M2: 200 }));
+			Tok('the castor really is rolling, so the next assertion is not free',
+				Math.abs(castor.vx) > 10, String(castor.vx));
+			T('an undriven wheel reports no rolling slip', castor.slip[2].lon, 0);
+			Tok('but it is still dragged sideways', Math.abs(castor.slip[2].lat) > 1, String(castor.slip[2].lat));
+		}
+
+		/* --- the max yaw readout comes from the solver, not from a formula ----- */
+		{
+			const R = mk([W(0, 7, 'M1'), W(0, -7, 'M2')]);
+			near('one side at full stick yaws at maxSpeed/track', maxYawRate(R, 1), 120 / 14);
+			near('spinning on the spot is twice that', maxYawRate(R, 2), 2 * 120 / 14);
+			/* and on a machine the closed form does not describe it still answers,
+			 * which is the point of asking the solver rather than a formula */
+			const skid = mk([W(6, 7, 'M1'), W(6, -7, 'M2'), W(-6, 7, 'M3'), W(-6, -7, 'M4')]);
+			Tok('a machine with a wheelbase yaws more slowly than the formula would say',
+				maxYawRate(skid, 2) < 2 * 120 / 14, maxYawRate(skid, 2) + ' vs ' + (2 * 120 / 14));
+		}
+	})();
+
+	/* --- the accelerometer reads the point it is bolted to -------------------
+	 * Spinning on the spot at a constant w with the IMU at radius r, once the lag
+	 * has settled, it must read w^2 r POINTING AT THE CENTRE of rotation and
+	 * nothing else. The vector is asserted and not the magnitude: the sign is the
+	 * half of this that can be wrong. */
+	(function () {
+		const saveP = P, saveRobot = SIM.robot, saveOut = SIM.outputs.slice(), saveTick = SIM.tick;
+		try {
+			const spin = (ix, iy) => {
+				P = blankProject('mix');
+				P.sim.robot.imu = { x: ix, y: iy };
+				P.sim.robot.trail = 0;
+				SIM.robot = SIM.newRobot();
+				SIM.outputs[0] = 1000; SIM.outputs[1] = -1000;
+				for (let t = 1; t <= 3000; t++) { SIM.tick = t; SIM.integrateRobot(); }
+				return SIM.robot;
+			};
+			[[5, 0], [0, 4], [3, -3], [-2, 6]].forEach(([ix, iy]) => {
+				const S = spin(ix, iy), w2 = S.w * S.w, tag = ' (imu at ' + ix + ',' + iy + ')';
+				Tok('a settled spin reads w^2 r towards the centre on X' + tag,
+					Math.abs(S.ax - (-w2 * ix)) <= 1e-6 * Math.max(1, w2 * Math.abs(ix)), S.ax + ' vs ' + (-w2 * ix));
+				Tok('and on Y' + tag,
+					Math.abs(S.ay - (-w2 * iy)) <= 1e-6 * Math.max(1, w2 * Math.abs(iy)), S.ay + ' vs ' + (-w2 * iy));
+			});
+			/* the centre of rotation reads nothing at all, which is the old model
+			 * and is what the general form has to CONTAIN */
+			const c0 = spin(0, 0);
+			Tok('an IMU on the centre of rotation feels no centripetal force',
+				Math.abs(c0.ax) < 1e-9 && Math.abs(c0.ay) < 1e-9, c0.ax + ',' + c0.ay);
+			/* and moving it does not move the chassis: where the sensor sits is a
+			 * property of the measurement and of nothing else */
+			const pose = (ix, iy) => { const S = spin(ix, iy); return [S.x, S.y, S.th, S.v, S.w].map(n => n.toFixed(12)).join(' '); };
+			T('where the IMU sits does not move the machine', pose(9, -4), pose(0, 0));
+
+			/* --- and a machine that CAN crab actually crabs, in the world ------
+			 * vy is new: it has to be carried into the world frame or an omni
+			 * machine drives sideways in the solver and stands still on the ground.
+			 * Four rollers turned 90 degrees, from th = 0, must move along +Y. */
+			P = blankProject('mix');
+			P.sim.robot.wheels = [6, -6].reduce((acc, x) => acc.concat([
+				{ x: x, y: 7, deg: 90, grip: 0, link: 'M1', steer: '', steerDeg: 30, r: 3.5 },
+				{ x: x, y: -7, deg: 90, grip: 0, link: 'M2', steer: '', steerDeg: 30, r: 3.5 }
+			]), []);
+			P.sim.robot.trail = 0;
+			SIM.robot = SIM.newRobot();
+			SIM.outputs[0] = 1000; SIM.outputs[1] = 1000;
+			for (let t = 1; t <= 1000; t++) { SIM.tick = t; SIM.integrateRobot(); }
+			const cr = SIM.robot;
+			Tok('a machine driving sideways moves sideways on the ground',
+				Math.abs(cr.y - 120) < 1 && Math.abs(cr.x) < 1e-9 && Math.abs(cr.th) < 1e-9,
+				'x=' + cr.x + ' y=' + cr.y + ' th=' + cr.th);
+			Tok('and it is vy that carries it, not vx', Math.abs(cr.vy - 120) < 1e-9 && Math.abs(cr.v) < 1e-9,
+				'v=' + cr.v + ' vy=' + cr.vy);
+		} finally {
+			P = saveP; SIM.robot = saveRobot; SIM.tick = saveTick;
+			for (let i = 0; i < saveOut.length; i++) SIM.outputs[i] = saveOut[i];
+		}
+	})();
+
+	/* --- the layout editor: one mapping, both directions ---------------------
+	 * A handle that does not stay under the pointer that grabbed it is the whole
+	 * failure mode of dragging on a canvas, and it comes from the hit test and
+	 * the renderer disagreeing about where a body point is. They share
+	 * robotViewMap(), so the property to pin is that its two directions really
+	 * are inverses - at a pose, at an angle, following or not, at either view. */
+	(function () {
+		const saveP = P, saveRobot = SIM.robot;
+		try {
+			P = blankProject('mix');
+			SIM.robot = SIM.newRobot();
+			/* a plain object is all robotViewMap() needs: it reads clientWidth and
+			 * clientHeight and nothing else, which is what lets this run headless */
+			const cv = (w, h) => ({ clientWidth: w, clientHeight: h });
+			const pts = [[0, 0], [10, 8], [-10, -8], [3.5, -7], [120, -90]];
+			[[0, 0, 0], [37.5, -12.25, 0.9], [-400, 250, -2.6], [1, 1, Math.PI]].forEach(([x, y, th]) => {
+				[1, 0].forEach(follow => {
+					[120, 0].forEach(viewCm => {
+						SIM.robot.x = x; SIM.robot.y = y; SIM.robot.th = th;
+						P.sim.robot.follow = follow; P.sim.robot.viewCm = viewCm;
+						const m = robotViewMap(cv(420, 300));
+						let worst = 0;
+						pts.forEach(([bx, by]) => {
+							const s = m.toScreen(bx, by), b = m.toBody(s.x, s.y);
+							worst = Math.max(worst, Math.abs(b.x - bx), Math.abs(b.y - by));
+						});
+						Tok('screen and body are inverses (pose ' + x + ',' + y + ',' + th.toFixed(2) +
+							' follow ' + follow + ' view ' + viewCm + ')', worst < 1e-9, String(worst));
+					});
+				});
+			});
+			/* and the mapping is the RENDERER's: same scale, same centre */
+			P.sim.robot.follow = 1; P.sim.robot.viewCm = 120;
+			SIM.robot.x = 5; SIM.robot.y = -3; SIM.robot.th = 0;
+			const m = robotViewMap(cv(420, 300));
+			T('the map scales exactly as the renderer does', m.sc, robotScale(420, 300));
+			T('and centres on the machine when it is following', m.cX + ',' + m.cY, '5,-3');
+			P.sim.robot.follow = 0;
+			T('and on the origin when it is not', robotViewMap(cv(420, 300)).cX, 0);
+
+			/* --- the hit test: a press on nothing is not a drag --------------- */
+			P.sim.robot.follow = 1;
+			SIM.robot.x = 0; SIM.robot.y = 0; SIM.robot.th = 0;
+			const c1 = cv(420, 300), mm = robotViewMap(c1);
+			const onWheel = mm.toScreen(P.sim.robot.wheels[0].x, P.sim.robot.wheels[0].y);
+			const hitW = robotHitTest(c1, onWheel.x, onWheel.y);
+			Tok('a press on a wheel grabs that wheel', hitW && hitW.kind === 'wheel' && hitW.i === 0, JSON.stringify(hitW));
+			const onImu = mm.toScreen(0, 0);
+			const hitI = robotHitTest(c1, onImu.x, onImu.y);
+			Tok('a press on the IMU grabs the IMU, not a wheel behind it', hitI && hitI.kind === 'imu', JSON.stringify(hitI));
+			const onVtx = mm.toScreen(P.sim.robot.shape[2][0], P.sim.robot.shape[2][1]);
+			const hitV = robotHitTest(c1, onVtx.x, onVtx.y);
+			Tok('a press on a chassis vertex grabs that vertex', hitV && hitV.kind === 'vertex' && hitV.i === 2, JSON.stringify(hitV));
+			Tok('a press on empty ground grabs nothing at all', robotHitTest(c1, 5, 5) === null, JSON.stringify(robotHitTest(c1, 5, 5)));
+			/* just outside the grab radius is still nothing - it must not creep */
+			Tok('and just past the grab radius is still nothing',
+				robotHitTest(c1, onWheel.x + RB_GRAB_PX + 2, onWheel.y) === null, '');
+
+			/* --- a drag writes the SAME field the table writes ---------------- */
+			robotMoveHandle({ kind: 'wheel', i: 0 }, 3.44, -9.06);
+			T('dragging a wheel writes its x and y, rounded to the field', P.sim.robot.wheels[0].x + ',' + P.sim.robot.wheels[0].y, '3.4,-9.1');
+			robotMoveHandle({ kind: 'imu', i: 0 }, 1.23, 4.56);
+			T('dragging the IMU writes the IMU position', P.sim.robot.imu.x + ',' + P.sim.robot.imu.y, '1.2,4.6');
+			robotMoveHandle({ kind: 'vertex', i: 1 }, -2.04, 8.99);
+			T('dragging a vertex writes into the polygon itself', String(P.sim.robot.shape[1]), '-2,9');
+			robotMoveHandle({ kind: 'device', i: 0 }, 7.11, 0.04);
+			T('dragging a marker writes the marker', P.sim.robot.devices[0].x + ',' + P.sim.robot.devices[0].y, '7.1,0');
+			/* a handle that no longer exists must not throw - a row can be removed
+			 * while a stale drag reference is still around */
+			robotMoveHandle({ kind: 'wheel', i: 99 }, 1, 1);
+			robotMoveHandle({ kind: 'vertex', i: 99 }, 1, 1);
+			Tok('a drag on a handle that has been removed is survivable', true, '');
+
+			/* --- the typed path: one coercion, and grip 0 has to survive ------ */
+			P = blankProject('mix');
+			T('a typed position is rounded to the field resolution', robotGeomSet('wheel', 0, 'x', '3.44'), 3.4);
+			T('a typed position is clamped', robotGeomSet('wheel', 0, 'y', '99999'), 500);
+			T('a typed grip is clamped to 0..1', robotGeomSet('wheel', 0, 'grip', '5'), 1);
+			T('a typed grip of zero survives as an omni roller', robotGeomSet('wheel', 0, 'grip', '0'), 0);
+			Tok('and it really is stored, not defaulted back to a tyre', wheelGrip(P.sim.robot.wheels[0]) === 0, String(P.sim.robot.wheels[0].grip));
+			T('rubbish in a number field becomes zero, never a NaN', robotGeomSet('wheel', 0, 'deg', 'banana'), 0);
+			T('a drive link must be a mapper row that exists', robotGeomSet('wheel', 0, 'link', 'M9'), '');
+			T('a real mapper row is kept', robotGeomSet('wheel', 0, 'link', 'M3'), 'M3');
+			T('a steering row is kept on its own field', robotGeomSet('wheel', 0, 'steer', 'S1'), 'S1');
+			Tok('and the drive link is not what got written', P.sim.robot.wheels[0].link === 'M3' && P.sim.robot.wheels[0].steer === 'S1',
+				P.sim.robot.wheels[0].link + '/' + P.sim.robot.wheels[0].steer);
+			T('a marker label is text and is bounded', robotGeomSet('device', 0, 'label', 'x'.repeat(80)).length, 24);
+			/* get mirrors set: the table reads back exactly what the drag wrote */
+			robotMoveHandle({ kind: 'vertex', i: 0 }, 12.3, -4.5);
+			T('the table reads back what a drag wrote', robotGeomGet('vertex', 0, 'x') + ',' + robotGeomGet('vertex', 0, 'y'), '12.3,-4.5');
+			T('and reads a wheel field back too', robotGeomGet('wheel', 0, 'link'), 'M3');
+			/* editing the geometry cannot reach the graph or the generated code */
+			T('the layout is not part of what the graph exports', typeof projectForSave().nodes, 'object');
+		} finally {
+			P = saveP; SIM.robot = saveRobot;
+		}
 	})();
 
 	SELFTEST.ran = true;
@@ -4169,6 +4948,99 @@ function initRobotPanel() {
 		robotViewChanged();
 	};
 	$('#btRobotView').onclick = () => { UI.rbShow = !UI.rbShow; robotViewChanged(); };
+	initRobotGeomDrag($('#rbCanvas'));
+}
+
+/* ---- dragging the geometry on the view ---------------------------------
+ * The numbers in the Robot tab are the truth; this is a shortcut onto the SAME
+ * fields, and everything it moves shows up in the table as it moves.
+ *
+ * THE PANEL DRAG IS NOT A PROBLEM HERE, and it is worth saying why rather than
+ * guarding against it twice: rbDrag() is bound to #rbHead and #rbGrip, and the
+ * canvas is inside #rbBody, which is a sibling of both. The DOM has already
+ * decided. What still has to be stopped is the press reaching anything else,
+ * which is what preventDefault + stopPropagation below are for.
+ *
+ * THERE IS NO GRID SNAP. UI.grid is a spacing in EDITOR PIXELS for laying out
+ * blocks on the graph canvas; it has no meaning in centimetres on the ground,
+ * and reusing the number would snap a wheel to a grid the user set for
+ * something else entirely. Positions are rounded to 0.1 cm, which is simply
+ * the resolution the fields are shown at - not a second snap. The tab says so. */
+const RB_GRAB_PX = 9;          /* how close the pointer has to be, in pixels */
+function robotHandles(R) {
+	/* every draggable thing, in hit-test priority: the IMU is one point and the
+	 * smallest target, so it wins a tie against a wheel sitting on top of it */
+	const out = [{ kind: 'imu', i: 0, x: Number(R.imu && R.imu.x) || 0, y: Number(R.imu && R.imu.y) || 0 }];
+	(R.wheels || []).forEach((w, i) => { if (w) out.push({ kind: 'wheel', i: i, x: Number(w.x) || 0, y: Number(w.y) || 0 }); });
+	(R.shape || []).forEach((p, i) => {
+		if (!p || !isFinite(Number(p[0])) || !isFinite(Number(p[1]))) return;
+		out.push({ kind: 'vertex', i: i, x: Number(p[0]), y: Number(p[1]) });
+	});
+	(R.devices || []).forEach((d, i) => { if (d) out.push({ kind: 'device', i: i, x: Number(d.x) || 0, y: Number(d.y) || 0 }); });
+	return out;
+}
+/* the nearest handle within RB_GRAB_PX of the pointer, or null. A press on
+ * nothing is not a drag - it must not grab the closest thing on the canvas. */
+function robotHitTest(cv, px, py) {
+	const map = robotViewMap(cv);
+	let best = null, bestD = RB_GRAB_PX * RB_GRAB_PX;
+	robotHandles(P.sim.robot).forEach(hd => {
+		const s = map.toScreen(hd.x, hd.y);
+		const d = (s.x - px) * (s.x - px) + (s.y - py) * (s.y - py);
+		if (d <= bestD) { bestD = d; best = hd; }
+	});
+	return best;
+}
+function rbRound(v) { return Math.round(v * 10) / 10; }   /* 0.1 cm, the field's own resolution */
+/* write a handle's new body position back into the ONE place it lives */
+function robotMoveHandle(hd, bx, by) {
+	const R = P.sim.robot, x = rbRound(bx), y = rbRound(by);
+	if (hd.kind === 'imu') { R.imu.x = x; R.imu.y = y; }
+	else if (hd.kind === 'wheel') { const w = R.wheels[hd.i]; if (w) { w.x = x; w.y = y; } }
+	else if (hd.kind === 'device') { const d = R.devices[hd.i]; if (d) { d.x = x; d.y = y; } }
+	else if (hd.kind === 'vertex') { const p = R.shape[hd.i]; if (p) { p[0] = x; p[1] = y; } }
+}
+function initRobotGeomDrag(cv) {
+	if (!cv) return;
+	let drag = null;
+	cv.addEventListener('pointermove', e => {
+		if (drag) return;
+		/* the cursor is the only affordance a canvas has: it has to say what is
+		 * under the pointer before the user presses anything */
+		const r = cv.getBoundingClientRect();
+		cv.style.cursor = robotHitTest(cv, e.clientX - r.left, e.clientY - r.top) ? 'move' : '';
+	});
+	cv.addEventListener('pointerdown', e => {
+		if (e.button !== 0) return;
+		const r = cv.getBoundingClientRect();
+		const px = e.clientX - r.left, py = e.clientY - r.top;
+		const hd = robotHitTest(cv, px, py);
+		if (!hd) return;                       /* a press on nothing is not a drag */
+		e.preventDefault(); e.stopPropagation();
+		cv.setPointerCapture(e.pointerId);
+		/* the offset is kept in BODY coordinates, so the handle stays where it was
+		 * grabbed even while the machine is driving and the mapping moves under it */
+		const at = robotViewMap(cv).toBody(px, py);
+		drag = { hd: hd, ox: hd.x - at.x, oy: hd.y - at.y };
+	});
+	const finish = (e) => {
+		if (!drag) return;
+		drag = null;
+		try { cv.releasePointerCapture(e.pointerId); } catch (err) { /* already gone */ }
+		/* the table is rebuilt only when the drag ENDS: rebuilding it every frame
+		 * would take the focus and the caret out of whatever is being typed into */
+		if (!$('#p-robot').classList.contains('hidden')) renderRobotGeom();
+	};
+	cv.addEventListener('pointermove', e => {
+		if (!drag) return;
+		e.preventDefault();
+		const r = cv.getBoundingClientRect();
+		const at = robotViewMap(cv).toBody(e.clientX - r.left, e.clientY - r.top);
+		robotMoveHandle(drag.hd, at.x + drag.ox, at.y + drag.oy);
+		syncRobotGeom();                       /* the numbers follow, live */
+	});
+	cv.addEventListener('pointerup', finish);
+	cv.addEventListener('pointercancel', finish);
 }
 /* THE one place a change of home or visibility is pushed out. The Robot tab both
  * HOSTS the panel and says where it is, so it has to be rebuilt with it - and
@@ -5327,10 +6199,162 @@ function drawScope() {
 	if (cur) cur.textContent = S.traces.map(t => t.label + '=' + t.buf[(S.idx - 1 + S.cap) % S.cap]).join('  ');
 }
 
-/* --------------------------------------------------------------- robot */
-const MAPPER_KEYS = ['M1', 'M2', 'M3', 'S1', 'S2'];   /* fac_settings.c:103-107, in that order */
+/* --------------------------------------------------------------- robot
+ * MAPPER_KEYS is a firmware fact and lives with the other ones, at the top. */
+
+/* ---- the geometry tables -------------------------------------------------
+ * THE SHELL IS BUILT ONCE AND ONLY THE ROWS ARE RE-RENDERED. Rebuilding the
+ * whole card on every keystroke destroys the input being typed into and takes
+ * the focus and the caret with it - the same rule the Blocks tab's filter
+ * already lives by. So: a field handler writes the model and updates the one
+ * derived span beside it, and nothing else moves. Only add, remove and the end
+ * of a canvas drag rebuild the rows.
+ *
+ * These edit P.sim.robot, which is NOT on the undo stack - applySnap() restores
+ * nodes, wires, mode and instances only. That is true of every other robot
+ * field too, and making this one list the exception would be the odd thing.
+ * The tab says so out loud. */
+const RB_FIELDS = {
+	x: { lo: -500, hi: 500, step: 0.1, w: 54 },
+	y: { lo: -500, hi: 500, step: 0.1, w: 54 },
+	deg: { lo: -180, hi: 180, step: 1, w: 48 },
+	grip: { lo: 0, hi: 1, step: 0.05, w: 50 },
+	steerDeg: { lo: 0, hi: 180, step: 1, w: 46 },
+	r: { lo: 0.1, hi: 60, step: 0.1, w: 46 }
+};
+function rbNum(g, i, f, v) {
+	const d = RB_FIELDS[f];
+	return '<input type="number" class="rbg" data-g="' + g + '" data-i="' + i + '" data-f="' + f + '"' +
+		' min="' + d.lo + '" max="' + d.hi + '" step="' + d.step + '" value="' + (Number(v) || 0) +
+		'" style="width:' + d.w + 'px">';
+}
+function rbLink(g, i, f, sel, none) {
+	return '<select class="rbg" data-g="' + g + '" data-i="' + i + '" data-f="' + f + '">' +
+		'<option value=""' + (sel ? '' : ' selected') + '>' + none + '</option>' +
+		MAPPER_KEYS.map(k => '<option value="' + k + '"' + (sel === k ? ' selected' : '') + '>' + k + '</option>').join('') +
+		'</select>';
+}
+const rbDel = (g, i, t) => '<button class="tiny rbgDel" data-g="' + g + '" data-i="' + i + '" title="' + t + '">&times;</button>';
+/* ONE place a typed value becomes a model value, with the coercion each field
+ * needs. A grip of 0 must survive - it is the omni roller, not a missing field. */
+function robotGeomSet(g, i, f, raw) {
+	const R = P.sim.robot;
+	if (f === 'link' || f === 'steer') {
+		const v = MAPPER_KEYS.indexOf(raw) >= 0 ? raw : '';
+		if (g === 'wheel' && R.wheels[i]) R.wheels[i][f] = v;
+		if (g === 'device' && R.devices[i]) R.devices[i].link = v;
+		return v;
+	}
+	if (f === 'label') { if (R.devices[i]) R.devices[i].label = String(raw).slice(0, 24); return R.devices[i] ? R.devices[i].label : ''; }
+	const d = RB_FIELDS[f];
+	let v = Number(raw);
+	if (!isFinite(v)) v = 0;
+	v = Math.max(d.lo, Math.min(d.hi, v));
+	if (f === 'x' || f === 'y') v = rbRound(v);
+	if (g === 'wheel' && R.wheels[i]) R.wheels[i][f] = v;
+	else if (g === 'device' && R.devices[i]) R.devices[i][f] = v;
+	else if (g === 'vertex' && R.shape[i]) R.shape[i][f === 'x' ? 0 : 1] = v;
+	else if (g === 'imu') R.imu[f] = v;
+	return v;
+}
+function robotGeomGet(g, i, f) {
+	const R = P.sim.robot;
+	if (g === 'wheel') return R.wheels[i] ? R.wheels[i][f] : null;
+	if (g === 'device') return R.devices[i] ? (f === 'label' ? R.devices[i].label : R.devices[i][f]) : null;
+	if (g === 'vertex') return R.shape[i] ? R.shape[i][f === 'x' ? 0 : 1] : null;
+	if (g === 'imu') return R.imu[f];
+	return null;
+}
+/* the derived column: what the number MEANS, beside the number itself. Live,
+ * so a steered wheel's angle moves while the mix runs. */
+function robotGeomDerived(g, i) {
+	const R = P.sim.robot;
+	if (g === 'wheel') {
+		const w = R.wheels[i]; if (!w) return '';
+		const gr = wheelGrip(w);
+		const name = gr >= 0.98 ? 'tyre' : gr <= 0.02 ? 'roller' : 'track';
+		const ang = wheelAngle(w, (k) => SIM.rowValue(k)) * 180 / Math.PI;
+		return name + (w.steer ? ' &middot; ' + ang.toFixed(1) + '&deg;' : (Number(w.deg) ? ' &middot; ' + Number(w.deg).toFixed(0) + '&deg;' : ''));
+	}
+	if (g === 'device') {
+		const d = R.devices[i]; if (!d) return '';
+		const v = SIM.rowValue(d.link);
+		if (v === null) return d.link ? 'not linked' : '';
+		return String(d.link).charAt(0) === 'S' ? 'pos ' + SIM.servoPosition(v) : (v < 0 ? 'rev ' : 'fwd ') + SIM.motorSpeed(v);
+	}
+	return '';
+}
+function renderRobotGeom() {
+	const host = $('#rbGeom'); if (!host) return;
+	const R = P.sim.robot;
+	const der = (g, i) => '<span class="muted rbgD" data-g="' + g + '" data-i="' + i + '" style="font-size:10px">' + robotGeomDerived(g, i) + '</span>';
+
+	const wr = $('#rbWheelRows');
+	if (wr) wr.innerHTML = (R.wheels || []).map((w, i) => !w ? '' :
+		'<div style="' + GRID('54px 54px 48px 50px 52px 52px 46px 46px 22px 74px') + '">' +
+		rbNum('wheel', i, 'x', w.x) + rbNum('wheel', i, 'y', w.y) + rbNum('wheel', i, 'deg', w.deg) +
+		rbNum('wheel', i, 'grip', w.grip) + rbLink('wheel', i, 'link', w.link, 'free') +
+		rbLink('wheel', i, 'steer', w.steer, 'fixed') + rbNum('wheel', i, 'steerDeg', w.steerDeg) +
+		rbNum('wheel', i, 'r', w.r) + rbDel('wheel', i, 'remove this wheel') + der('wheel', i) + '</div>').join('') ||
+		'<div class="muted" style="font-size:10px">no wheels &mdash; the machine cannot move</div>';
+
+	const dr = $('#rbDevRows');
+	if (dr) dr.innerHTML = (R.devices || []).map((d, i) => !d ? '' :
+		'<div style="' + GRID('54px 54px 52px 110px 22px 74px') + '">' +
+		rbNum('device', i, 'x', d.x) + rbNum('device', i, 'y', d.y) +
+		rbLink('device', i, 'link', d.link, '-') +
+		'<input type="text" class="rbg" data-g="device" data-i="' + i + '" data-f="label" value="' + esc(d.label || '') + '" placeholder="label" style="width:106px">' +
+		rbDel('device', i, 'remove this marker') + der('device', i) + '</div>').join('') ||
+		'<div class="muted" style="font-size:10px">no markers</div>';
+
+	const vr = $('#rbVertRows');
+	if (vr) vr.innerHTML = (R.shape || []).map((p, i) => !p ? '' :
+		'<div style="' + GRID('54px 54px 22px')  + '">' +
+		rbNum('vertex', i, 'x', p[0]) + rbNum('vertex', i, 'y', p[1]) +
+		rbDel('vertex', i, 'remove this vertex') + '</div>').join('') ||
+		'<div class="muted" style="font-size:10px">no outline</div>';
+
+	const ir = $('#rbImuRow');
+	if (ir) ir.innerHTML = '<div style="' + GRID('54px 54px') + '">' +
+		rbNum('imu', 0, 'x', R.imu.x) + rbNum('imu', 0, 'y', R.imu.y) + '</div>';
+
+	/* one binding pass over the rows that were just written */
+	$$('#rbGeom .rbg').forEach(e => {
+		const g = e.dataset.g, i = Number(e.dataset.i), f = e.dataset.f;
+		const h = () => {
+			const v = robotGeomSet(g, i, f, e.value);
+			if (e.type === 'number') e.value = v;
+			const d = $$('#rbGeom .rbgD').find(x => x.dataset.g === g && Number(x.dataset.i) === i);
+			if (d) d.innerHTML = robotGeomDerived(g, i);
+		};
+		e.onchange = h;
+		if (e.type === 'number') e.oninput = h;   /* the view follows the spinner, live */
+	});
+	$$('#rbGeom .rbgDel').forEach(e => {
+		e.onclick = () => {
+			const g = e.dataset.g, i = Number(e.dataset.i), R2 = P.sim.robot;
+			if (g === 'wheel') R2.wheels.splice(i, 1);
+			else if (g === 'device') R2.devices.splice(i, 1);
+			else if (g === 'vertex') R2.shape.splice(i, 1);
+			renderRobotGeom();
+		};
+	});
+}
+/* model -> inputs, WITHOUT rebuilding: this is what a canvas drag calls, and it
+ * must never touch the field the user is typing into */
+function syncRobotGeom() {
+	$$('#rbGeom .rbg').forEach(e => {
+		if (document.activeElement === e) return;
+		const v = robotGeomGet(e.dataset.g, Number(e.dataset.i), e.dataset.f);
+		if (v === null || v === undefined) return;
+		if (String(e.value) !== String(v)) e.value = v;
+	});
+	$$('#rbGeom .rbgD').forEach(e => { e.innerHTML = robotGeomDerived(e.dataset.g, Number(e.dataset.i)); });
+}
+
 function uiRobot() {
-	const m = P.sim.mapper, r = P.sim.robot, pair = r.kin === 'skid';
+	const m = P.sim.mapper, r = P.sim.robot;
+	const cb = chassisBounds(r.shape);
 	const linkOpts = (sel) => {
 		let o = '<option value="0"' + (sel === 0 ? ' selected' : '') + '>0 - unused</option>';
 		for (let i = 0; i < MIXES_MAX_OUTPUTS_NUMBER; i++) o += '<option value="' + (100 + i) + '"' + (sel === 100 + i ? ' selected' : '') + '>' + (100 + i) + ' - mix out ' + i + '</option>';
@@ -5342,9 +6366,13 @@ function uiRobot() {
 		'<div style="' + GRID('86px 96px 220px') + '"><span>' + label + '</span>' +
 		'<input type="number" id="rbf_' + k + '" min="' + lo + '" max="' + hi + '" value="' + (Number(r[k]) || 0) + '" style="width:90px">' +
 		'<span class="muted" style="font-size:10px">' + unit + '</span></div>';
-	/* a drive selector over the mapper rows that actually exist */
-	const devOpts = (id, sel) => '<select id="' + id + '"><option value=""' + (sel ? '' : ' selected') + '>none</option>' +
-		MAPPER_KEYS.map(k => '<option value="' + k + '"' + (sel === k ? ' selected' : '') + '>' + k + '</option>').join('') + '</select>';
+	/* a row that is DERIVED from the layout below and so is read out, never typed
+	 * into: a chassis size beside an outline you can edit is a number with two
+	 * sources otherwise. drawRobot() keeps the spans inside it up to date. */
+	const ro = (label, text, note) =>
+		'<div style="' + GRID('86px 96px 220px') + '"><span>' + label + '</span>' +
+		'<span class="mono" style="font-size:11px">' + text + '</span>' +
+		'<span class="muted" style="font-size:10px">' + (note || '') + '</span></div>';
 	/* One sensor field. It is entered in RAW COUNTS, because counts are what the
 	 * model superimposes and what a block reads, and the physical value it stands
 	 * for is spelled out beside it - a datasheet talks dps and mg, and a count is
@@ -5373,22 +6401,52 @@ function uiRobot() {
 		'Only 100..109 and 200..210 are meaningful; the settings range cannot express the gap.</div>' +
 		'</div>' +
 		'<div class="card"><h4>Robot model <span class="muted" style="text-transform:none">&mdash; part of the mix, saved with it</span></h4>' +
-		num('length', 'lenCm', 'cm', 1, 300) + num('width', 'widCm', 'cm', 1, 300) +
-		num('track', 'trackCm', 'cm', 1, 300) + num('top speed', 'maxSpeedCms', 'cm/s', 1, 2000) +
+		num('top speed', 'maxSpeedCms', 'cm/s', 1, 2000) +
 		'<div style="' + GRID('86px 96px 220px') + '"><span>max yaw</span><span class="mono" id="rbYawMax"></span>' +
-		'<span class="muted" style="font-size:10px">derived, never entered: <span class="mono">maxSpeed / track</span></span></div>' +
-		'<div style="' + GRID('86px 96px 220px') + '"><span>kinematics</span>' +
-		'<select id="rbKin"><option value="diff"' + (r.kin === 'diff' ? ' selected' : '') + '>2 wheel</option>' +
-		'<option value="skid"' + (r.kin === 'skid' ? ' selected' : '') + '>skid, a pair a side</option></select>' +
-		'<span class="muted" style="font-size:10px">a pair averages, which is what the axle does anyway</span></div>' +
-		'<div style="' + GRID('86px 96px 96px') + '"><span>left side</span>' + devOpts('rbLeft', r.left) + (pair ? devOpts('rbLeftB', r.leftB) : '') + '</div>' +
-		'<div style="' + GRID('86px 96px 96px') + '"><span>right side</span>' + devOpts('rbRight', r.right) + (pair ? devOpts('rbRightB', r.rightB) : '') + '</div>' +
-		'<div class="muted" style="font-size:10px;margin-top:5px">' +
-		'<b>Illustrative, a kinematic sketch and not a dynamics simulation.</b> No mass, no traction limit, no slip: a step on the stick is a step in ground speed. ' +
+		'<span class="muted" style="font-size:10px">derived, never entered &mdash; asked of the <b>same solver</b> that drives the machine</span></div>' +
+		ro('chassis', '<span id="rbSizeRo">' + cb.len.toFixed(1) + ' x ' + cb.wid.toFixed(1) + '</span> cm', 'derived from the outline below') +
+		ro('track', '<span id="rbTrackRo">' + wheelTrack(r.wheels).toFixed(1) + '</span> cm', 'the widest the wheels stand apart') +
+		'</div>' +
+		/* ---- the layout editor. Its own card, because it is a table and not a
+		 * row of fields, and because the drag on the view writes these same
+		 * numbers - see initRobotGeomDrag(). ---- */
+		'<div class="card" id="rbGeom"><h4>Layout <span class="muted" style="text-transform:none">&mdash; the numbers are the truth, dragging the view is a shortcut onto them</span></h4>' +
+		'<div style="' + GRID('54px 54px 48px 50px 52px 52px 46px 46px 22px 74px') + ';font-size:10px;color:var(--muted)">' +
+		'<span>x cm</span><span>y cm</span><span>angle</span><span>grip</span><span>drive</span><span>steer</span><span>&plusmn;deg</span><span>r cm</span><span></span><span></span></div>' +
+		'<div id="rbWheelRows"></div>' +
+		'<div class="row" style="margin:3px 0 8px"><button class="tiny" id="rbAddWheel">+ wheel</button>' +
+		'<span class="muted" style="font-size:10px"><b>grip</b> 1 a tyre, 0 an omni roller, between a track that scrubs. <b>drive</b> free = a castor. <b>steer</b> a mapper row that turns it while the mix runs.</span></div>' +
+		'<h4 style="margin-top:2px">Markers</h4>' +
+		'<div style="' + GRID('54px 54px 52px 110px 22px 74px') + ';font-size:10px;color:var(--muted)">' +
+		'<span>x cm</span><span>y cm</span><span>row</span><span>label</span><span></span><span></span></div>' +
+		'<div id="rbDevRows"></div>' +
+		'<div class="row" style="margin:3px 0 8px"><button class="tiny" id="rbAddDev">+ marker</button>' +
+		'<span class="muted" style="font-size:10px">position, row, label and the live value &mdash; markers contribute nothing to the motion</span></div>' +
+		'<div class="row" style="align-items:flex-start;gap:18px">' +
+		'<div><h4 style="margin-top:2px">Chassis outline</h4>' +
+		'<div style="' + GRID('54px 54px 22px') + ';font-size:10px;color:var(--muted)"><span>x cm</span><span>y cm</span><span></span></div>' +
+		'<div id="rbVertRows"></div>' +
+		'<div class="row" style="margin:3px 0 0"><button class="tiny" id="rbAddVert">+ vertex</button></div></div>' +
+		'<div><h4 style="margin-top:2px">IMU position</h4>' +
+		'<div style="' + GRID('54px 54px') + ';font-size:10px;color:var(--muted)"><span>x cm</span><span>y cm</span></div>' +
+		'<div id="rbImuRow"></div></div></div>' +
+		'<div class="muted" style="font-size:10px;margin-top:6px">' +
+		'<b>Drag them on the view too.</b> Wheels, chassis vertices, markers and the IMU are all draggable on the robot view, through the same mapping the renderer draws with, and they write these same fields. A press on empty ground is not a drag.<br>' +
+		'<b>There is no grid snap here.</b> The editor\'s grid is a spacing in <i>screen pixels</i> for laying blocks out on the graph; it means nothing in centimetres on the ground, so reusing it would snap a wheel to a grid you set for something else. Positions land on <span class="mono">0.1 cm</span>, which is just the resolution these fields show.<br>' +
+		'<b>The layout is not undoable.</b> Undo restores the graph &mdash; nodes, wires, mode, instances &mdash; and never <span class="mono">P.sim</span>, which is true of the top speed and the sensor fields as well.</div>' +
+		'</div>' +
+		'<div class="card"><h4>Model notes</h4>' +
+		'<div class="muted" style="font-size:10px">' +
+		'<b>A machine saved by an older build is converted on load:</b> the chassis becomes the rectangle it described, and the two sides become wheels at &plusmn;<span class="mono">track/2</span>, which is the only length the old model ever used. A side whose second device was <i>none</i> contributes no wheel, because the file said there was nothing there.<br>' +
+		'<b>The physics reads the wheels.</b> Every wheel says two things about the motion &mdash; it rolls at the speed its motor was told, and it does not slide sideways &mdash; and the body twist that best satisfies all of them at once is what the machine does. The second statement is weighted by the wheel\'s <b>lateral grip</b>: <span class="mono">1</span> a tyre, <span class="mono">0</span> an omni roller that simply does not make the claim, in between a track that scrubs. That one number is the omni case and the skid-slip case both; it is deliberately not two.<br>' +
+		'<b>A wheelbase costs yaw, in its square.</b> Four wheels at &plusmn;<span class="mono">a</span>, &plusmn;<span class="mono">b</span> with grip <span class="mono">g</span> turn at <span class="mono">(sR&minus;sL) / (2b + 2&middot;g&middot;a&sup2;/b)</span>: the lateral rows fight the yaw with a term in <b>a&sup2;</b>, which is exactly why a long tracked machine turns worse than a short one. <b>A skid converted from an older file therefore turns more slowly than it used to</b> &mdash; the old model had no notion of a wheelbase at all. That is a correction, not a regression.<br>' +
+		'<b>Slip is the residual, never a second number.</b> What the solve could not satisfy is what the contact patch is doing: the <b>lateral</b> residual is how fast that wheel is being dragged sideways, drawn as an arrow at the patch and reported as the largest one on the view. If a number is not a residual of the solve it does not go on screen.<br>' +
+		'<b>Illustrative, a kinematic sketch and not a dynamics simulation.</b> No mass, no inertia, no traction limit, no motor curve: a step on the stick is still a step in ground speed. <b>The lateral grip is a kinematic weight and not a friction coefficient</b> &mdash; it says how strongly a wheel insists it is not sliding, not how many newtons it can take, and it must not be read as a tyre spec. Every wheel is on the ground; there is no suspension, no camber and no load transfer. ' +
 		'It is here to close the loop &mdash; what the mix commands turns the chassis, and the turn is what the IMU blocks read back.<br>' +
+		'<b>The IMU reads the point it is bolted to.</b> Off the centre of rotation it feels the centripetal and tangential terms that position implies &mdash; <span class="mono">a<sub>x</sub> = v&#775;<sub>x</sub> &minus; &omega;v<sub>y</sub> &minus; &alpha;y &minus; &omega;&sup2;x</span>, <span class="mono">a<sub>y</sub> = v&#775;<sub>y</sub> + &omega;v<sub>x</sub> + &alpha;x &minus; &omega;&sup2;y</span> &mdash; so a sensor bolted 5 cm off the axis reads <span class="mono">&omega;&sup2;r</span> towards the centre while the machine spins on the spot, and one at the origin reads nothing. Mounting it away from the centre is a real design choice with a real cost, and this is where you see it.<br>' +
 		'<b>Axes.</b> X forward, Y left, Z up, right handed, so a <b>left turn is a positive gyro Z</b>. That is a statement about how the board is <b>mounted</b>: the firmware only passes the sensor\'s own X/Y/Z through (<span class="mono">enum AXIS</span>, <span class="mono">LSM6DS3.h:143-147</span>). Mount it another way and the signs are yours to fix.<br>' +
 		'<b>Counts.</b> gyro <span class="mono">' + GYRO_MDPS_PER_COUNT + ' mdps/count</span> (<span class="mono">LSM6DS3.h:130</span>), accel <span class="mono">0.' + ACCEL_UG_PER_COUNT + ' mg/count</span> (<span class="mono">LSM6DS3.h:129</span>), both clamped to int16 like the driver\'s own buffers. The graph reads the counts of the <b>previous</b> millisecond, because a sensor measures the past.<br>' +
-		'<b>Only three motor rows exist</b> (<span class="mono">fac_settings.c:103-107</span>): M1, M2, M3. A true four motor skid needs a fourth row in the firmware, so the second device of a side is free to be anything &mdash; or nothing.<br>' +
+		'<b>Only three motor rows exist</b> (<span class="mono">fac_settings.c:103-107</span>): M1, M2, M3. The editor is free to describe a machine this firmware cannot drive &mdash; a four wheel mecanum needs four independent motor rows and there are three &mdash; and a wheel is free to have no link at all, which is a castor or an idler and not an error.<br>' +
 		'<b>View.</b> The view is a <b>fixed window on the ground</b> &mdash; <span class="mono">view</span> cm across its short side, set on the panel\'s own strip &mdash; so a faster robot visibly crosses it faster and a top speed you can <i>see</i> is the point of it. It moves pixels and nothing else: the integration is in cm at the 1 ms step and the IMU counts of a given run are the same at any view size. ' +
 		'Set it to <span class="mono">0</span> and the view fits the trail instead, which is right for reading a finished run back but makes every top speed look alike &mdash; drive twice as fast and it zooms out twice as fast, exactly cancelling.</div>' +
 		'</div>' +
@@ -5416,8 +6474,7 @@ function uiRobot() {
 		'<div id="rbTabNote" class="muted" style="font-size:11px;margin-top:6px"></div>';
 	$$('.mapl').forEach(s => s.onchange = e => { P.sim.mapper[e.target.dataset.k] = Number(e.target.value); });
 	const fnum = (id, k, lo, hi) => { const e = $(id); if (e) e.onchange = ev => { r[k] = Math.max(lo, Math.min(hi, Number(ev.target.value) || lo)); ev.target.value = r[k]; }; };
-	fnum('#rbf_lenCm', 'lenCm', 1, 300); fnum('#rbf_widCm', 'widCm', 1, 300);
-	fnum('#rbf_trackCm', 'trackCm', 1, 300); fnum('#rbf_maxSpeedCms', 'maxSpeedCms', 1, 2000);
+	fnum('#rbf_maxSpeedCms', 'maxSpeedCms', 1, 2000);
 	/* the count is the value, and the physical column beside it is derived from it
 	 * on the spot - one number entered, never two that can disagree */
 	const snumH = (k, phys) => {
@@ -5435,12 +6492,29 @@ function uiRobot() {
 	 * the driver's boot calibration and ~40 mg of uncalibrated zero-g offset. */
 	$('#rbNzTyp').onclick = () => { r.gyroNoise = 2; r.accelNoise = 3; r.gyroBias = 15; r.accelBias = 80; uiRobot(); };
 	$('#rbNzOff').onclick = () => { r.gyroNoise = 0; r.accelNoise = 0; r.gyroBias = 0; r.accelBias = 0; uiRobot(); };
-	$('#rbKin').onchange = e => { r.kin = e.target.value === 'skid' ? 'skid' : 'diff'; uiRobot(); };
-	['rbLeft', 'rbLeftB', 'rbRight', 'rbRightB'].forEach(id => {
-		const e = $('#' + id); if (!e) return;
-		e.onchange = ev => { r[id.slice(2, 3).toLowerCase() + id.slice(3)] = ev.target.value; };
-	});
 	$('#rbImuTab').onchange = e => { setImuSource(e.target.value); };
+	/* Add is the one place a new item's defaults are decided, and they are chosen
+	 * so the thing appears somewhere the user can see it and grab it. A new wheel
+	 * mirrors the last one across the machine, because that is what building a
+	 * chassis actually looks like; a new vertex lands on the edge it splits, so
+	 * the outline stays a sensible polygon instead of collapsing. */
+	$('#rbAddWheel').onclick = () => {
+		const ws = r.wheels, last = ws[ws.length - 1];
+		ws.push(last
+			? { x: Number(last.x) || 0, y: -(Number(last.y) || 0), deg: Number(last.deg) || 0, grip: wheelGrip(last), link: '', steer: last.steer || '', steerDeg: Number(last.steerDeg) || 30, r: Number(last.r) || 3.5 }
+			: { x: 0, y: 5, deg: 0, grip: 1, link: '', steer: '', steerDeg: 30, r: 3.5 });
+		renderRobotGeom();
+	};
+	$('#rbAddDev').onclick = () => { r.devices.push({ x: 0, y: 0, link: '', label: '' }); renderRobotGeom(); };
+	$('#rbAddVert').onclick = () => {
+		const s = r.shape;
+		if (s.length >= 2) {
+			const a = s[s.length - 1], b = s[0];
+			s.push([rbRound((Number(a[0]) + Number(b[0])) / 2), rbRound((Number(a[1]) + Number(b[1])) / 2)]);
+		} else s.push([0, 0]);
+		renderRobotGeom();
+	};
+	renderRobotGeom();
 	/* the tab does not own a canvas: it hosts the one panel, or says where it is */
 	const note = $('#rbTabNote');
 	if (UI.rbDock === 'tab') note.innerHTML = 'The robot view is docked here. Its <b>float</b> option puts it back over the graph, where it stays visible whatever tab is open.';
@@ -5467,10 +6541,24 @@ function drawRobot() {
 		$$('.db').forEach(e => { const v = SIM.deviceValue(P.sim.mapper[e.dataset.k]); e.innerHTML = v === null ? '' : barHtml(v, 1000); });
 		const ym = $('#rbYawMax');
 		if (ym) {
-			const r = P.sim.robot, one = (r.maxSpeedCms / Math.max(0.1, r.trackCm)) * 180 / Math.PI;
+			/* ASKED OF THE SOLVER, not computed from a formula. maxSpeed/track is
+			 * only the answer for two parallel wheels; the moment the machine has a
+			 * wheelbase, or a grip below 1, or a steered wheel, a closed form beside
+			 * a solver that disagrees with it is exactly the bug this avoids. */
+			const r = P.sim.robot;
+			const one = maxYawRate(r, 1) * 180 / Math.PI, spin = maxYawRate(r, 2) * 180 / Math.PI;
 			ym.textContent = one.toFixed(0) + ' deg/s';
-			ym.title = 'one side at full stick. Spinning on the spot, both sides opposite, is twice that: ' + (2 * one).toFixed(0) + ' deg/s';
+			ym.title = 'one side at full stick, from the same solver that drives the machine. ' +
+				'Spinning on the spot, both sides opposite, is ' + spin.toFixed(0) + ' deg/s' +
+				(spin < 1.98 * one ? ' - less than twice, because the wheelbase resists the yaw' : '');
 		}
+		/* the two derived sizes and every derived cell of the layout table follow
+		 * the geometry live, so editing a vertex or steering a wheel shows up
+		 * without the table being rebuilt under whatever is being typed into */
+		const r2 = P.sim.robot, cb2 = chassisBounds(r2.shape);
+		const sz = $('#rbSizeRo'); if (sz) sz.textContent = cb2.len.toFixed(1) + ' x ' + cb2.wid.toFixed(1);
+		const tk = $('#rbTrackRo'); if (tk) tk.textContent = wheelTrack(r2.wheels).toFixed(1);
+		$$('#rbGeom .rbgD').forEach(e => { e.innerHTML = robotGeomDerived(e.dataset.g, Number(e.dataset.i)); });
 	}
 	const p = $('#rbPanel');
 	if (p && !p.classList.contains('hidden') && !p.classList.contains('folded')) drawRobotView($('#rbCanvas'));
@@ -5480,7 +6568,8 @@ function drawRobot() {
  * be: a second copy would be a second answer to "where is the robot". ---- */
 const RB_COL = {
 	x: '#ff6b6b', y: '#9ede9f', z: '#b8cdf0', acc: '#e4e9a8',
-	head: '#00adb5', rev: '#ff8a65', horn: '#f0c2df', trail: '#3d7f84'
+	head: '#00adb5', rev: '#ff8a65', horn: '#f0c2df', trail: '#3d7f84',
+	slip: '#f0c05a', imu: '#d5c2f0'
 };
 /* cm per pixel.
  *
@@ -5504,7 +6593,8 @@ function robotScale(w, h) {
 	/* across the SHORTER side, so all of it is visible in either dock and a wide
 	 * panel shows more ground rather than a different amount of it */
 	if (view > 0) return view / Math.max(40, Math.min(w, h));
-	const body = Math.max(1, Number(R.lenCm) || 1, Number(R.widCm) || 1);
+	const cb = chassisBounds(R.shape);
+	const body = Math.max(1, cb.len, cb.wid);
 	const cX = R.follow ? S.x : 0, cY = R.follow ? S.y : 0;
 	let ex = body, ey = body;
 	for (let i = 0; i < S.trail.length; i += 2) {
@@ -5516,6 +6606,30 @@ function robotScale(w, h) {
 	return Math.max(2 * ex / Math.max(40, w - 30), 2 * ey / Math.max(40, h - 30),
 		body * 3 / Math.max(40, Math.min(w, h)));
 }
+/* ONE MAPPING, BOTH DIRECTIONS. The renderer puts a body point on the screen
+ * and the geometry editor takes a screen point back to the body, and if those
+ * two ever disagree a handle stops being under the pointer that grabbed it.
+ * So they come out of the same place: `sc`, `cX` and `cY` are what
+ * drawRobotView() uses, and toBody() is the exact inverse of the translate +
+ * rotate the canvas context does. */
+function robotViewMap(cv) {
+	const w = cv.clientWidth | 0, h = cv.clientHeight | 0;
+	const R = P.sim.robot, S = SIM.robot;
+	const sc = robotScale(w, h);
+	const cX = R.follow ? S.x : 0, cY = R.follow ? S.y : 0;
+	const co = Math.cos(S.th), si = Math.sin(S.th);
+	return {
+		w: w, h: h, sc: sc, cX: cX, cY: cY,
+		toBody: function (px, py) {
+			const dx = (cX + (px - w / 2) * sc) - S.x, dy = (cY - (py - h / 2) * sc) - S.y;
+			return { x: dx * co + dy * si, y: -dx * si + dy * co };
+		},
+		toScreen: function (bx, by) {
+			const Xw = S.x + bx * co - by * si, Yw = S.y + bx * si + by * co;
+			return { x: w / 2 + (Xw - cX) / sc, y: h / 2 - (Yw - cY) / sc };
+		}
+	};
+}
 function drawRobotView(cv) {
 	if (!cv) return;
 	/* the canvas follows its box, and a box of zero size means the host is hidden
@@ -5526,8 +6640,8 @@ function drawRobotView(cv) {
 	if (cv.height !== h) cv.height = h;
 
 	const c = cv.getContext('2d'), R = P.sim.robot, S = SIM.robot;
-	const sc = robotScale(w, h);
-	const cX = R.follow ? S.x : 0, cY = R.follow ? S.y : 0;
+	const map = robotViewMap(cv);
+	const sc = map.sc, cX = map.cX, cY = map.cY;
 	/* world -> screen. The screen's y grows downwards and the world's does not. */
 	const sx = (X) => w / 2 + (X - cX) / sc, sy = (Y) => h / 2 - (Y - cY) / sc;
 	const px = (cm) => cm / sc;
@@ -5570,9 +6684,10 @@ function drawRobotView(cv) {
 	}
 
 	/* --- the chassis, in the body frame: +X forward, +Y to the left --- */
-	const L = Math.max(1, Number(R.lenCm) || 1), Wd = Math.max(1, Number(R.widCm) || 1);
+	const cb = chassisBounds(R.shape);
+	const L = cb.len, Wd = cb.wid;
 	const rx = sx(S.x), ry = sy(S.y);
-	const mv = (k) => k ? SIM.deviceValue(P.sim.mapper[k]) : null;
+	const mv = (k) => SIM.rowValue(k);
 	c.save();
 	c.translate(rx, ry);
 	c.rotate(-S.th);                       /* world CCW is screen CCW once y is flipped */
@@ -5584,59 +6699,123 @@ function drawRobotView(cv) {
 		c.fillStyle = '#8b8b8b'; c.font = '9px Consolas,monospace'; c.textAlign = 'center';
 		c.fillText(txt, 0, 0); c.restore(); c.textAlign = 'left';
 	};
+	/* the outline is the project's polygon now, not a rectangle derived from two
+	 * numbers - for a migrated machine it IS that rectangle, so nothing moves */
 	c.fillStyle = 'rgba(34,34,34,.92)'; c.strokeStyle = RB_COL.head; c.lineWidth = 1.6;
-	c.beginPath(); c.rect(-px(L / 2), -px(Wd / 2), px(L), px(Wd)); c.fill(); c.stroke();
+	const poly = (R.shape || []).filter(p => p && isFinite(Number(p[0])) && isFinite(Number(p[1])));
+	c.beginPath();
+	if (poly.length >= 2) {
+		poly.forEach((p, i) => { const q = B(Number(p[0]), Number(p[1])); if (i === 0) c.moveTo(q[0], q[1]); else c.lineTo(q[0], q[1]); });
+		c.closePath();
+	} else {
+		c.rect(-px(L / 2), -px(Wd / 2), px(L), px(Wd));   /* not a chassis: draw the bounds */
+	}
+	c.fill(); c.stroke();
+	/* the vertices, as handles. They are drawn because they are DRAGGABLE: an
+	 * outline with nothing to grab on it is an outline the user cannot edit, and
+	 * a handle you cannot see is one you find by accident. */
+	c.fillStyle = RB_COL.head;
+	poly.forEach(p => {
+		const q = B(Number(p[0]), Number(p[1]));
+		c.fillRect(q[0] - 2, q[1] - 2, 4, 4);
+	});
 	/* a nose, so the front is unmistakable even at the size of a thumbnail */
 	c.fillStyle = RB_COL.head;
 	c.beginPath();
-	c.moveTo(px(L / 2), -px(Wd * 0.16)); c.lineTo(px(L / 2) + Math.max(4, px(L * 0.1)), 0); c.lineTo(px(L / 2), px(Wd * 0.16));
+	c.moveTo(px(cb.maxX), -px(Wd * 0.16)); c.lineTo(px(cb.maxX) + Math.max(4, px(L * 0.1)), 0); c.lineTo(px(cb.maxX), px(Wd * 0.16));
 	c.closePath(); c.fill();
 
-	const drive = { };
-	drive[R.left] = ['L', 1, 0.22]; drive[R.right] = ['R', -1, 0.22];
-	if (R.kin === 'skid') { if (R.leftB) drive[R.leftB] = ['L', 1, -0.22]; if (R.rightB) drive[R.rightB] = ['R', -1, -0.22]; }
-	delete drive[''];
-	/* a traction device is drawn where its wheel is; anything else mapped is drawn
-	 * where it cannot be mistaken for one - a weapon on M1 was the whole problem */
-	let spare = 0, servo = 0;
-	MAPPER_KEYS.forEach(k => {
-		const v = mv(k);
-		if (v === null && !drive[k]) return;
-		if (drive[k]) {
-			const d = drive[k], bx = L * d[2], by = d[1] * Wd / 2;
-			const wl = Math.max(6, px(L * 0.3)), wt = Math.max(3, px(Wd * 0.16)), p = B(bx, by);
-			c.save(); c.translate(p[0], p[1]);
-			c.fillStyle = '#2a2a2a'; c.strokeStyle = '#555'; c.lineWidth = 1;
-			c.beginPath(); c.rect(-wl / 2, -wt / 2, wl, wt); c.fill(); c.stroke();
-			if (v !== null) {
-				/* the bar is the speed the mapper would send, 0..MOTOR_SPEED_RESOLUTION */
-				c.fillStyle = v >= 0 ? RB_COL.head : RB_COL.rev;
-				const len = wl * SIM.motorSpeed(v) / MOTOR_SPEED_RESOLUTION;
-				c.fillRect(v >= 0 ? 0 : -len, -wt / 2, len, wt);
-			}
-			c.restore();
-			label(bx, by + d[1] * Wd * 0.22, k + (v === null ? ' -' : ''));
-		} else if (k.charAt(0) === 'S') {
-			const bx = L * 0.3, by = (servo++ === 0 ? 1 : -1) * Wd * 0.26, p = B(bx, by);
+	/* --- the wheels, each where the project says it is, TURNED TO ITS LIVE
+	 * STEERING ANGLE, and each with the slip the solve reported for it --- */
+	const slips = SIM.robot.slip || [];
+	(R.wheels || []).forEach((wh, wi) => {
+		if (!wh) return;
+		const bx = Number(wh.x) || 0, by = Number(wh.y) || 0;
+		const rr = Math.max(0.2, Number(wh.r) || 3.5);
+		const v = mv(wh.link);
+		const sl = slips[wi];
+		/* the same wheelAngle() the solver used - a wheel drawn at an angle the
+		 * physics did not use would be a second answer to where it is pointing */
+		const ang = wheelAngle(wh, (k) => SIM.rowValue(k));
+		const wl = Math.max(6, px(2 * rr)), wt = Math.max(3, px(0.8 * rr)), p = B(bx, by);
+		c.save(); c.translate(p[0], p[1]); c.rotate(-ang);   /* body CCW is screen CW once y is flipped */
+		/* an omni roller is drawn hollow: grip is the difference between a tyre
+		 * and a roller, and it changes how the machine moves, so it has to show */
+		const g = wheelGrip(wh);
+		c.fillStyle = g > 0.02 ? '#2a2a2a' : '#161616';
+		c.strokeStyle = g > 0.5 ? '#666' : '#444'; c.lineWidth = 1;
+		c.setLineDash(g > 0.02 ? [] : [2, 2]);
+		c.beginPath(); c.rect(-wl / 2, -wt / 2, wl, wt); c.fill(); c.stroke();
+		c.setLineDash([]);
+		if (v !== null) {
+			/* the bar is the speed the mapper would send, 0..MOTOR_SPEED_RESOLUTION */
+			c.fillStyle = v >= 0 ? RB_COL.head : RB_COL.rev;
+			const len = wl * SIM.motorSpeed(v) / MOTOR_SPEED_RESOLUTION;
+			c.fillRect(v >= 0 ? 0 : -len, -wt / 2, len, wt);
+		}
+		c.restore();
+		/* the lateral slip, at the contact patch, along the wheel's own lateral
+		 * axis. It is the residual of the solve and nothing else - if a number is
+		 * not a residual it does not go on screen. 10 cm/s is drawn as one wheel. */
+		if (sl && Math.abs(sl.lat) > 0.5) {
+			const n = [-Math.sin(ang), Math.cos(ang)];
+			const len = Math.max(4, Math.min(wl * 2.5, wl * Math.abs(sl.lat) / 10));
+			const dir = sl.lat >= 0 ? 1 : -1;
+			const ex = p[0] + n[0] * dir * len, ey = p[1] - n[1] * dir * len;
+			c.strokeStyle = RB_COL.slip; c.fillStyle = RB_COL.slip; c.lineWidth = 1.4;
+			c.beginPath(); c.moveTo(p[0], p[1]); c.lineTo(ex, ey); c.stroke();
+			const ca = Math.atan2(ey - p[1], ex - p[0]);
+			c.beginPath();
+			c.moveTo(ex, ey);
+			c.lineTo(ex - Math.cos(ca - 0.5) * 4, ey - Math.sin(ca - 0.5) * 4);
+			c.lineTo(ex - Math.cos(ca + 0.5) * 4, ey - Math.sin(ca + 0.5) * 4);
+			c.closePath(); c.fill();
+		}
+		label(bx, by + (by >= 0 ? 1 : -1) * (rr + Wd * 0.06), (wh.link || 'free') + (wh.link && v === null ? ' -' : ''));
+	});
+
+	/* --- the markers. A weapon on M1 must not look like a wheel, which is the
+	 * whole reason a device is a thing of its own and not an inferred drive. --- */
+	(R.devices || []).forEach(dv => {
+		if (!dv) return;
+		const bx = Number(dv.x) || 0, by = Number(dv.y) || 0, p = B(bx, by);
+		const v = mv(dv.link);
+		const txt = (dv.label || dv.link || '?') + (dv.link && v === null ? ' -' : '');
+		if (String(dv.link).charAt(0) === 'S') {
 			const rr = Math.max(5, px(Math.min(L, Wd) * 0.16));
 			c.strokeStyle = '#555'; c.lineWidth = 1;
 			c.beginPath(); c.arc(p[0], p[1], rr, 0, Math.PI * 2); c.stroke();
 			/* the horn follows the position the mapper would send, 0..MAX_SERVO_VALUE */
-			const ang = (SIM.servoPosition(v) / MAX_SERVO_VALUE) * Math.PI - Math.PI / 2;
+			const ang = (SIM.servoPosition(v === null ? 0 : v) / MAX_SERVO_VALUE) * Math.PI - Math.PI / 2;
 			c.strokeStyle = RB_COL.horn; c.lineWidth = 2;
 			c.beginPath(); c.moveTo(p[0], p[1]); c.lineTo(p[0] + Math.cos(ang) * rr, p[1] + Math.sin(ang) * rr); c.stroke();
-			label(bx, by - Wd * 0.2, k);
+			label(bx, by - Wd * 0.2, txt);
 		} else {
-			const bx = -L * (0.34 + 0.12 * spare), by = 0, p = B(bx, by);
-			const bw = Math.max(5, px(L * 0.1)), bh = Math.max(6, px(Wd * 0.5)); spare++;
+			const bw = Math.max(5, px(L * 0.1)), bh = Math.max(6, px(Wd * 0.5));
 			c.fillStyle = '#2a2a2a'; c.strokeStyle = '#555'; c.lineWidth = 1;
 			c.beginPath(); c.rect(p[0] - bw / 2, p[1] - bh / 2, bw, bh); c.fill(); c.stroke();
-			c.fillStyle = v >= 0 ? RB_COL.head : RB_COL.rev;
-			const len = bh * SIM.motorSpeed(v) / MOTOR_SPEED_RESOLUTION;
-			c.fillRect(p[0] - bw / 2, v >= 0 ? p[1] - len : p[1], bw, len);
-			label(bx, by - Wd * 0.36, k);
+			if (v !== null) {
+				c.fillStyle = v >= 0 ? RB_COL.head : RB_COL.rev;
+				const len = bh * SIM.motorSpeed(v) / MOTOR_SPEED_RESOLUTION;
+				c.fillRect(p[0] - bw / 2, v >= 0 ? p[1] - len : p[1], bw, len);
+			}
+			label(bx, by - Wd * 0.36, txt);
 		}
 	});
+
+	/* --- the IMU, where it is bolted. It reads the centripetal and tangential
+	 * terms its position implies, so WHERE it sits is part of the machine and
+	 * has to be visible - a crosshair, because it is a point and not a part. --- */
+	{
+		const ix = Number(R.imu && R.imu.x) || 0, iy = Number(R.imu && R.imu.y) || 0;
+		const p = B(ix, iy), k = Math.max(4, px(Math.min(L, Wd) * 0.09));
+		c.strokeStyle = RB_COL.imu; c.lineWidth = 1.2;
+		c.beginPath();
+		c.moveTo(p[0] - k, p[1]); c.lineTo(p[0] + k, p[1]);
+		c.moveTo(p[0], p[1] - k); c.lineTo(p[0], p[1] + k);
+		c.stroke();
+		c.beginPath(); c.arc(p[0], p[1], k * 0.55, 0, Math.PI * 2); c.stroke();
+	}
 	c.restore();
 
 	/* --- the vectors, in screen space so they never shrink out of existence --- */
@@ -5698,9 +6877,15 @@ function drawRobotView(cv) {
 
 	/* --- the numbers, including the counts the graph is actually reading --- */
 	const gy = P.sim.gyro, ac = P.sim.accel;
+	/* the largest lateral residual of the solve. It is the honest reading of "how
+	 * hard is this machine fighting itself", and it is not a number of its own -
+	 * it is the biggest of the arrows already drawn on the wheels. */
+	let worstSlip = 0;
+	(S.slip || []).forEach(s => { if (Math.abs(s.lat) > Math.abs(worstSlip)) worstSlip = s.lat; });
 	const lines = [
-		['v    ' + S.v.toFixed(1) + ' cm/s', RB_COL.head],
+		['v    ' + S.v.toFixed(1) + (Math.abs(S.vy) > 0.05 ? ', ' + S.vy.toFixed(1) : '') + ' cm/s', RB_COL.head],
 		['yaw  ' + (S.w * 180 / Math.PI).toFixed(1) + ' deg/s', RB_COL.z],
+		['slip  ' + Math.abs(worstSlip).toFixed(1) + ' cm/s', Math.abs(worstSlip) > 0.5 ? RB_COL.slip : '#777'],
 		['gyro  ' + gy[0] + ', ' + gy[1] + ', ' + gy[2], R.imuSource === 'robot' ? RB_COL.z : '#777'],
 		['accel ' + ac[0] + ', ' + ac[1] + ', ' + ac[2], R.imuSource === 'robot' ? RB_COL.acc : '#777'],
 		/* the view width, not cm/px: with a fixed window it is the number that says
@@ -5720,7 +6905,8 @@ function drawRobotView(cv) {
 	 * colour of the thing it names */
 	if (h >= 96 + lines.length * 12) {
 		let lx = 8;
-		[['X fwd', RB_COL.x], ['Y left', RB_COL.y], ['Z yaw', RB_COL.z], ['accel', RB_COL.acc]]
+		[['X fwd', RB_COL.x], ['Y left', RB_COL.y], ['Z yaw', RB_COL.z], ['accel', RB_COL.acc],
+		['slip', RB_COL.slip], ['imu', RB_COL.imu]]
 			.forEach(t => { c.fillStyle = t[1]; c.fillText(t[0], lx, 14 + lines.length * 12); lx += c.measureText(t[0]).width + 8; });
 	}
 	if (S.paused || R.imuSource === 'manual') {
@@ -6246,7 +7432,13 @@ function uiHelp() {
 		'The Self-test tab asserts that, and about a hundred other things, on every run.</p>' +
 		'<h4>The loop is closed</h4>' +
 		'<p>The mix drives the mapper, the mapper drives a <b>kinematic robot</b>, and the robot drives the simulated IMU the graph reads back &mdash; so a gyro block responds to the turn the mix itself commanded. ' +
-		'The robot, its size, its track and its top speed are part of the mix and are saved with it; where the view sits is not. It is a sketch and not a dynamics simulation, and the panel says so.</p>' +
+		'The machine is a <b>layout</b>: a chassis outline, wheels you place and orient, markers, and an IMU that sits somewhere on it. All of that is part of the mix and is saved with it; where the view sits is not. ' +
+		'It is a sketch and not a dynamics simulation, and the panel says so.</p>' +
+		'<h4>Laying the machine out</h4>' +
+		'<p>The <b>Robot</b> tab has the numbers &mdash; a table per list, with add and remove &mdash; and the robot view is a shortcut onto the same fields: <b>drag a wheel, a chassis vertex, a marker or the IMU</b> straight on it. ' +
+		'A press on empty ground is not a drag, and the panel still moves by its own header. There is no grid snap on the view: the editor grid is a spacing in screen pixels for the graph and means nothing in centimetres, so positions land on 0.1 cm instead. ' +
+		'The layout is <b>not</b> on the undo stack, which is true of every simulator field. Why a wheel\'s grip changes how the machine turns, what the slip arrows are, and what an off-centre IMU reads all live in that tab, next to the controls they explain. ' +
+		'<button id="btHelpRobot">open the Robot tab</button></p>' +
 		'<h4>The blocks, the value chain, the groups and the cost model</h4>' +
 		'<p>All of that lives in the <b>Blocks</b> tab at the bottom, one card per block, generated from the catalogue itself: ports, parameters, division count, proven range, and the <b>real C</b> each block emits. '+
 		'<button id="btHelpBlocks">open the Blocks tab</button></p>' +
@@ -6266,9 +7458,13 @@ function uiHelp() {
 		'<h4>What this tool will never do</h4>' +
 		'<p>Emit a <span class="mono">float</span>, a device write, a settings write, a blocking call, a new setting code, or a patch to your firmware. ' +
 		'It writes two files and tells you, in order, what to add by hand.</p>');
+	/* one copy of each explanation: the modal points at the tabs, it does not
+	 * repeat them. Block theory is the Blocks tab's, the simulator's own theory
+	 * is the Robot tab's, and the shortcuts and the workflow are this modal's. */
 	const b = $('#btHelpBlocks');
-	/* one copy of each explanation: the modal points at the tab, it does not repeat it */
 	if (b) b.onclick = () => { closeModal(); openTab('blocks'); };
+	const rb = $('#btHelpRobot');
+	if (rb) rb.onclick = () => { closeModal(); openTab('robot'); };
 }
 
 /* ------------------------------------------------------------- clipboard */
