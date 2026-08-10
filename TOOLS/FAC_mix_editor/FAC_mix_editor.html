@@ -316,7 +316,7 @@ canvas{display:block;background:#0b0b0b;border:1px solid var(--line2);border-rad
 				<button class="tiny" id="rbClear">clear trail</button>
 				<label title="keep the robot in the middle of the view"><input type="checkbox" id="rbFollow"> follow</label>
 				<label><input type="checkbox" id="rbTrail"> trail</label>
-				<label title="0 = fit the trail automatically">cm/px <input type="number" id="rbScale" min="0" max="200" step="0.1" value="0" style="width:52px"></label>
+				<label title="the ground the view shows across its short side. Fixed, so a faster robot visibly crosses it faster - it is pixels only, the physics is unchanged. 0 = fit the trail instead">view <input type="number" id="rbView" min="0" max="4000" step="10" value="120" style="width:58px"> cm</label>
 				<label title="what the IMU blocks read">IMU <select id="rbImu" style="font-size:10px;padding:1px 2px">
 					<option value="robot">robot</option><option value="manual">sliders</option></select></label>
 			</div>
@@ -1346,8 +1346,13 @@ function blankProject(mode) {
 				left: 'M1', right: 'M2',             /* fac_settings.c:103-104 defaults */
 				leftB: 'M3', rightB: '',             /* the second device of each side, 'skid' only */
 				imuSource: 'robot',                  /* 'robot' | 'manual' */
-				noise: 0,                            /* peak noise in RAW COUNTS, 0 = off */
-				cmPerPx: 0,                          /* 0 = auto fit */
+				/* the sensor model, all four in RAW COUNTS and all four 0 = off. The
+				 * noises are one sigma of a gaussian redrawn at the sensor's own output
+				 * data rate; the biases are the PEAK of a per axis constant offset drawn
+				 * once per run. See SIM.sensorOffsets(). */
+				gyroNoise: 0, accelNoise: 0,
+				gyroBias: 0, accelBias: 0,
+				viewCm: 120,                         /* the ground the view shows, cm. 0 = fit the trail */
 				follow: 1, trail: 1
 			}
 		},
@@ -2419,6 +2424,17 @@ function projectForSave() {
 function mergeSim(base, inc) {
 	const out = Object.assign({}, base, inc || {});
 	out.robot = Object.assign({}, base.robot, (inc && inc.robot) || {});
+	/* A file written before the sensor model was split carries ONE `noise` field:
+	 * the peak of a uniform draw, applied to both sensors alike. The two fields
+	 * that replaced it are one sigma each, and a uniform +-peak has an RMS of
+	 * peak/sqrt(3) - so that is the conversion that keeps the noise power the file
+	 * actually asked for, rather than silently tripling it. */
+	if (inc && inc.robot && inc.robot.noise !== undefined && inc.robot.gyroNoise === undefined) {
+		const sigma = Math.round((Number(inc.robot.noise) || 0) / Math.sqrt(3));
+		out.robot.gyroNoise = sigma;
+		out.robot.accelNoise = sigma;
+	}
+	delete out.robot.noise;
 	return out;
 }
 /* A saved project of ANY schema -> a complete project at SCHEMA_VERSION.
@@ -2482,6 +2498,22 @@ function importFromC(text) {
  * ========================================================================== */
 const ROBOT_G_CM_S2 = 980.665;     /* one g, so an accel readout is in real mg */
 const ROBOT_ACC_TAU = 0.02;        /* s - the lag on the longitudinal acceleration estimate */
+/* Both sensors are configured at 416 Hz (LSM6DS3.c:138 CTRL1_XL, :147 CTRL2_G),
+ * so a new sample only lands every 2.4 ms however often the mix reads it - and
+ * FAC_IMU_update() returns early inside the same millisecond for exactly that
+ * reason (fac_imu.c). That is why the noise is held: white noise redrawn every
+ * pass would average away in a filter far better than the real thing does. */
+const IMU_SAMPLE_MS = 1000 / 416;
+/* the shared answer for "the sensor model is off": frozen, because it is handed
+ * out on every one of the thousand passes a second and must not be written into */
+const NO_SENSOR_OFFSET = Object.freeze({ g: Object.freeze([0, 0, 0]), a: Object.freeze([0, 0, 0]) });
+/* one standard normal, Box-Muller. Gaussian and not uniform because that is what
+ * a datasheet's noise density describes, and what a sum of many small physical
+ * effects is. The log's argument is nudged off zero: Math.random() can return 0. */
+function gaussUnit() {
+	const u = Math.random() || 1e-12;
+	return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random());
+}
 const ROBOT_TRAIL_MS = 20;         /* one trail point every 20 simulated ms */
 const ROBOT_TRAIL_MAX = 900;       /* ~18 s of trail, bounded by time and not by uptime */
 const SIM = {
@@ -2505,12 +2537,21 @@ const SIM = {
 	robot: null,
 
 	newRobot: function () {
+		const u = () => Math.random() * 2 - 1;
 		return {
 			x: 0, y: 0, th: 0,        /* pose: cm, cm, rad (world frame, th = 0 is +X) */
 			v: 0, w: 0,               /* body speed cm/s, yaw rate rad/s */
 			ax: 0, ay: 0,             /* body acceleration cm/s^2: longitudinal, lateral */
 			trail: [], trailT: 0,
-			paused: false
+			paused: false,
+			/* the SENSOR's state, not the chassis'. `nz` is the held noise sample, in
+			 * sigmas, redrawn when `nzIdx` moves on at the output data rate. `bias` is
+			 * six UNIT draws, scaled by the project's peaks every time they are used:
+			 * that is what makes turning the field up scale the offset that is already
+			 * there instead of rolling a different machine, while a reset - a new robot
+			 * - is what draws a new one. Part to part variation, once per run. */
+			nz: { g: [0, 0, 0], a: [0, 0, 0] }, nzIdx: -1,
+			bias: { g: [u(), u(), u()], a: [u(), u(), u()] }
 		};
 	},
 
@@ -2752,6 +2793,47 @@ const SIM = {
 		if (R.imuSource === 'robot') this.writeRobotImu();
 	},
 
+	/* ------------------------------------------------------------ the sensor
+	 * WHAT THE PERFECT MEASUREMENT IS NOT. A real LSM6DS3 does not hand over the
+	 * motion: it hands over the motion plus a noise and plus an offset, so a mix
+	 * that is only ever fed the truth is a mix that has never been tested. This
+	 * is the ONLY thing that superimposes anything on the counts, and it is a
+	 * simulation matter alone - no block, no interval and not one character of
+	 * the generated C knows it exists.
+	 *
+	 * Two effects, because they behave differently and a single number cannot
+	 * stand for both:
+	 *
+	 *   noise  gaussian, one sigma per sensor, redrawn at the sensor's OUTPUT
+	 *          DATA RATE and held in between (see IMU_SAMPLE_MS). It averages out
+	 *          over time, which is exactly why a filter can chase it away and why
+	 *          drawing it fresh every millisecond would make filters look better
+	 *          than they are.
+	 *   bias   a constant per axis for the whole run, drawn once within +-peak.
+	 *          It does NOT average out: integrate a biased gyro and the heading
+	 *          walks away linearly, which is the failure this exists to show.
+	 *
+	 * Impure, deliberately, and kept apart from robotImuCounts() so that one can
+	 * stay pure: the random draws live here and the conversion below takes the
+	 * offsets as an argument. Everything off returns a shared zero. */
+	sensorOffsets: function () {
+		const R = P.sim.robot, S = this.robot;
+		const sg = Math.max(0, Number(R.gyroNoise) || 0), sa = Math.max(0, Number(R.accelNoise) || 0);
+		const bg = Math.max(0, Number(R.gyroBias) || 0), ba = Math.max(0, Number(R.accelBias) || 0);
+		if (!sg && !sa && !bg && !ba) return NO_SENSOR_OFFSET;
+		const idx = Math.floor(this.tick / IMU_SAMPLE_MS);
+		if (idx !== S.nzIdx) {
+			S.nzIdx = idx;
+			for (let i = 0; i < 3; i++) { S.nz.g[i] = gaussUnit(); S.nz.a[i] = gaussUnit(); }
+		}
+		const o = { g: [0, 0, 0], a: [0, 0, 0] };
+		for (let i = 0; i < 3; i++) {
+			o.g[i] = S.nz.g[i] * sg + S.bias.g[i] * bg;
+			o.a[i] = S.nz.a[i] * sa + S.bias.a[i] * ba;
+		}
+		return o;
+	},
+
 	/* THE SECOND AND LAST FLOAT BOUNDARY OF THIS PROGRAM. The first is a gamepad
 	 * axis, which dies in PAD.padToStage0(); this is where the robot's physical
 	 * state dies, and for the same reason: a non-integer reaching the graph means
@@ -2759,16 +2841,15 @@ const SIM = {
 	 *
 	 * Pure on purpose - the self-test sweeps it directly. Everything is rounded
 	 * AND clamped to int16_t here, because that is what the driver hands over
-	 * (LSM6DS3.h:137-138); noise is added before the rounding so it cannot slip
-	 * a fraction past it.
+	 * (LSM6DS3.h:137-138); the sensor offsets come in as floats in counts and are
+	 * superimposed BEFORE the rounding, so they cannot slip a fraction past it.
 	 *
 	 * Axis convention, and the panel says so too: X forward, Y left, Z up, a
 	 * right handed frame in which a left turn is a positive gyro Z. That is a
 	 * choice about how the board is MOUNTED - the firmware only ever passes the
 	 * sensor's own X/Y/Z through (enum AXIS, LSM6DS3.h:143-147). */
-	robotImuCounts: function (w, ax, ay, noise) {
-		const nz = Number(noise) || 0;
-		const n = () => nz > 0 ? (Math.random() * 2 - 1) * nz : 0;
+	robotImuCounts: function (w, ax, ay, off) {
+		const og = (off && off.g) || [0, 0, 0], oa = (off && off.a) || [0, 0, 0];
 		const i16 = (x) => Math.max(I16_MIN, Math.min(I16_MAX, Math.round(x)));
 		/* rad/s -> mdps -> counts */
 		const gz = (w * 180000 / Math.PI) / GYRO_MDPS_PER_COUNT;
@@ -2776,14 +2857,15 @@ const SIM = {
 		const mg = (a) => (a / ROBOT_G_CM_S2) * 1000;
 		const cnt = (m) => m * 1000 / ACCEL_UG_PER_COUNT;
 		return {
-			g: [i16(n()), i16(n()), i16(gz + n())],
-			a: [i16(cnt(mg(ax)) + n()), i16(cnt(mg(ay)) + n()), i16(cnt(1000) + n())]
+			g: [i16(og[0]), i16(og[1]), i16(gz + og[2])],
+			a: [i16(cnt(mg(ax)) + oa[0]), i16(cnt(mg(ay)) + oa[1]), i16(cnt(1000) + oa[2])]
 		};
 	},
-	/* gyro X and Y stay at zero: the sketch is planar, so roll and pitch rate are
-	 * zero by construction and not by omission. Z carries gravity, always. */
+	/* gyro X and Y carry nothing but the sensor's own error: the sketch is planar,
+	 * so roll and pitch rate are zero by construction and not by omission. Z
+	 * carries gravity, always. */
 	writeRobotImu: function () {
-		const c = this.robotImuCounts(this.robot.w, this.robot.ax, this.robot.ay, P.sim.robot.noise);
+		const c = this.robotImuCounts(this.robot.w, this.robot.ax, this.robot.ay, this.sensorOffsets());
 		for (let i = 0; i < 3; i++) { P.sim.gyro[i] = c.g[i]; P.sim.accel[i] = c.a[i]; }
 	},
 	resetRobot: function () {
@@ -3302,8 +3384,12 @@ function runSelfTest() {
 	Tok('the robot IMU conversion only ever produces int16 counts', (function () {
 		const ws = [0, 0.001, -0.001, 1, -1, 12.7, -12.7, 500, -500];
 		const as = [0, 1, -1, 980.665, -980.665, 1e5, -1e5, 1e9, -1e9];
-		for (const w of ws) for (const a of as) for (const noise of [0, 40]) {
-			const c = SIM.robotImuCounts(w, a, -a, noise);
+		/* the sensor offsets arrive as floats in counts, so they are exactly what
+		 * would slip a fraction - or an out of range value - past the boundary if
+		 * the rounding and the clamp were not on this side of it */
+		const offs = [null, { g: [0.4, -0.6, 39.5], a: [-0.5, 1.5, -39.5] }, { g: [1e9, -1e9, 1e9], a: [-1e9, 1e9, -1e9] }];
+		for (const w of ws) for (const a of as) for (const off of offs) {
+			const c = SIM.robotImuCounts(w, a, -a, off);
 			for (const v of c.g.concat(c.a))
 				if (!Number.isInteger(v) || v < I16_MIN || v > I16_MAX) return false;
 		}
@@ -3319,6 +3405,98 @@ function runSelfTest() {
 	T('a yaw rate beyond the full scale saturates instead of wrapping', SIM.robotImuCounts(100, 0, 0, 0).g[2], I16_MAX);
 	T('a longitudinal acceleration beyond +-16 g saturates', SIM.robotImuCounts(0, 1e6, 0, 0).a[0], I16_MAX);
 	T('one g of longitudinal acceleration is 2049 counts', SIM.robotImuCounts(0, ROBOT_G_CM_S2, 0, 0).a[0], Math.round(1000 * 1000 / ACCEL_UG_PER_COUNT));
+
+	/* --- the sensor model: a superimposed error, and where it may not reach ---
+	 * A real sensor does not hand over the motion, it hands over the motion plus
+	 * an error. What has to stay true: the error is SUPERIMPOSED on the count and
+	 * dies on the integer side of the boundary with everything else; the noise is
+	 * held for one sample of the sensor's output data rate instead of being
+	 * redrawn every pass; and an offset is constant for the run while noise is
+	 * not - which is the whole reason they are two fields and not one. */
+	(function () {
+		const saveP = P, saveRobot = SIM.robot, saveTick = SIM.tick;
+		try {
+			P = blankProject('mix');
+			SIM.robot = SIM.newRobot();
+
+			const base = SIM.robotImuCounts(1, 0, 0, null);
+			const off = SIM.robotImuCounts(1, 0, 0, { g: [7, -7, 5], a: [0, 0, -3] });
+			T('an offset is superimposed on the gyro count that carries the signal', off.g[2], base.g[2] + 5);
+			T('an offset reaches the gyro axes the planar sketch leaves at zero', String([off.g[0], off.g[1]]), '7,-7');
+			T('an offset is superimposed on the accel count as well', off.a[2], base.a[2] - 3);
+			T('a fractional offset cannot leave a fractional count', SIM.robotImuCounts(0, 0, 0, { g: [0, 0, 0.4], a: [0, 0, 0] }).g[2], 0);
+			T('an offset past the full scale saturates instead of wrapping', SIM.robotImuCounts(0, 0, 0, { g: [0, 0, 1e9], a: [0, 0, 0] }).g[2], I16_MAX);
+
+			/* off is off: a new project superimposes nothing at all */
+			T('with every sensor field at zero nothing is superimposed',
+				String(SIM.sensorOffsets().g) + ' | ' + String(SIM.sensorOffsets().a), '0,0,0 | 0,0,0');
+
+			/* 416 Hz over a simulated second is 416 samples. A draw every pass would
+			 * be 1000 of them, and a filter would average away 2.4x more than the
+			 * real part ever gives it the chance to. */
+			P.sim.robot.gyroNoise = 100;
+			SIM.robot = SIM.newRobot();
+			let changes = 0, prev = null;
+			for (let t = 0; t < 1000; t++) {
+				SIM.tick = t;
+				const v = SIM.sensorOffsets().g[2];
+				if (prev !== null && v !== prev) changes++;
+				prev = v;
+			}
+			Tok('the noise is redrawn at the 416 Hz output data rate and held in between',
+				changes >= 410 && changes <= 420, changes + ' draws in a simulated second');
+
+			/* an offset does not average out - it is the same number at the start of
+			 * the run and at the end, which is what makes an integrated gyro walk */
+			P.sim.robot.gyroNoise = 0; P.sim.robot.gyroBias = 1000;
+			SIM.robot = SIM.newRobot();
+			SIM.tick = 0; const b0 = SIM.sensorOffsets().g.slice();
+			SIM.tick = 5000; const b1 = SIM.sensorOffsets().g.slice();
+			T('an offset is constant for the whole run', String(b0), String(b1));
+			Tok('an offset stays inside the peak it was given', b0.every(v => Math.abs(v) <= 1000), String(b0));
+			/* the draw is a UNIT one, scaled by the field every time it is used:
+			 * turning the peak up scales the machine already drawn instead of
+			 * quietly rolling a different one under the user */
+			P.sim.robot.gyroBias = 2000;
+			T('doubling the peak doubles the offset already drawn', String(SIM.sensorOffsets().g), String(b0.map(v => v * 2)));
+
+			/* and all of it reaches the arrays the IMU blocks read, as int16 counts */
+			P.sim.robot.gyroNoise = 300; P.sim.robot.accelNoise = 300;
+			P.sim.robot.gyroBias = 300; P.sim.robot.accelBias = 300;
+			P.sim.robot.imuSource = 'robot';
+			SIM.robot = SIM.newRobot();
+			let bad = '', moved = false, first = null;
+			for (let t = 1; t <= 200; t++) {
+				SIM.tick = t; SIM.writeRobotImu();
+				const s = String(P.sim.gyro) + ' | ' + String(P.sim.accel);
+				if (first === null) first = s; else if (s !== first) moved = true;
+				P.sim.gyro.concat(P.sim.accel).forEach(v => {
+					if (!Number.isInteger(v) || v < I16_MIN || v > I16_MAX) bad = String(v);
+				});
+			}
+			Tok('a noisy sensor still writes nothing but int16 counts', !bad, bad);
+			Tok('a standing robot with the sensor model on does not read a constant count', moved, first);
+
+			/* IT IS A SENSOR MODEL, NOT A ROUGH FLOOR. The error belongs to the
+			 * measurement and to nothing else: with the same commands the chassis
+			 * has to end up in exactly the same place, however loud the sensor is.
+			 * An open loop run is what isolates that - a mix that reads the IMU is
+			 * SUPPOSED to drive differently, and that is the point of the noise. */
+			const pose = (nz) => {
+				P = blankProject('mix');
+				P.sim.robot.gyroNoise = nz; P.sim.robot.accelNoise = nz;
+				P.sim.robot.gyroBias = nz; P.sim.robot.accelBias = nz;
+				SIM.robot = SIM.newRobot();
+				SIM.outputs[0] = 800; SIM.outputs[1] = -250;
+				for (let t = 1; t <= 300; t++) { SIM.tick = t; SIM.integrateRobot(); }
+				const S = SIM.robot;
+				return [S.x, S.y, S.th, S.v, S.w].map(n => n.toFixed(9)).join(' ');
+			};
+			T('the sensor model moves counts and never the chassis', pose(8000), pose(0));
+		} finally {
+			P = saveP; SIM.robot = saveRobot; SIM.tick = saveTick;
+		}
+	})();
 
 	/* --- a scripted run of the loop, over both extremes of both sticks --- */
 	(function () {
@@ -3371,6 +3549,50 @@ function runSelfTest() {
 		}
 	})();
 
+	/* --- the view is a fixed window, and it is pixels only ------------------
+	 * The defect this pins down: an auto fitted scale grows with the trail, so
+	 * driving twice as fast zooms out twice as fast and every top speed looks
+	 * alike. A fixed view must NOT move when the trail does - and neither view
+	 * may reach the physics, which is the guarantee the whole change owes. */
+	(function () {
+		const saveP = P, saveRobot = SIM.robot, saveOut = SIM.outputs.slice(), saveTick = SIM.tick;
+		try {
+			const W = 300, H = 200;
+			P = blankProject('mix');
+			SIM.robot = SIM.newRobot();
+			P.sim.robot.viewCm = 120;
+			const fixed = robotScale(W, H);
+			T('a fixed view is its width over the short side of the canvas', fixed, 120 / 200);
+			/* a 40 m trail, which the auto fit would zoom right out for */
+			for (let i = 0; i < 400; i++) SIM.robot.trail.push(i * 10, i * 10);
+			SIM.robot.x = 3990; SIM.robot.y = 3990;
+			T('a fixed view does not move when the trail grows', robotScale(W, H), fixed);
+			P.sim.robot.viewCm = 240;
+			T('doubling the view doubles the cm per pixel', robotScale(W, H), 2 * fixed);
+			/* and the auto fit still does exactly what it always did, which is why
+			 * it stays a choice rather than becoming a bug */
+			P.sim.robot.viewCm = 0;
+			Tok('the auto fit view still grows with the trail', robotScale(W, H) > fixed * 4, String(robotScale(W, H)));
+
+			/* the same run, at the two extremes of the view: same pose, same counts */
+			const run = (viewCm) => {
+				P = blankProject('mix');
+				P.sim.robot.imuSource = 'robot';
+				P.sim.robot.viewCm = viewCm;
+				SIM.robot = SIM.newRobot();
+				SIM.outputs[0] = 900; SIM.outputs[1] = -400;
+				for (let k = 0; k < 250; k++) { SIM.tick = (SIM.tick + 1) >>> 0; SIM.integrateRobot(); }
+				const S = SIM.robot;
+				return [S.x, S.y, S.th, S.v, S.w].map(n => n.toFixed(9)).join(' ') +
+					' | ' + P.sim.gyro + ' | ' + P.sim.accel;
+			};
+			T('a run gives the same pose and the same IMU counts at any view size', run(60), run(4000));
+		} finally {
+			P = saveP; SIM.robot = saveRobot; SIM.tick = saveTick;
+			for (let i = 0; i < saveOut.length; i++) SIM.outputs[i] = saveOut[i];
+		}
+	})();
+
 	/* --- schema 1 files load with the new fields defaulted, and re-save at 2 --- */
 	/* These go through migrateProject(), the function loadProject() itself calls.
 	 * Asserting on mergeSim() alone passed while the real path was broken: the
@@ -3397,6 +3619,28 @@ function runSelfTest() {
 		const m2 = migrateProject({ mode: 'mix', nodes: [], wires: [], sim: { robot: { trackCm: 30 } } });
 		T('a partial robot block keeps the field it set', m2.sim.robot.trackCm, 30);
 		T('a partial robot block defaults the fields it omitted', m2.sim.robot.maxSpeedCms, d.robot.maxSpeedCms);
+		/* a file written before the view was fixed carries no viewCm at all, and
+		 * must come back with one rather than falling into the auto fit */
+		T('a file that predates the fixed view gets one defaulted', m2.sim.robot.viewCm, d.robot.viewCm);
+		/* and comparing it to the default is not enough - both sides move together.
+		 * The property is that the default is a FIXED window: a new project must not
+		 * open in the auto fit, which is the behaviour the fixed view exists to fix. */
+		Tok('the defaulted view is a fixed window, not the auto fit', d.robot.viewCm > 0, String(d.robot.viewCm));
+		/* a new project measures perfectly: the sensor model is opt in, so nothing
+		 * anyone built before it existed starts behaving differently */
+		Tok('a new project has the sensor model off',
+			!d.robot.gyroNoise && !d.robot.accelNoise && !d.robot.gyroBias && !d.robot.accelBias,
+			[d.robot.gyroNoise, d.robot.accelNoise, d.robot.gyroBias, d.robot.accelBias].join(','));
+		/* a file written before the two sensors were told apart carries ONE `noise`
+		 * peak. A uniform +-peak has an RMS of peak/sqrt(3), and a sigma is what the
+		 * fields are now, so 40 comes back as 23 and not as 40 - keeping the noise
+		 * power the file asked for instead of silently tripling it. */
+		const m3 = migrateProject({ mode: 'mix', nodes: [], wires: [], sim: { robot: { noise: 40 } } });
+		T('a legacy noise peak becomes the equivalent sigma on both sensors', m3.sim.robot.gyroNoise + '/' + m3.sim.robot.accelNoise, '23/23');
+		Tok('the legacy noise field does not survive its own migration', m3.sim.robot.noise === undefined, String(m3.sim.robot.noise));
+		T('a legacy noise peak leaves the offsets at zero', m3.sim.robot.gyroBias + '/' + m3.sim.robot.accelBias, '0/0');
+		const m4 = migrateProject({ mode: 'mix', nodes: [], wires: [], sim: { robot: { noise: 40, gyroNoise: 5 } } });
+		T('a file that already speaks the new fields keeps them', m4.sim.robot.gyroNoise, 5);
 		/* the defaults are a fresh object every time, so loading one project can
 		 * never edit the next one through a shared reference */
 		const a1 = migrateProject({ mode: 'mix', nodes: [], wires: [] });
@@ -3861,7 +4105,7 @@ function syncRobotCtl() {
 	set('#rbFollow', e => e.checked = !!R.follow);
 	set('#rbTrail', e => e.checked = !!R.trail);
 	set('#rbImu', e => e.value = R.imuSource);
-	set('#rbScale', e => { if (document.activeElement !== e) e.value = String(R.cmPerPx || 0); });
+	set('#rbView', e => { if (document.activeElement !== e) e.value = String(R.viewCm || 0); });
 	set('#rbPause', e => { e.textContent = SIM.robot.paused ? 'resume' : 'pause'; e.classList.toggle('on', !!SIM.robot.paused); });
 }
 /* one way in, because the selector exists in two places - the panel strip and
@@ -3913,7 +4157,7 @@ function initRobotPanel() {
 	$('#rbClear').onclick = () => { SIM.robot.trail.length = 0; };
 	$('#rbFollow').onchange = e => { P.sim.robot.follow = e.target.checked ? 1 : 0; };
 	$('#rbTrail').onchange = e => { P.sim.robot.trail = e.target.checked ? 1 : 0; if (!e.target.checked) SIM.robot.trail.length = 0; };
-	$('#rbScale').onchange = e => { P.sim.robot.cmPerPx = Math.max(0, Number(e.target.value) || 0); };
+	$('#rbView').onchange = e => { P.sim.robot.viewCm = Math.max(0, Math.min(4000, Number(e.target.value) || 0)); e.target.value = P.sim.robot.viewCm; };
 	$('#rbImu').onchange = e => { setImuSource(e.target.value); };
 	/* fold and opacity are geometry only: nothing outside the panel describes them */
 	$('#rbFold').onclick = () => { UI.rbOpen = !UI.rbOpen; applyRobotPanel(); saveUiPrefs(); };
@@ -5101,6 +5345,16 @@ function uiRobot() {
 	/* a drive selector over the mapper rows that actually exist */
 	const devOpts = (id, sel) => '<select id="' + id + '"><option value=""' + (sel ? '' : ' selected') + '>none</option>' +
 		MAPPER_KEYS.map(k => '<option value="' + k + '"' + (sel === k ? ' selected' : '') + '>' + k + '</option>').join('') + '</select>';
+	/* One sensor field. It is entered in RAW COUNTS, because counts are what the
+	 * model superimposes and what a block reads, and the physical value it stands
+	 * for is spelled out beside it - a datasheet talks dps and mg, and a count is
+	 * only ever one sensitivity away from those. */
+	const gyroPhys = (c) => (c * GYRO_MDPS_PER_COUNT / 1000).toFixed(2) + ' dps';
+	const accelPhys = (c) => (c * ACCEL_UG_PER_COUNT / 1000).toFixed(1) + ' mg';
+	const snum = (label, k, phys, tail) =>
+		'<div style="' + GRID('86px 96px 220px') + '"><span>' + label + '</span>' +
+		'<input type="number" id="rbs_' + k + '" min="0" max="8000" value="' + (Number(r[k]) || 0) + '" style="width:90px">' +
+		'<span class="muted" style="font-size:10px"><span class="mono" id="rbsu_' + k + '">' + phys(Number(r[k]) || 0) + '</span> ' + tail + '</span></div>';
 
 	/* the panel may be living inside this very subtree, and innerHTML is about to
 	 * destroy it: park it in #editor first and let applyRobotPanel() re-home it */
@@ -5129,19 +5383,34 @@ function uiRobot() {
 		'<span class="muted" style="font-size:10px">a pair averages, which is what the axle does anyway</span></div>' +
 		'<div style="' + GRID('86px 96px 96px') + '"><span>left side</span>' + devOpts('rbLeft', r.left) + (pair ? devOpts('rbLeftB', r.leftB) : '') + '</div>' +
 		'<div style="' + GRID('86px 96px 96px') + '"><span>right side</span>' + devOpts('rbRight', r.right) + (pair ? devOpts('rbRightB', r.rightB) : '') + '</div>' +
-		'<div style="' + GRID('86px 96px 220px') + '"><span>IMU source</span>' +
-		'<select id="rbImuTab"><option value="robot"' + (r.imuSource === 'robot' ? ' selected' : '') + '>this robot</option>' +
-		'<option value="manual"' + (r.imuSource === 'manual' ? ' selected' : '') + '>the sliders</option></select>' +
-		'<span class="muted" style="font-size:10px">on <b>this robot</b> the sensor sliders and the generator are driven, not read</span></div>' +
-		'<div style="' + GRID('86px 96px 220px') + '"><span>noise</span>' +
-		'<input type="number" id="rbNoise" min="0" max="4000" value="' + (Number(r.noise) || 0) + '" style="width:90px">' +
-		'<span class="muted" style="font-size:10px">peak, in raw counts. 0 = off</span></div>' +
 		'<div class="muted" style="font-size:10px;margin-top:5px">' +
 		'<b>Illustrative, a kinematic sketch and not a dynamics simulation.</b> No mass, no traction limit, no slip: a step on the stick is a step in ground speed. ' +
 		'It is here to close the loop &mdash; what the mix commands turns the chassis, and the turn is what the IMU blocks read back.<br>' +
 		'<b>Axes.</b> X forward, Y left, Z up, right handed, so a <b>left turn is a positive gyro Z</b>. That is a statement about how the board is <b>mounted</b>: the firmware only passes the sensor\'s own X/Y/Z through (<span class="mono">enum AXIS</span>, <span class="mono">LSM6DS3.h:143-147</span>). Mount it another way and the signs are yours to fix.<br>' +
 		'<b>Counts.</b> gyro <span class="mono">' + GYRO_MDPS_PER_COUNT + ' mdps/count</span> (<span class="mono">LSM6DS3.h:130</span>), accel <span class="mono">0.' + ACCEL_UG_PER_COUNT + ' mg/count</span> (<span class="mono">LSM6DS3.h:129</span>), both clamped to int16 like the driver\'s own buffers. The graph reads the counts of the <b>previous</b> millisecond, because a sensor measures the past.<br>' +
-		'<b>Only three motor rows exist</b> (<span class="mono">fac_settings.c:103-107</span>): M1, M2, M3. A true four motor skid needs a fourth row in the firmware, so the second device of a side is free to be anything &mdash; or nothing.</div>' +
+		'<b>Only three motor rows exist</b> (<span class="mono">fac_settings.c:103-107</span>): M1, M2, M3. A true four motor skid needs a fourth row in the firmware, so the second device of a side is free to be anything &mdash; or nothing.<br>' +
+		'<b>View.</b> The view is a <b>fixed window on the ground</b> &mdash; <span class="mono">view</span> cm across its short side, set on the panel\'s own strip &mdash; so a faster robot visibly crosses it faster and a top speed you can <i>see</i> is the point of it. It moves pixels and nothing else: the integration is in cm at the 1 ms step and the IMU counts of a given run are the same at any view size. ' +
+		'Set it to <span class="mono">0</span> and the view fits the trail instead, which is right for reading a finished run back but makes every top speed look alike &mdash; drive twice as fast and it zooms out twice as fast, exactly cancelling.</div>' +
+		'</div>' +
+		'<div class="card"><h4>Sensor <span class="muted" style="text-transform:none">&mdash; what the IMU blocks actually read</span></h4>' +
+		'<div style="' + GRID('86px 96px 220px') + '"><span>IMU source</span>' +
+		'<select id="rbImuTab"><option value="robot"' + (r.imuSource === 'robot' ? ' selected' : '') + '>this robot</option>' +
+		'<option value="manual"' + (r.imuSource === 'manual' ? ' selected' : '') + '>the sliders</option></select>' +
+		'<span class="muted" style="font-size:10px">on <b>this robot</b> the sensor sliders and the generator are driven, not read</span></div>' +
+		snum('gyro noise', 'gyroNoise', gyroPhys, 'rms, one sigma') +
+		snum('accel noise', 'accelNoise', accelPhys, 'rms, one sigma') +
+		snum('gyro offset', 'gyroBias', gyroPhys, 'peak, constant for the run') +
+		snum('accel offset', 'accelBias', accelPhys, 'peak, constant for the run') +
+		'<div style="' + GRID('86px 96px 220px') + '"><span></span>' +
+		'<span><button class="tiny" id="rbNzTyp">typical</button> <button class="tiny" id="rbNzOff">perfect</button></span>' +
+		'<span class="muted" style="font-size:10px"><b>perfect</b> is all four at zero, which is what a new project is</span></div>' +
+		'<div class="muted" style="font-size:10px;margin-top:5px">' +
+		'<b>Superimposed on the simulated motion, in raw counts, and nowhere near the generated C.</b> A real LSM6DS3 does not hand over the motion, it hands over the motion plus an error &mdash; so a mix that is only ever fed the truth is a mix that has never been tested. This is a simulation matter alone: no block, no interval and not one character of the exported code knows it exists.<br>' +
+		'<b>Noise</b> is gaussian, one sigma per sensor, redrawn at the <b>sensor\'s own output data rate</b> (416 Hz, <span class="mono">LSM6DS3.c:138,147</span>) and held in between. That hold is the point: a fresh draw every millisecond would let a filter average away about two and a half times more of it than the real part ever gives it the chance to. Noise averages out over time, which is why a filter can chase it.<br>' +
+		'<b>Offset</b> is one constant per axis for the whole run, drawn once within &plusmn;peak, and it does <b>not</b> average out &mdash; integrate a biased gyro and the heading walks away linearly, which is the failure it is here to show. <span class="mono">reset pose</span> draws a new machine; turning the field up scales the offset already drawn rather than rolling another one.<br>' +
+		'<b>Why the gyro offset is the smaller number.</b> The driver measures the gyro zero rate at boot and subtracts it, 128 samples averaged (<span class="mono">LSM6DS3_calculate_offset</span>, <span class="mono">LSM6DS3.c:194-222</span>), so what is left to model is the drift <i>after</i> that calibration. The accelerometer is never offset calibrated by the driver &mdash; <span class="mono">X/Y/Z_OFS_USR</span> are not written &mdash; so its zero-g offset is there in full.<br>' +
+		'<b>typical</b> fills in an order of magnitude for a part like this one at 416 Hz. It is not a datasheet transcription: measure your own board and type what you measured.<br>' +
+		'On <b>the sliders</b> this card does nothing at all &mdash; what the sliders hold is what the blocks read, and the Sensors tab\'s own <span class="mono">noise</span> generator is the answer over there.</div>' +
 		'</div></div>' +
 		'<div id="rbHostTab"></div>' +
 		'<div id="rbTabNote" class="muted" style="font-size:11px;margin-top:6px"></div>';
@@ -5149,7 +5418,23 @@ function uiRobot() {
 	const fnum = (id, k, lo, hi) => { const e = $(id); if (e) e.onchange = ev => { r[k] = Math.max(lo, Math.min(hi, Number(ev.target.value) || lo)); ev.target.value = r[k]; }; };
 	fnum('#rbf_lenCm', 'lenCm', 1, 300); fnum('#rbf_widCm', 'widCm', 1, 300);
 	fnum('#rbf_trackCm', 'trackCm', 1, 300); fnum('#rbf_maxSpeedCms', 'maxSpeedCms', 1, 2000);
-	$('#rbNoise').onchange = e => { r.noise = Math.max(0, Number(e.target.value) || 0); e.target.value = r.noise; };
+	/* the count is the value, and the physical column beside it is derived from it
+	 * on the spot - one number entered, never two that can disagree */
+	const snumH = (k, phys) => {
+		const e = $('#rbs_' + k); if (!e) return;
+		e.onchange = ev => {
+			r[k] = Math.max(0, Math.min(8000, Math.round(Number(ev.target.value) || 0)));
+			ev.target.value = r[k];
+			const u = $('#rbsu_' + k); if (u) u.textContent = phys(r[k]);
+		};
+	};
+	snumH('gyroNoise', gyroPhys); snumH('accelNoise', accelPhys);
+	snumH('gyroBias', gyroPhys); snumH('accelBias', accelPhys);
+	/* An order of magnitude for a part like this one at 416 Hz, and labelled as
+	 * one: ~0.1 dps rms and ~1.3 mg rms of noise, ~1 dps of gyro drift left after
+	 * the driver's boot calibration and ~40 mg of uncalibrated zero-g offset. */
+	$('#rbNzTyp').onclick = () => { r.gyroNoise = 2; r.accelNoise = 3; r.gyroBias = 15; r.accelBias = 80; uiRobot(); };
+	$('#rbNzOff').onclick = () => { r.gyroNoise = 0; r.accelNoise = 0; r.gyroBias = 0; r.accelBias = 0; uiRobot(); };
 	$('#rbKin').onchange = e => { r.kin = e.target.value === 'skid' ? 'skid' : 'diff'; uiRobot(); };
 	['rbLeft', 'rbLeftB', 'rbRight', 'rbRightB'].forEach(id => {
 		const e = $('#' + id); if (!e) return;
@@ -5197,12 +5482,28 @@ const RB_COL = {
 	x: '#ff6b6b', y: '#9ede9f', z: '#b8cdf0', acc: '#e4e9a8',
 	head: '#00adb5', rev: '#ff8a65', horn: '#f0c2df', trail: '#3d7f84'
 };
-/* cm per pixel. 0 in the project means "fit what there is to see", with a floor
- * so a robot standing still is not drawn the size of the panel. */
+/* cm per pixel.
+ *
+ * THE VIEW IS A FIXED WINDOW ON THE GROUND, and that is the whole point of it.
+ * An auto fitted view grows with the trail, so driving twice as fast zooms the
+ * ground out at twice the rate: the robot crosses the same fraction of the
+ * canvas per second whatever its top speed, and 30 cm/s looks exactly like
+ * 300 cm/s. Pinning the scale is what makes the SCREEN speed be the GROUND
+ * speed - 120 cm/s across a 120 cm view is one view width a second, visibly.
+ *
+ * It is a change of pixels and nothing else. The physics is integrateRobot()'s,
+ * in cm and cm/s at the 1 ms step, and it does not know this function exists:
+ * the same run writes the same IMU counts at any view size.
+ *
+ * viewCm = 0 keeps the old auto fit, for the one case it is honest about -
+ * reading back a run that has already happened, where the shape of the trail is
+ * the subject and the speed is not. */
 function robotScale(w, h) {
 	const R = P.sim.robot, S = SIM.robot;
-	const man = Number(R.cmPerPx) || 0;
-	if (man > 0) return man;
+	const view = Number(R.viewCm) || 0;
+	/* across the SHORTER side, so all of it is visible in either dock and a wide
+	 * panel shows more ground rather than a different amount of it */
+	if (view > 0) return view / Math.max(40, Math.min(w, h));
 	const body = Math.max(1, Number(R.lenCm) || 1, Number(R.widCm) || 1);
 	const cX = R.follow ? S.x : 0, cY = R.follow ? S.y : 0;
 	let ex = body, ey = body;
@@ -5402,7 +5703,13 @@ function drawRobotView(cv) {
 		['yaw  ' + (S.w * 180 / Math.PI).toFixed(1) + ' deg/s', RB_COL.z],
 		['gyro  ' + gy[0] + ', ' + gy[1] + ', ' + gy[2], R.imuSource === 'robot' ? RB_COL.z : '#777'],
 		['accel ' + ac[0] + ', ' + ac[1] + ', ' + ac[2], R.imuSource === 'robot' ? RB_COL.acc : '#777'],
-		[sc.toFixed(2) + ' cm/px  grid ' + g + ' cm', '#6a6a6a']
+		/* the view width, not cm/px: with a fixed window it is the number that says
+		 * how far the robot has to go to cross the screen, which is the whole point.
+		 * The sensor model is called out here because it is the honest explanation
+		 * of a count that will not sit still - unlabelled, that reads as a bug. */
+		[(Number(R.viewCm) > 0 ? 'view ' + (Number(R.viewCm) | 0) + ' cm' : 'view auto fit') +
+			'  grid ' + g + ' cm' +
+			(R.imuSource === 'robot' && (R.gyroNoise || R.accelNoise || R.gyroBias || R.accelBias) ? '  sensor error on' : ''), '#6a6a6a']
 	];
 	c.font = '10px Consolas,monospace';
 	lines.forEach((l, i) => {
