@@ -165,6 +165,30 @@ aside.collapsed{width:0 !important;min-width:0;overflow:hidden;border:0}
 #rbHostRight{flex:0 0 auto;display:flex;flex-direction:column}
 #rbHostRight:empty{display:none}
 
+/* ---- the layout editor: the whole window, for laying the machine out.
+   It is NOT a #modalBox: a modelling screen is two columns of its own - a big
+   canvas and the geometry tables - and a dialog box is the wrong shape for it.
+   The tables are not a copy: uiRobot() builds ONE #rbGeom card and this screen
+   is simply where it lives while it is open. ---- */
+#rbEdit{position:fixed;inset:0;z-index:190;background:var(--bg);display:flex;flex-direction:column}
+#rbeHead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:0 0 auto;
+	padding:6px 10px;background:var(--panel2);border-bottom:1px solid var(--line);font-size:11px}
+#rbeHead b{color:var(--accent);letter-spacing:.7px;text-transform:uppercase}
+#rbeHead label{color:var(--muted)}
+#rbeHead .grow{flex:1 1 auto}
+#rbeMain{flex:1 1 auto;display:flex;min-height:0}
+#rbeView{position:relative;flex:1 1 auto;min-width:0}
+#rbeCanvas{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:0}
+#rbeHint{position:absolute;left:9px;bottom:7px;font-size:10px;color:var(--muted);pointer-events:none;
+	background:rgba(0,0,0,.6);padding:3px 7px;border-radius:4px;line-height:1.5}
+/* wide enough for the wheel row to fit without a horizontal scrollbar: ten
+   columns and nine gaps come to 555 px, plus the padding. It still scrolls, and
+   the vw cap is what keeps a narrow window from losing the canvas entirely. */
+#rbeSide{flex:0 0 auto;width:596px;max-width:52vw;overflow:auto;padding:9px;
+	border-left:1px solid var(--line);background:var(--panel)}
+/* the card gives up its own frame in here - the column already is the frame */
+#rbeSide .card{background:transparent;border:0;padding:0}
+
 /* ---- right pane ---- */
 .field{display:flex;align-items:center;gap:calc(6px*var(--k));padding:calc(3px*var(--k)) calc(8px*var(--k))}
 .field label{flex:0 0 96px;color:var(--muted);font-size:11px;text-align:right}
@@ -253,6 +277,7 @@ canvas{display:block;background:#0b0b0b;border:1px solid var(--line2);border-rad
 	<button id="btFrame" title="Frame all (F)">Frame</button>
 	<button id="btLayout" title="Arrange the graph left to right by rank (L)">Layout</button>
 	<button id="btRobotView" title="show or hide the live robot view (R)">Robot view</button>
+	<button id="btRobotEdit" title="lay the machine out on a screen of its own (shift+R)">Robot layout&hellip;</button>
 	<label>Grid</label>
 	<select id="uiGrid" title="snap step - hold Ctrl while dragging to bypass it" style="width:64px">
 		<option value="0">off</option>
@@ -362,6 +387,34 @@ canvas{display:block;background:#0b0b0b;border:1px solid var(--line2);border-rad
 	<div class="tabPanel hidden" id="p-blocks"></div>
 	<div class="tabPanel hidden" id="p-reg"></div>
 	<div class="tabPanel hidden" id="p-test"></div>
+</div>
+
+<!-- The layout editor. The machine at rest, the whole window, and the same
+     geometry tables the Robot tab owns - moved in here while this is open, not
+     rebuilt, so there is one implementation of them and one place they can be
+     wrong. The canvas is drawn by drawRobotView(), the same renderer the small
+     panel uses; data-rb-edit is what tells robotViewMap() to hold the machine
+     still at the origin and use this screen's own zoom and pan instead. -->
+<div id="rbEdit" class="hidden">
+	<div id="rbeHead">
+		<b>Robot layout</b>
+		<span class="muted">the machine at rest &mdash; the mix is still running behind it</span>
+		<span class="grow"></span>
+		<button class="tiny" id="rbeZoomOut" title="zoom out">&minus;</button>
+		<span class="mono" id="rbeZoomRo" style="min-width:66px;text-align:center">-</span>
+		<button class="tiny" id="rbeZoomIn" title="zoom in">+</button>
+		<button class="tiny" id="rbeFitBt" title="fit the machine in the view">fit</button>
+		<div class="sep"></div>
+		<button id="rbeClose" title="back to the editor (Esc)">close</button>
+	</div>
+	<div id="rbeMain">
+		<div id="rbeView">
+			<canvas id="rbeCanvas" data-rb-edit="1"></canvas>
+			<div id="rbeHint">drag a wheel, a vertex, a marker or the IMU &middot; wheel = zoom &middot; right or middle drag = pan<br>
+				ctrl while dragging = ignore the grid &middot; the numbers on the right are the same fields, in mm</div>
+		</div>
+		<div id="rbeSide"></div>
+	</div>
 </div>
 
 <div id="modal" class="hidden"><div id="modalBox"></div></div>
@@ -1381,6 +1434,15 @@ function blankProject(mode) {
 				gyroNoise: 0, accelNoise: 0,
 				gyroBias: 0, accelBias: 0,
 				viewCm: 120,                         /* the ground the view shows, cm. 0 = fit the trail */
+				/* THE LAYOUT GRID, and it is the machine's and not the person's.
+				 * UI.grid is a spacing in editor PIXELS for laying blocks out on
+				 * the graph and means nothing on the ground; this one is a real
+				 * length - the pitch the chassis was actually built on - so it
+				 * belongs with the chassis and travels with the file. In
+				 * MILLIMETRES, the unit every field of this layout is entered in;
+				 * the model stays cm and rbGridCm() is the one place they meet.
+				 * 0 = no grid. It snaps a DRAG, never a typed number. */
+				gridMm: 10, gridSnap: 1,
 				follow: 1, trail: 1
 			}
 		},
@@ -4070,6 +4132,19 @@ function runSelfTest() {
 			sim: { robot: { wheels: [{ x: 1, y: 2, deg: 3, grip: 0, link: 'M2', steer: 'S1', steerDeg: 45, r: 2 }] } }
 		}).sim.robot;
 		T('a schema 3 wheel list survives untouched', g4.wheels.map(w => w.link + '@' + w.x + ',' + w.y + '/' + w.grip + '/' + w.steer).join(' '), 'M2@1,2/0/S1');
+		/* THE GRID IS THE MACHINE'S, so it is saved with the file - and a file
+		 * written before it existed has to come back with one rather than with an
+		 * undefined that rbGridCm() would then have to guess at. */
+		/* the PROPERTY first, because comparing a migrated value against the
+		 * default alone lets both sides move together and never goes red */
+		Tok('a file that predates the layout grid is given a real one',
+			g4.gridMm > 0 && (g4.gridSnap === 0 || g4.gridSnap === 1), g4.gridMm + '/' + g4.gridSnap);
+		T('and it is the default, not something the migration invented', g4.gridMm + '/' + g4.gridSnap, d.robot.gridMm + '/' + d.robot.gridSnap);
+		const g6 = migrateProject({
+			schemaVersion: 3, mode: 'mix', nodes: [], wires: [],
+			sim: { robot: { gridMm: 25, gridSnap: 0 } }
+		}).sim.robot;
+		T('and a file that carries one keeps exactly what it said', g6.gridMm + '/' + g6.gridSnap, '25/0');
 	})();
 
 	/* --- the geometry helpers, including what they do with a non-chassis ---- */
@@ -4371,10 +4446,16 @@ function runSelfTest() {
 			P.sim.robot.follow = 0;
 			T('and on the origin when it is not', robotViewMap(cv(420, 300)).cX, 0);
 
-			/* --- the hit test: a press on nothing is not a drag --------------- */
+			/* --- the hit test: a press on nothing is not a drag ---------------
+			 * ON THE LAYOUT EDITOR'S CANVAS, because that is the only one a press
+			 * can reach: the small panel is read only on purpose - see
+			 * initRobotPanel(). The mapping it inverts is that canvas's, pan and
+			 * zoom included, which is the part that can actually drift. */
 			P.sim.robot.follow = 1;
 			SIM.robot.x = 0; SIM.robot.y = 0; SIM.robot.th = 0;
-			const c1 = cv(420, 300), mm = robotViewMap(c1);
+			RBE.sc = 0; RBE.cX = 0; RBE.cY = 0;
+			const c1 = { clientWidth: 420, clientHeight: 300, dataset: { rbEdit: '1' } };
+			const mm = robotViewMap(c1);
 			const onWheel = mm.toScreen(P.sim.robot.wheels[0].x, P.sim.robot.wheels[0].y);
 			const hitW = robotHitTest(c1, onWheel.x, onWheel.y);
 			Tok('a press on a wheel grabs that wheel', hitW && hitW.kind === 'wheel' && hitW.i === 0, JSON.stringify(hitW));
@@ -4388,8 +4469,19 @@ function runSelfTest() {
 			/* just outside the grab radius is still nothing - it must not creep */
 			Tok('and just past the grab radius is still nothing',
 				robotHitTest(c1, onWheel.x + RB_GRAB_PX + 2, onWheel.y) === null, '');
+			/* and it follows the editor's own pan and zoom, which is the half of
+			 * this mapping that moves while the machine does not */
+			rbeZoomAt(c1, 210, 150, 0.5);
+			RBE.cX += 3.5; RBE.cY -= 2.25;
+			const mz = robotViewMap(c1);
+			const zWheel = mz.toScreen(P.sim.robot.wheels[1].x, P.sim.robot.wheels[1].y);
+			const hitZ = robotHitTest(c1, zWheel.x, zWheel.y);
+			Tok('a press still grabs the wheel after a zoom and a pan', hitZ && hitZ.kind === 'wheel' && hitZ.i === 1, JSON.stringify(hitZ));
+			Tok('and empty ground is still empty out there', robotHitTest(c1, zWheel.x, zWheel.y + 40) === null, '');
+			RBE.sc = 0; RBE.cX = 0; RBE.cY = 0;
 
 			/* --- a drag writes the SAME field the table writes ---------------- */
+			P.sim.robot.gridSnap = 0;              /* no grid: the field's own millimetre */
 			robotMoveHandle({ kind: 'wheel', i: 0 }, 3.44, -9.06);
 			T('dragging a wheel writes its x and y, rounded to the field', P.sim.robot.wheels[0].x + ',' + P.sim.robot.wheels[0].y, '3.4,-9.1');
 			robotMoveHandle({ kind: 'imu', i: 0 }, 1.23, 4.56);
@@ -4404,10 +4496,42 @@ function runSelfTest() {
 			robotMoveHandle({ kind: 'vertex', i: 99 }, 1, 1);
 			Tok('a drag on a handle that has been removed is survivable', true, '');
 
-			/* --- the typed path: one coercion, and grip 0 has to survive ------ */
+			/* --- the grid. It is a length in mm and it snaps a DRAG ----------- */
 			P = blankProject('mix');
-			T('a typed position is rounded to the field resolution', robotGeomSet('wheel', 0, 'x', '3.44'), 3.4);
-			T('a typed position is clamped', robotGeomSet('wheel', 0, 'y', '99999'), 500);
+			T('a new machine carries a grid', P.sim.robot.gridMm + '/' + P.sim.robot.gridSnap, '10/1');
+			T('the grid is a length the model speaks, in cm', rbGridCm(), 1);
+			P.sim.robot.gridMm = 25;
+			T('and it follows the field, still in mm', rbGridCm(), 2.5);
+			P.sim.robot.gridSnap = 0;
+			T('the snap switched off is a grid of zero, so every caller is one test', rbGridCm(), 0);
+			T('and an unsnapped coordinate lands on the millimetre', rbSnapCm(3.4448), 3.4);
+			P.sim.robot.gridSnap = 1;
+			T('a snapped coordinate lands on the grid', rbSnapCm(3.4448), 2.5);
+			T('and it really is the grid, not a rounding of it', rbSnapCm(-6.1), -5);
+			Tok('a grid that does not divide 0.1 cm still comes back clean',
+				rbSnapCm(7.4) === 7.5, String(rbSnapCm(7.4)));
+			T('ctrl bypasses the grid, exactly as it does on the graph', rbSnapCm(3.4448, true), 3.4);
+			P.sim.robot.gridMm = 0;
+			T('no grid at all is the same as no snap', rbSnapCm(3.4448), 3.4);
+			P.sim.robot.gridMm = 10; P.sim.robot.gridSnap = 1;
+			robotMoveHandle({ kind: 'wheel', i: 0 }, 3.44, -9.06);
+			T('a drag lands on the grid', P.sim.robot.wheels[0].x + ',' + P.sim.robot.wheels[0].y, '3,-9');
+			robotMoveHandle({ kind: 'wheel', i: 0 }, 3.44, -9.06, true);
+			T('and ctrl while dragging ignores it', P.sim.robot.wheels[0].x + ',' + P.sim.robot.wheels[0].y, '3.4,-9.1');
+
+			/* --- the typed path: one coercion, the fields are mm, grip 0 lives -
+			 * A TYPED NUMBER IS NEVER SNAPPED: the grid is an affordance of the
+			 * drag, and a field that rewrote what was typed into it would be a
+			 * field you cannot use to enter an exact dimension. */
+			P = blankProject('mix');
+			T('a typed position is mm in, cm in the model', robotGeomSet('wheel', 0, 'x', '34.4') + '/' + P.sim.robot.wheels[0].x, '34/3.4');
+			Tok('and the grid does not touch it, however coarse it is',
+				(function () { P.sim.robot.gridMm = 100; const v = robotGeomSet('wheel', 0, 'x', '34'); P.sim.robot.gridMm = 10; return v === 34 && P.sim.robot.wheels[0].x === 3.4; })(), String(P.sim.robot.wheels[0].x));
+			T('a typed position is rounded to the millimetre it is written in', robotGeomSet('wheel', 0, 'x', '34.44'), 34);
+			T('a typed position is clamped, in the model\'s own domain', robotGeomSet('wheel', 0, 'y', '99999'), 5000);
+			Tok('and what got stored is the cm that mm means', P.sim.robot.wheels[0].y === 500, String(P.sim.robot.wheels[0].y));
+			T('a wheel radius is a length too', robotGeomSet('wheel', 0, 'r', '35') + '/' + P.sim.robot.wheels[0].r, '35/3.5');
+			T('an angle is not a length and is not converted', robotGeomSet('wheel', 0, 'deg', '45') + '/' + P.sim.robot.wheels[0].deg, '45/45');
 			T('a typed grip is clamped to 0..1', robotGeomSet('wheel', 0, 'grip', '5'), 1);
 			T('a typed grip of zero survives as an omni roller', robotGeomSet('wheel', 0, 'grip', '0'), 0);
 			Tok('and it really is stored, not defaulted back to a tyre', wheelGrip(P.sim.robot.wheels[0]) === 0, String(P.sim.robot.wheels[0].grip));
@@ -4418,12 +4542,64 @@ function runSelfTest() {
 			Tok('and the drive link is not what got written', P.sim.robot.wheels[0].link === 'M3' && P.sim.robot.wheels[0].steer === 'S1',
 				P.sim.robot.wheels[0].link + '/' + P.sim.robot.wheels[0].steer);
 			T('a marker label is text and is bounded', robotGeomSet('device', 0, 'label', 'x'.repeat(80)).length, 24);
-			/* get mirrors set: the table reads back exactly what the drag wrote */
+			/* get mirrors set: the table reads back exactly what the drag wrote,
+			 * in the unit the table is written in */
+			P.sim.robot.gridSnap = 0;
 			robotMoveHandle({ kind: 'vertex', i: 0 }, 12.3, -4.5);
-			T('the table reads back what a drag wrote', robotGeomGet('vertex', 0, 'x') + ',' + robotGeomGet('vertex', 0, 'y'), '12.3,-4.5');
+			T('the table reads back what a drag wrote, in mm', robotGeomGet('vertex', 0, 'x') + ',' + robotGeomGet('vertex', 0, 'y'), '123,-45');
+			Tok('while the model kept the centimetres', String(P.sim.robot.shape[0]) === '12.3,-4.5', String(P.sim.robot.shape[0]));
 			T('and reads a wheel field back too', robotGeomGet('wheel', 0, 'link'), 'M3');
+			T('a unit is a boundary and not a rounding: mm and back is the same cm', mmToCm(cmToMm(-4.5)), -4.5);
 			/* editing the geometry cannot reach the graph or the generated code */
 			T('the layout is not part of what the graph exports', typeof projectForSave().nodes, 'object');
+
+			/* --- the layout editor's own pose: the machine held still ---------
+			 * The panel draws the machine where it has driven to; this screen pins
+			 * it at the origin, pointing forward, on its own zoom and pan. It is
+			 * the SAME function, and the canvas is what chooses - so the property
+			 * to pin is that the choice really is made and that the two directions
+			 * are still exact inverses on the other side of it. */
+			P = blankProject('mix');
+			const ecv = (w, h) => ({ clientWidth: w, clientHeight: h, dataset: { rbEdit: '1' } });
+			RBE.sc = 0; RBE.cX = 0; RBE.cY = 0;
+			SIM.robot.x = 137; SIM.robot.y = -42; SIM.robot.th = 1.1;
+			P.sim.robot.follow = 1; P.sim.robot.viewCm = 120;
+			const em = robotViewMap(ecv(900, 600));
+			Tok('the layout editor knows it is one', em.edit === true, String(em.edit));
+			T('it holds the machine at the origin, whatever the pose', em.ox + ',' + em.oy + ',' + em.th, '0,0,0');
+			Tok('and it is not the panel\'s scale', em.sc !== robotScale(900, 600), em.sc + ' vs ' + robotScale(900, 600));
+			Tok('the small panel is untouched by any of it',
+				robotViewMap(cv(420, 300)).edit === false && robotViewMap(cv(420, 300)).ox === 137, '');
+			let eworst = 0;
+			[[0, 0], [10, 8], [-10, -8], [3.5, -7], [120, -90]].forEach(([bx, by]) => {
+				const s = em.toScreen(bx, by), b = em.toBody(s.x, s.y);
+				eworst = Math.max(eworst, Math.abs(b.x - bx), Math.abs(b.y - by));
+			});
+			Tok('screen and body are inverses there too', eworst < 1e-9, String(eworst));
+			T('the origin of the body is the centre of a view that has not panned',
+				Math.round(em.toScreen(0, 0).x) + ',' + Math.round(em.toScreen(0, 0).y), '450,300');
+			/* fit frames the whole machine, WHEELS INCLUDED - a handle outside the
+			 * outline is still a handle the user has to be able to reach, so the
+			 * wheel is put well outside it and the fit has to follow it out */
+			const wide = P.sim.robot.wheels[0];
+			wide.y = 40; wide.r = 5;
+			rbeFit(900, 600);
+			Tok('fit reaches past the outline, out to the wheels',
+				RBE.sc * 300 >= Math.abs(wide.y) + wide.r, RBE.sc * 300 + ' vs ' + (Math.abs(wide.y) + wide.r));
+			/* the zoom is a CAD's: whatever is under the pointer stays under it */
+			const zc = ecv(900, 600);
+			const held = robotViewMap(zc).toBody(700, 180);
+			rbeZoomAt(zc, 700, 180, 1 / 1.6);
+			const after = robotViewMap(zc).toBody(700, 180);
+			Tok('zooming holds the body point under the pointer',
+				Math.abs(after.x - held.x) < 1e-9 && Math.abs(after.y - held.y) < 1e-9,
+				(after.x - held.x) + ',' + (after.y - held.y));
+			Tok('and the zoom is bounded at both ends', (function () {
+				rbeZoomAt(zc, 450, 300, 1e6); const lo = RBE.sc;
+				rbeZoomAt(zc, 450, 300, 1e-9); const hi = RBE.sc;
+				return lo === RBE_ZOOM_MAX && hi === RBE_ZOOM_MIN;
+			})(), RBE.sc + '');
+			RBE.sc = 0; RBE.cX = 0; RBE.cY = 0;
 		} finally {
 			P = saveP; SIM.robot = saveRobot;
 		}
@@ -4948,24 +5124,33 @@ function initRobotPanel() {
 		robotViewChanged();
 	};
 	$('#btRobotView').onclick = () => { UI.rbShow = !UI.rbShow; robotViewChanged(); };
-	initRobotGeomDrag($('#rbCanvas'));
+	/* NO GEOMETRY DRAG HERE, and that is the point of the panel. This view is for
+	 * WATCHING the machine drive: it is small, it follows a moving robot, and the
+	 * chassis slides under the pointer while you aim at it, so a press that moved
+	 * a wheel would be a press nobody meant. Building the machine is the full
+	 * screen layout editor's job - see initRobotEditor(), which is the one place
+	 * initRobotGeomDrag() is called. */
 }
 
 /* ---- dragging the geometry on the view ---------------------------------
- * The numbers in the Robot tab are the truth; this is a shortcut onto the SAME
- * fields, and everything it moves shows up in the table as it moves.
+ * The numbers in the layout table are the truth; this is a shortcut onto the
+ * SAME fields, and everything it moves shows up in the table as it moves.
  *
- * THE PANEL DRAG IS NOT A PROBLEM HERE, and it is worth saying why rather than
- * guarding against it twice: rbDrag() is bound to #rbHead and #rbGrip, and the
- * canvas is inside #rbBody, which is a sibling of both. The DOM has already
- * decided. What still has to be stopped is the press reaching anything else,
- * which is what preventDefault + stopPropagation below are for.
+ * IT IS BOUND TO ONE CANVAS: the full screen layout editor's. The small robot
+ * panel deliberately does NOT get it - that view is for watching the machine
+ * drive, it is small, it follows a moving robot and the chassis slides under
+ * the pointer while you aim at it, so a press that moved a wheel there would be
+ * a press nobody meant. Watching and building are two jobs and they now have
+ * two canvases. initRobotEditor() is the only caller.
  *
- * THERE IS NO GRID SNAP. UI.grid is a spacing in EDITOR PIXELS for laying out
- * blocks on the graph canvas; it has no meaning in centimetres on the ground,
- * and reusing the number would snap a wheel to a grid the user set for
- * something else entirely. Positions are rounded to 0.1 cm, which is simply
- * the resolution the fields are shown at - not a second snap. The tab says so. */
+ * THE GRID IS THE MACHINE'S OWN, AND IT IS NOT UI.grid. UI.grid is a spacing in
+ * EDITOR PIXELS for laying blocks out on the graph canvas: it has no meaning in
+ * centimetres on the ground, and reusing that number would snap a wheel to a
+ * grid the user set for something else entirely. P.sim.robot.gridMm is a real
+ * length instead - see rbGridCm() and the field comment in blankProject() - so
+ * it lives with the chassis and travels with the file. With no grid, or with
+ * Ctrl held, a position still lands on 0.1 cm, which is only the resolution the
+ * fields are written at and not a second snap. */
 const RB_GRAB_PX = 9;          /* how close the pointer has to be, in pixels */
 function robotHandles(R) {
 	/* every draggable thing, in hit-test priority: the IMU is one point and the
@@ -4991,10 +5176,29 @@ function robotHitTest(cv, px, py) {
 	});
 	return best;
 }
-function rbRound(v) { return Math.round(v * 10) / 10; }   /* 0.1 cm, the field's own resolution */
+function rbRound(v) { return Math.round(v * 10) / 10; }   /* 0.1 cm = 1 mm, the field's own resolution */
+/* THE layout grid as a length the model speaks: gridMm is the project's, in
+ * millimetres like every other field of the layout, and this is the one place
+ * it becomes centimetres. 0 when there is no grid or the snap is off, which is
+ * what makes every caller a plain `g > 0`. */
+function rbGridCm() {
+	const R = P && P.sim ? P.sim.robot : null;
+	const g = Number(R && R.gridMm) || 0;
+	return (R && R.gridSnap && g > 0) ? g / MM_PER_CM : 0;
+}
+/* one dragged coordinate: on the grid when there is one, on the field's own
+ * millimetre when there is not. `free` is Ctrl held - the same bypass, on the
+ * same key, that the graph canvas already offers for its own grid. The stray
+ * 1e-9 that Math.round(v/g)*g leaves behind is cleaned here rather than in
+ * four callers; rbRound() cannot do it, because a 2.5 mm grid is not on 0.1 cm. */
+function rbSnapCm(v, free) {
+	const g = free ? 0 : rbGridCm();
+	if (!(g > 0)) return rbRound(v);
+	return Math.round(Math.round(v / g) * g * 1e6) / 1e6;
+}
 /* write a handle's new body position back into the ONE place it lives */
-function robotMoveHandle(hd, bx, by) {
-	const R = P.sim.robot, x = rbRound(bx), y = rbRound(by);
+function robotMoveHandle(hd, bx, by, free) {
+	const R = P.sim.robot, x = rbSnapCm(bx, free), y = rbSnapCm(by, free);
 	if (hd.kind === 'imu') { R.imu.x = x; R.imu.y = y; }
 	else if (hd.kind === 'wheel') { const w = R.wheels[hd.i]; if (w) { w.x = x; w.y = y; } }
 	else if (hd.kind === 'device') { const d = R.devices[hd.i]; if (d) { d.x = x; d.y = y; } }
@@ -5028,15 +5232,20 @@ function initRobotGeomDrag(cv) {
 		drag = null;
 		try { cv.releasePointerCapture(e.pointerId); } catch (err) { /* already gone */ }
 		/* the table is rebuilt only when the drag ENDS: rebuilding it every frame
-		 * would take the focus and the caret out of whatever is being typed into */
-		if (!$('#p-robot').classList.contains('hidden')) renderRobotGeom();
+		 * would take the focus and the caret out of whatever is being typed into.
+		 * Wherever the card currently lives - the tab or the layout editor - is
+		 * where it is, so ask for the element and not for the tab. */
+		if ($('#rbGeom')) renderRobotGeom();
 	};
 	cv.addEventListener('pointermove', e => {
 		if (!drag) return;
 		e.preventDefault();
 		const r = cv.getBoundingClientRect();
 		const at = robotViewMap(cv).toBody(e.clientX - r.left, e.clientY - r.top);
-		robotMoveHandle(drag.hd, at.x + drag.ox, at.y + drag.oy);
+		/* ctrlKey off the LIVE event, never keyState: that handler returns early
+		 * inside an input, so the cached modifier goes stale. Same rule as the
+		 * graph canvas's own grid bypass. */
+		robotMoveHandle(drag.hd, at.x + drag.ox, at.y + drag.oy, e.ctrlKey || e.metaKey);
 		syncRobotGeom();                       /* the numbers follow, live */
 	});
 	cv.addEventListener('pointerup', finish);
@@ -5050,6 +5259,151 @@ function robotViewChanged() {
 	if (UI.rbShow && UI.rbDock === 'tab') openTab('robot');     /* renders the tab, host included */
 	else if (!$('#p-robot').classList.contains('hidden')) uiRobot();
 	else applyRobotPanel();
+}
+
+/* ---- the layout editor, full screen -------------------------------------
+ * A screen for MODELLING the machine, as opposed to the small panel, which is
+ * for watching it drive. Everything in it already existed:
+ *
+ *   the canvas   is drawRobotView(), the one renderer;
+ *   the handles  are robotHitTest() + initRobotGeomDrag(), the one drag;
+ *   the tables   are the one #rbGeom card uiRobot() builds, MOVED in here while
+ *                this is open and moved back when it closes. Not a copy - a
+ *                second table would be a second place a wheel can be wrong.
+ *
+ * What is new is the point of view. The panel draws the machine where it has
+ * driven to, at its heading, following it; a layout editor has to hold it
+ * still, at the origin, pointing forward, with a zoom and a pan of its own -
+ * you cannot lay out a chassis that is sliding out from under the pointer.
+ * That is the ONLY difference, it is expressed as a pose, and it is chosen by
+ * the CANVAS (data-rb-edit) rather than by the caller, so the renderer and the
+ * hit test cannot possibly pick different ones. See robotViewMap().
+ *
+ * The zoom and the pan are the person's and deliberately live nowhere: not in
+ * the project (where I stand is not a property of the machine) and not in
+ * localStorage (a view you left zoomed into a corner three days ago is not a
+ * view you want back). Opening the screen fits the machine, which is always
+ * the right answer to "where am I". */
+const RBE = {
+	open: 0,
+	sc: 0,          /* cm per pixel; 0 = not fitted yet, fit on the first draw */
+	cX: 0, cY: 0    /* the body point at the centre of the view, cm */
+};
+const RBE_ZOOM_MIN = 0.005, RBE_ZOOM_MAX = 20;   /* cm per pixel: 20 m and 5 cm across a 1000 px view */
+/* everything the machine occupies, in cm, so `fit` frames the whole thing and
+ * not just the outline - a wheel hanging outside the chassis is still a handle
+ * the user has to be able to reach */
+function rbeExtent(R) {
+	let e = 1;
+	const at = (x, y, m) => { e = Math.max(e, Math.abs(Number(x) || 0) + (m || 0), Math.abs(Number(y) || 0) + (m || 0)); };
+	(R.shape || []).forEach(p => { if (p) at(p[0], p[1], 0); });
+	(R.wheels || []).forEach(w => { if (w) at(w.x, w.y, Math.max(0.2, Number(w.r) || 3.5)); });
+	(R.devices || []).forEach(d => { if (d) at(d.x, d.y, 1); });
+	if (R.imu) at(R.imu.x, R.imu.y, 1);
+	return e;
+}
+function rbeFit(w, h) {
+	const e = rbeExtent(P.sim.robot);
+	RBE.cX = 0; RBE.cY = 0;
+	RBE.sc = Math.min(RBE_ZOOM_MAX, Math.max(RBE_ZOOM_MIN, 2.3 * e / Math.max(40, Math.min(w, h))));
+}
+/* the editor's own cm-per-pixel. robotScale() is the panel's answer and is a
+ * window on the GROUND; this one is a window on the MACHINE. */
+function rbeScale(w, h) {
+	if (!(RBE.sc > 0)) rbeFit(w, h);
+	return RBE.sc;
+}
+/* zoom about a screen point, so the body point under the pointer stays under
+ * the pointer - the property that makes a wheel zoom feel like a CAD's */
+function rbeZoomAt(cv, px, py, factor) {
+	const w = cv.clientWidth | 0, h = cv.clientHeight | 0;
+	const before = robotViewMap(cv).toBody(px, py);
+	RBE.sc = Math.min(RBE_ZOOM_MAX, Math.max(RBE_ZOOM_MIN, rbeScale(w, h) * factor));
+	/* with the edit pose the mapping is a plain pan+scale, so the correction is
+	 * closed form: put `before` back where the pointer is */
+	RBE.cX = before.x - (px - w / 2) * RBE.sc;
+	RBE.cY = before.y + (py - h / 2) * RBE.sc;
+}
+/* THE one place the layout card's home is decided, exactly as applyRobotPanel()
+ * is for the view panel. uiRobot() builds the card wherever it happens to run
+ * and then calls this, so nothing else has to remember where it belongs. */
+function applyRobotEditor() {
+	const ov = $('#rbEdit'); if (!ov) return;
+	ov.classList.toggle('hidden', !RBE.open);
+	const card = $('#rbGeom'), side = $('#rbeSide'), slot = $('#rbGeomSlot');
+	if (!card) return;
+	/* MOVE IT ONLY IF IT IS NOT ALREADY THERE. Re-parenting an element blurs
+	 * whatever inside it had the focus, and this runs on every rebuild. */
+	if (RBE.open) {
+		if (side && card.parentNode !== side) side.appendChild(card);
+	} else if (slot && card.nextSibling !== slot) {
+		slot.parentNode.insertBefore(card, slot);   /* back into the gap the tab kept for it */
+	}
+	syncRobotEditor();
+}
+/* the header strip is markup and is only ever pushed at - a strip that rebuilds
+ * itself takes the focus out of whatever is being used */
+function syncRobotEditor() {
+	const z = $('#rbeZoomRo');
+	if (z) z.textContent = RBE.sc > 0 ? (0.1 / RBE.sc).toFixed(2) + ' px/mm' : '-';
+}
+function openRobotEditor() {
+	/* the card is uiRobot()'s and may not have been built yet - the Robot tab is
+	 * rendered once at boot, but a project loaded since then may not have been */
+	if (!$('#rbGeom')) uiRobot();
+	RBE.open = 1;
+	RBE.sc = 0;                                 /* a fresh open always fits the machine */
+	applyRobotEditor();
+	drawRobotView($('#rbeCanvas'));
+}
+function closeRobotEditor() {
+	if (!RBE.open) return;
+	RBE.open = 0;
+	applyRobotEditor();
+	/* the tab may be the visible one and is now short a card, so let the one
+	 * function that owns it put it back */
+	if (!$('#p-robot').classList.contains('hidden')) uiRobot();
+}
+function initRobotEditor() {
+	const cv = $('#rbeCanvas'); if (!cv) return;
+	$('#btRobotEdit').onclick = () => { RBE.open ? closeRobotEditor() : openRobotEditor(); };
+	$('#rbeClose').onclick = closeRobotEditor;
+	$('#rbeFitBt').onclick = () => { RBE.sc = 0; syncRobotEditor(); };
+	$('#rbeZoomIn').onclick = () => rbeZoomAt(cv, cv.clientWidth / 2, cv.clientHeight / 2, 1 / 1.25);
+	$('#rbeZoomOut').onclick = () => rbeZoomAt(cv, cv.clientWidth / 2, cv.clientHeight / 2, 1.25);
+	/* the geometry drag is the SAME one the panel's canvas has: one hit test, one
+	 * set of handles, one set of fields written */
+	initRobotGeomDrag(cv);
+
+	cv.addEventListener('wheel', e => {
+		e.preventDefault();
+		const r = cv.getBoundingClientRect();
+		rbeZoomAt(cv, e.clientX - r.left, e.clientY - r.top, e.deltaY > 0 ? 1.12 : 1 / 1.12);
+		syncRobotEditor();
+	}, { passive: false });
+	/* pan on the right or the middle button, like the graph canvas. The left
+	 * button is the handle drag and is initRobotGeomDrag()'s, which is why this
+	 * listener never looks at button 0. */
+	cv.addEventListener('contextmenu', e => e.preventDefault());
+	cv.addEventListener('pointerdown', e => {
+		if (e.button !== 1 && e.button !== 2) return;
+		e.preventDefault();
+		cv.setPointerCapture(e.pointerId);
+		const sx = e.clientX, sy = e.clientY, bX = RBE.cX, bY = RBE.cY, sc = RBE.sc;
+		const onMove = ev => {
+			RBE.cX = bX - (ev.clientX - sx) * sc;
+			RBE.cY = bY + (ev.clientY - sy) * sc;
+		};
+		const onUp = () => {
+			try { cv.releasePointerCapture(e.pointerId); } catch (err) { /* already gone */ }
+			cv.removeEventListener('pointermove', onMove);
+			cv.removeEventListener('pointerup', onUp);
+			cv.removeEventListener('pointercancel', onUp);
+		};
+		cv.addEventListener('pointermove', onMove);
+		cv.addEventListener('pointerup', onUp);
+		cv.addEventListener('pointercancel', onUp);
+	});
 }
 
 function initLayout() {
@@ -5066,6 +5420,7 @@ function initLayout() {
 	$('#uiDense').onchange = e => { UI.dense = !!e.target.checked; applyLayout(); saveUiPrefs(); };
 	$('#btResetLayout').onclick = () => { resetUiPrefs(); applyLayout(); };
 	initRobotPanel();
+	initRobotEditor();
 
 	/* shrinking the window can invalidate a pane size that was fine before */
 	window.addEventListener('resize', () => {
@@ -6214,19 +6569,43 @@ function drawScope() {
  * nodes, wires, mode and instances only. That is true of every other robot
  * field too, and making this one list the exception would be the odd thing.
  * The tab says so out loud. */
+/* ---- THE ONE UNIT BOUNDARY ------------------------------------------------
+ * The MODEL is centimetres and stays there. The solver, the integration, the
+ * schema, the migration and every assertion that pins them are in cm, and
+ * moving a decimal point through all of that would put the most heavily
+ * verified code in the file at risk for a change of notation.
+ *
+ * The FIELDS are millimetres, because that is what a small machine is actually
+ * built and measured in - 152 rather than 15.2. No resolution is gained or
+ * lost by the choice: rbRound() already lands every position on 0.1 cm, which
+ * IS one millimetre. Only the way it is written changes.
+ *
+ * So the two units meet HERE and nowhere else. rbNum() converts what is shown,
+ * robotGeomSet()/robotGeomGet() convert what is typed and what is read back,
+ * and the few standalone fields - top speed, the view window, the grid - call
+ * these by hand at their own handler. Nothing downstream of this file section
+ * sees a millimetre. */
+const MM_PER_CM = 10;
+function cmToMm(v) { const n = Number(v); return isFinite(n) ? Math.round(n * MM_PER_CM * 100) / 100 : 0; }
+function mmToCm(v) { const n = Number(v); return isFinite(n) ? n / MM_PER_CM : 0; }
+
+/* `mm` marks a field that is a LENGTH, and so is entered and shown in mm while
+ * lo/hi/step stay the model's own cm - one domain, stated once, converted at
+ * the edge. An angle and a grip are not lengths and are not converted. */
 const RB_FIELDS = {
-	x: { lo: -500, hi: 500, step: 0.1, w: 54 },
-	y: { lo: -500, hi: 500, step: 0.1, w: 54 },
+	x: { lo: -500, hi: 500, step: 0.1, w: 58, mm: 1 },
+	y: { lo: -500, hi: 500, step: 0.1, w: 58, mm: 1 },
 	deg: { lo: -180, hi: 180, step: 1, w: 48 },
 	grip: { lo: 0, hi: 1, step: 0.05, w: 50 },
 	steerDeg: { lo: 0, hi: 180, step: 1, w: 46 },
-	r: { lo: 0.1, hi: 60, step: 0.1, w: 46 }
+	r: { lo: 0.1, hi: 60, step: 0.1, w: 50, mm: 1 }
 };
 function rbNum(g, i, f, v) {
 	const d = RB_FIELDS[f];
+	const c = (x) => d.mm ? cmToMm(x) : (Number(x) || 0);
 	return '<input type="number" class="rbg" data-g="' + g + '" data-i="' + i + '" data-f="' + f + '"' +
-		' min="' + d.lo + '" max="' + d.hi + '" step="' + d.step + '" value="' + (Number(v) || 0) +
-		'" style="width:' + d.w + 'px">';
+		' min="' + c(d.lo) + '" max="' + c(d.hi) + '" step="' + (d.mm ? d.step * MM_PER_CM : d.step) +
+		'" value="' + c(v) + '" style="width:' + d.w + 'px">';
 }
 function rbLink(g, i, f, sel, none) {
 	return '<select class="rbg" data-g="' + g + '" data-i="' + i + '" data-f="' + f + '">' +
@@ -6249,20 +6628,26 @@ function robotGeomSet(g, i, f, raw) {
 	const d = RB_FIELDS[f];
 	let v = Number(raw);
 	if (!isFinite(v)) v = 0;
+	if (d.mm) v = mmToCm(v);                  /* the field speaks mm, the model cm */
 	v = Math.max(d.lo, Math.min(d.hi, v));
-	if (f === 'x' || f === 'y') v = rbRound(v);
+	/* a typed number is NOT snapped to the layout grid: you type the value you
+	 * mean, and the grid is an affordance of the drag. It is still rounded to
+	 * the millimetre the field is written in. */
+	if (d.mm) v = rbRound(v);
 	if (g === 'wheel' && R.wheels[i]) R.wheels[i][f] = v;
 	else if (g === 'device' && R.devices[i]) R.devices[i][f] = v;
 	else if (g === 'vertex' && R.shape[i]) R.shape[i][f === 'x' ? 0 : 1] = v;
 	else if (g === 'imu') R.imu[f] = v;
-	return v;
+	return d.mm ? cmToMm(v) : v;              /* what the field should now read */
 }
 function robotGeomGet(g, i, f) {
-	const R = P.sim.robot;
-	if (g === 'wheel') return R.wheels[i] ? R.wheels[i][f] : null;
-	if (g === 'device') return R.devices[i] ? (f === 'label' ? R.devices[i].label : R.devices[i][f]) : null;
-	if (g === 'vertex') return R.shape[i] ? R.shape[i][f === 'x' ? 0 : 1] : null;
-	if (g === 'imu') return R.imu[f];
+	const R = P.sim.robot, d = RB_FIELDS[f];
+	/* the same boundary in the other direction: the model is cm, the field is mm */
+	const out = (v) => (v === null || v === undefined) ? null : (d && d.mm ? cmToMm(v) : v);
+	if (g === 'wheel') return R.wheels[i] ? out(R.wheels[i][f]) : null;
+	if (g === 'device') return R.devices[i] ? (f === 'label' ? R.devices[i].label : out(R.devices[i][f])) : null;
+	if (g === 'vertex') return R.shape[i] ? out(R.shape[i][f === 'x' ? 0 : 1]) : null;
+	if (g === 'imu') return out(R.imu[f]);
 	return null;
 }
 /* the derived column: what the number MEANS, beside the number itself. Live,
@@ -6361,7 +6746,10 @@ function uiRobot() {
 		for (let i = 0; i <= 10; i++) o += '<option value="' + (200 + i) + '"' + (sel === 200 + i ? ' selected' : '') + '>' + (200 + i) + ' - function ' + i + '</option>';
 		return o;
 	};
-	/* one physical field: label, the P.sim.robot key it edits, and its unit */
+	/* one physical field: label, the P.sim.robot key it edits, and its unit.
+	 * THE MACHINE IS IN MILLIMETRES AND THE GROUND IS NOT - see the note in the
+	 * layout card. A speed is about crossing ground and the canvas prints it in
+	 * cm/s three lines further down, so this one is not converted. */
 	const num = (label, k, unit, lo, hi) =>
 		'<div style="' + GRID('86px 96px 220px') + '"><span>' + label + '</span>' +
 		'<input type="number" id="rbf_' + k + '" min="' + lo + '" max="' + hi + '" value="' + (Number(r[k]) || 0) + '" style="width:90px">' +
@@ -6388,6 +6776,12 @@ function uiRobot() {
 	 * destroy it: park it in #editor first and let applyRobotPanel() re-home it */
 	const panel = $('#rbPanel');
 	if (panel && panel.parentNode && $('#p-robot').contains(panel)) $('#editor').appendChild(panel);
+	/* the layout card is about to be rebuilt below. If the full screen editor is
+	 * holding the previous one, that copy is now stale and would leave TWO
+	 * #rbGeom in the document - so it goes, and applyRobotEditor() at the end of
+	 * this function hands the freshly built one over. */
+	const side = $('#rbeSide');
+	if (side && RBE.open) side.innerHTML = '';
 
 	$('#p-robot').innerHTML = '<div class="row" style="align-items:flex-start">' +
 		'<div class="card"><h4>Mapper links (fac_settings.c)</h4>' +
@@ -6401,40 +6795,55 @@ function uiRobot() {
 		'Only 100..109 and 200..210 are meaningful; the settings range cannot express the gap.</div>' +
 		'</div>' +
 		'<div class="card"><h4>Robot model <span class="muted" style="text-transform:none">&mdash; part of the mix, saved with it</span></h4>' +
-		num('top speed', 'maxSpeedCms', 'cm/s', 1, 2000) +
+		num('top speed', 'maxSpeedCms', 'cm/s &mdash; the ground speed of a wheel at full stick', 1, 2000) +
 		'<div style="' + GRID('86px 96px 220px') + '"><span>max yaw</span><span class="mono" id="rbYawMax"></span>' +
 		'<span class="muted" style="font-size:10px">derived, never entered &mdash; asked of the <b>same solver</b> that drives the machine</span></div>' +
-		ro('chassis', '<span id="rbSizeRo">' + cb.len.toFixed(1) + ' x ' + cb.wid.toFixed(1) + '</span> cm', 'derived from the outline below') +
-		ro('track', '<span id="rbTrackRo">' + wheelTrack(r.wheels).toFixed(1) + '</span> cm', 'the widest the wheels stand apart') +
+		ro('chassis', '<span id="rbSizeRo">' + cmToMm(cb.len).toFixed(0) + ' x ' + cmToMm(cb.wid).toFixed(0) + '</span> mm', 'derived from the outline below') +
+		ro('track', '<span id="rbTrackRo">' + cmToMm(wheelTrack(r.wheels)).toFixed(0) + '</span> mm', 'the widest the wheels stand apart') +
 		'</div>' +
 		/* ---- the layout editor. Its own card, because it is a table and not a
 		 * row of fields, and because the drag on the view writes these same
 		 * numbers - see initRobotGeomDrag(). ---- */
 		'<div class="card" id="rbGeom"><h4>Layout <span class="muted" style="text-transform:none">&mdash; the numbers are the truth, dragging the view is a shortcut onto them</span></h4>' +
-		'<div style="' + GRID('54px 54px 48px 50px 52px 52px 46px 46px 22px 74px') + ';font-size:10px;color:var(--muted)">' +
-		'<span>x cm</span><span>y cm</span><span>angle</span><span>grip</span><span>drive</span><span>steer</span><span>&plusmn;deg</span><span>r cm</span><span></span><span></span></div>' +
+		/* the grid lives HERE, in the card, and not on the layout editor's own
+		 * header: the card is what travels between the tab and that screen, so one
+		 * set of controls serves both and there is never a second one to keep in
+		 * step. `+ layout editor` is the same button as the toolbar's. */
+		'<div class="row" style="margin:0 0 7px">' +
+		'<button class="tiny" id="rbGeomFull" title="lay the machine out on a screen of its own (shift+R)">open the layout editor</button>' +
+		'<label class="muted" style="font-size:10px" title="the pitch the chassis was built on. It is the machine\'s and is saved with the mix, not with the editor">' +
+		'grid <input type="number" id="rbGridMm" min="0" max="500" step="1" value="' + (Number(r.gridMm) || 0) + '" style="width:56px"> mm</label>' +
+		'<label class="muted" style="font-size:10px" title="a DRAG lands on the grid - hold ctrl to ignore it. A number you type is never snapped">' +
+		'<input type="checkbox" id="rbGridSnap"' + (r.gridSnap ? ' checked' : '') + '> snap the drag to it</label>' +
+		'</div>' +
+		'<div style="' + GRID('58px 58px 48px 50px 52px 52px 46px 50px 22px 74px') + ';font-size:10px;color:var(--muted)">' +
+		'<span>x mm</span><span>y mm</span><span>angle</span><span>grip</span><span>drive</span><span>steer</span><span>&plusmn;deg</span><span>r mm</span><span></span><span></span></div>' +
 		'<div id="rbWheelRows"></div>' +
 		'<div class="row" style="margin:3px 0 8px"><button class="tiny" id="rbAddWheel">+ wheel</button>' +
 		'<span class="muted" style="font-size:10px"><b>grip</b> 1 a tyre, 0 an omni roller, between a track that scrubs. <b>drive</b> free = a castor. <b>steer</b> a mapper row that turns it while the mix runs.</span></div>' +
 		'<h4 style="margin-top:2px">Markers</h4>' +
-		'<div style="' + GRID('54px 54px 52px 110px 22px 74px') + ';font-size:10px;color:var(--muted)">' +
-		'<span>x cm</span><span>y cm</span><span>row</span><span>label</span><span></span><span></span></div>' +
+		'<div style="' + GRID('58px 58px 52px 110px 22px 74px') + ';font-size:10px;color:var(--muted)">' +
+		'<span>x mm</span><span>y mm</span><span>row</span><span>label</span><span></span><span></span></div>' +
 		'<div id="rbDevRows"></div>' +
 		'<div class="row" style="margin:3px 0 8px"><button class="tiny" id="rbAddDev">+ marker</button>' +
 		'<span class="muted" style="font-size:10px">position, row, label and the live value &mdash; markers contribute nothing to the motion</span></div>' +
 		'<div class="row" style="align-items:flex-start;gap:18px">' +
 		'<div><h4 style="margin-top:2px">Chassis outline</h4>' +
-		'<div style="' + GRID('54px 54px 22px') + ';font-size:10px;color:var(--muted)"><span>x cm</span><span>y cm</span><span></span></div>' +
+		'<div style="' + GRID('58px 58px 22px') + ';font-size:10px;color:var(--muted)"><span>x mm</span><span>y mm</span><span></span></div>' +
 		'<div id="rbVertRows"></div>' +
 		'<div class="row" style="margin:3px 0 0"><button class="tiny" id="rbAddVert">+ vertex</button></div></div>' +
 		'<div><h4 style="margin-top:2px">IMU position</h4>' +
-		'<div style="' + GRID('54px 54px') + ';font-size:10px;color:var(--muted)"><span>x cm</span><span>y cm</span></div>' +
+		'<div style="' + GRID('58px 58px') + ';font-size:10px;color:var(--muted)"><span>x mm</span><span>y mm</span></div>' +
 		'<div id="rbImuRow"></div></div></div>' +
 		'<div class="muted" style="font-size:10px;margin-top:6px">' +
-		'<b>Drag them on the view too.</b> Wheels, chassis vertices, markers and the IMU are all draggable on the robot view, through the same mapping the renderer draws with, and they write these same fields. A press on empty ground is not a drag.<br>' +
-		'<b>There is no grid snap here.</b> The editor\'s grid is a spacing in <i>screen pixels</i> for laying blocks out on the graph; it means nothing in centimetres on the ground, so reusing it would snap a wheel to a grid you set for something else. Positions land on <span class="mono">0.1 cm</span>, which is just the resolution these fields show.<br>' +
+		'<b>Drag them in the layout editor.</b> Wheels, chassis vertices, markers and the IMU are all draggable there &mdash; through the same mapping the renderer draws with, writing these same fields, and a press on empty ground is not a drag. <b>The small robot view is read only</b>, deliberately: it is for watching the machine drive, it follows a moving robot, and a press that moved a wheel while the chassis slid under the pointer would be a press nobody meant. Watching and building are two jobs, so they are two screens.<br>' +
+		'<b>The machine is in millimetres, the ground is not.</b> Everything you build &mdash; every x and y, the wheel radius, the outline, the IMU, the grid &mdash; is written in <span class="mono">mm</span>, because that is what a machine this size is measured in. What is about the <i>ground</i> stays in centimetres: the top speed and the view window, because <span class="mono">cm/s</span> is what the view itself prints beside them. The model, the solver and the saved file are <span class="mono">cm</span> throughout and the two units meet at one boundary, in the field. No resolution is gained or lost either way &mdash; a position has always landed on <span class="mono">0.1 cm</span>, which <i>is</i> one millimetre.<br>' +
+		'<b>The grid is the machine\'s, not the editor\'s.</b> The <span class="mono">grid</span> above is a real length in mm &mdash; the pitch you actually built the chassis on &mdash; so it is saved with the mix and comes back with it. It is deliberately <b>not</b> the graph\'s grid, which is a spacing in <i>screen pixels</i> for laying out blocks and means nothing on the ground. It snaps a <b>drag</b> only: hold <span class="mono">ctrl</span> to ignore it, and a number you type is never snapped, because you typed the number you meant.<br>' +
 		'<b>The layout is not undoable.</b> Undo restores the graph &mdash; nodes, wires, mode, instances &mdash; and never <span class="mono">P.sim</span>, which is true of the top speed and the sensor fields as well.</div>' +
 		'</div>' +
+		/* the gap the layout card is put back into when the full screen editor
+		 * closes. It is the card that moves, never a second copy of it. */
+		'<div id="rbGeomSlot" class="hidden"></div>' +
 		'<div class="card"><h4>Model notes</h4>' +
 		'<div class="muted" style="font-size:10px">' +
 		'<b>A machine saved by an older build is converted on load:</b> the chassis becomes the rectangle it described, and the two sides become wheels at &plusmn;<span class="mono">track/2</span>, which is the only length the old model ever used. A side whose second device was <i>none</i> contributes no wheel, because the file said there was nothing there.<br>' +
@@ -6475,6 +6884,13 @@ function uiRobot() {
 	$$('.mapl').forEach(s => s.onchange = e => { P.sim.mapper[e.target.dataset.k] = Number(e.target.value); });
 	const fnum = (id, k, lo, hi) => { const e = $(id); if (e) e.onchange = ev => { r[k] = Math.max(lo, Math.min(hi, Number(ev.target.value) || lo)); ev.target.value = r[k]; }; };
 	fnum('#rbf_maxSpeedCms', 'maxSpeedCms', 1, 2000);
+	/* the grid: a length in mm, and the switch that makes a drag land on it */
+	$('#rbGridMm').onchange = e => {
+		r.gridMm = Math.max(0, Math.min(500, Math.round(Number(e.target.value) || 0)));
+		e.target.value = r.gridMm;
+	};
+	$('#rbGridSnap').onchange = e => { r.gridSnap = e.target.checked ? 1 : 0; };
+	$('#rbGeomFull').onclick = openRobotEditor;
 	/* the count is the value, and the physical column beside it is derived from it
 	 * on the spot - one number entered, never two that can disagree */
 	const snumH = (k, phys) => {
@@ -6524,11 +6940,18 @@ function uiRobot() {
 	const sh = $('#rbShowIt');
 	if (sh) sh.onclick = () => { UI.rbShow = true; robotViewChanged(); };
 	applyRobotPanel();
+	/* the layout card has just been rebuilt in the tab; if the full screen editor
+	 * is open, that is where it belongs. One function decides, exactly as
+	 * applyRobotPanel() does for the view panel. */
+	applyRobotEditor();
 }
 /* The tab owns the mapper columns and the derived readout; it does NOT own a
  * canvas. The view is the panel's, and the panel draws whatever tab is open. */
 function drawRobot() {
-	if (!$('#p-robot').classList.contains('hidden')) {
+	/* the layout card can be in the tab or in the full screen editor, and its
+	 * derived cells are live in both - a steered wheel's angle moves while the
+	 * mix runs, wherever the table happens to be standing */
+	if (!$('#p-robot').classList.contains('hidden') || RBE.open) {
 		$$('.dv').forEach(e => { const v = SIM.deviceValue(P.sim.mapper[e.dataset.k]); e.textContent = v === null ? '-' : v; });
 		/* the device-unit column, straight through the mapper mirrors */
 		$$('.dvu').forEach(e => {
@@ -6556,12 +6979,16 @@ function drawRobot() {
 		 * the geometry live, so editing a vertex or steering a wheel shows up
 		 * without the table being rebuilt under whatever is being typed into */
 		const r2 = P.sim.robot, cb2 = chassisBounds(r2.shape);
-		const sz = $('#rbSizeRo'); if (sz) sz.textContent = cb2.len.toFixed(1) + ' x ' + cb2.wid.toFixed(1);
-		const tk = $('#rbTrackRo'); if (tk) tk.textContent = wheelTrack(r2.wheels).toFixed(1);
+		const sz = $('#rbSizeRo'); if (sz) sz.textContent = cmToMm(cb2.len).toFixed(0) + ' x ' + cmToMm(cb2.wid).toFixed(0);
+		const tk = $('#rbTrackRo'); if (tk) tk.textContent = cmToMm(wheelTrack(r2.wheels)).toFixed(0);
 		$$('#rbGeom .rbgD').forEach(e => { e.innerHTML = robotGeomDerived(e.dataset.g, Number(e.dataset.i)); });
 	}
 	const p = $('#rbPanel');
 	if (p && !p.classList.contains('hidden') && !p.classList.contains('folded')) drawRobotView($('#rbCanvas'));
+	/* the same renderer again, on the layout editor's canvas: the mix keeps
+	 * running behind it, so a steered wheel turns and a motor bar moves while
+	 * the machine itself is held still at the origin */
+	if (RBE.open) { drawRobotView($('#rbeCanvas')); syncRobotEditor(); }
 }
 
 /* ---- THE robot renderer. One function, whatever the panel's home happens to
@@ -6615,17 +7042,25 @@ function robotScale(w, h) {
 function robotViewMap(cv) {
 	const w = cv.clientWidth | 0, h = cv.clientHeight | 0;
 	const R = P.sim.robot, S = SIM.robot;
-	const sc = robotScale(w, h);
-	const cX = R.follow ? S.x : 0, cY = R.follow ? S.y : 0;
-	const co = Math.cos(S.th), si = Math.sin(S.th);
+	/* TWO POSES, ONE MAPPING. The panel shows the machine where it has driven
+	 * to; the layout editor holds it still at the origin, pointing forward, on
+	 * its own zoom and pan. That is the whole difference, and the CANVAS chooses
+	 * it - data-rb-edit on the element - so the renderer and the hit test read
+	 * the same answer by construction and cannot be handed different ones. */
+	const edit = !!(cv.dataset && cv.dataset.rbEdit);
+	const sc = edit ? rbeScale(w, h) : robotScale(w, h);
+	const cX = edit ? RBE.cX : (R.follow ? S.x : 0), cY = edit ? RBE.cY : (R.follow ? S.y : 0);
+	/* where the body's origin sits in the world, and how it is turned */
+	const ox = edit ? 0 : S.x, oy = edit ? 0 : S.y, th = edit ? 0 : S.th;
+	const co = Math.cos(th), si = Math.sin(th);
 	return {
-		w: w, h: h, sc: sc, cX: cX, cY: cY,
+		w: w, h: h, sc: sc, cX: cX, cY: cY, ox: ox, oy: oy, th: th, edit: edit,
 		toBody: function (px, py) {
-			const dx = (cX + (px - w / 2) * sc) - S.x, dy = (cY - (py - h / 2) * sc) - S.y;
+			const dx = (cX + (px - w / 2) * sc) - ox, dy = (cY - (py - h / 2) * sc) - oy;
 			return { x: dx * co + dy * si, y: -dx * si + dy * co };
 		},
 		toScreen: function (bx, by) {
-			const Xw = S.x + bx * co - by * si, Yw = S.y + bx * si + by * co;
+			const Xw = ox + bx * co - by * si, Yw = oy + bx * si + by * co;
 			return { x: w / 2 + (Xw - cX) / sc, y: h / 2 - (Yw - cY) / sc };
 		}
 	};
@@ -6649,11 +7084,23 @@ function drawRobotView(cv) {
 	c.setTransform(1, 0, 0, 1, 0, 0);
 	c.fillStyle = '#0b0b0b'; c.fillRect(0, 0, w, h);
 
-	/* --- world grid in cm, so the ground slides under the robot and not with it --- */
+	/* --- the grid in cm, so the ground slides under the robot and not with it.
+	 * IN THE LAYOUT EDITOR IT IS THE MACHINE'S OWN GRID - the very lines the drag
+	 * snaps to - because a grid you can see and a grid you land on being
+	 * different lines is the one thing a modelling screen must not do. It doubles
+	 * until the lines are far enough apart to read, so every line drawn is still
+	 * a grid line, and falls back to the automatic decade when there is no grid
+	 * at all. --- */
 	const steps = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000];
 	let g = steps[steps.length - 1];
 	for (const s of steps) if (s / sc >= 26) { g = s; break; }
-	c.lineWidth = 1; c.strokeStyle = '#191919';
+	let snapG = 0;
+	if (map.edit && Number(R.gridMm) > 0) {
+		snapG = Number(R.gridMm) / MM_PER_CM;
+		g = snapG;
+		while (g / sc < 7 && g < 1e4) g *= 2;
+	}
+	c.lineWidth = 1; c.strokeStyle = snapG ? '#212a2c' : '#191919';
 	const x0 = Math.ceil((cX - w / 2 * sc) / g) * g, x1 = cX + w / 2 * sc;
 	const y0 = Math.ceil((cY - h / 2 * sc) / g) * g, y1 = cY + h / 2 * sc;
 	if ((x1 - x0) / g < 400 && (y1 - y0) / g < 400) {
@@ -6665,8 +7112,10 @@ function drawRobotView(cv) {
 	c.beginPath(); c.moveTo(sx(0) - 7, sy(0)); c.lineTo(sx(0) + 7, sy(0));
 	c.moveTo(sx(0), sy(0) - 7); c.lineTo(sx(0), sy(0) + 7); c.stroke();
 
-	/* --- the trail, in a handful of alpha bands rather than one stroke a point --- */
-	if (R.trail && S.trail.length >= 4) {
+	/* --- the trail, in a handful of alpha bands rather than one stroke a point.
+	 * Not in the layout editor: there the machine is pinned at the origin, so a
+	 * trail in world coordinates would be a path it never took from here. --- */
+	if (!map.edit && R.trail && S.trail.length >= 4) {
 		const n = S.trail.length / 2, bands = 6;
 		c.lineWidth = 1.5; c.strokeStyle = RB_COL.trail;
 		for (let b = 0; b < bands; b++) {
@@ -6686,16 +7135,20 @@ function drawRobotView(cv) {
 	/* --- the chassis, in the body frame: +X forward, +Y to the left --- */
 	const cb = chassisBounds(R.shape);
 	const L = cb.len, Wd = cb.wid;
-	const rx = sx(S.x), ry = sy(S.y);
+	/* the body's origin and heading come from the MAP, not from the simulator:
+	 * the layout editor pins them and the panel does not, and the renderer must
+	 * draw the pose the hit test is inverting or a handle stops being where it
+	 * looks like it is */
+	const rx = sx(map.ox), ry = sy(map.oy);
 	const mv = (k) => SIM.rowValue(k);
 	c.save();
 	c.translate(rx, ry);
-	c.rotate(-S.th);                       /* world CCW is screen CCW once y is flipped */
+	c.rotate(-map.th);                     /* world CCW is screen CCW once y is flipped */
 	const B = (bx, by) => [px(bx), -px(by)];
 	/* a label that rides with the body but stays the right way up */
 	const label = (bx, by, txt) => {
 		const p = B(bx, by);
-		c.save(); c.translate(p[0], p[1]); c.rotate(S.th);
+		c.save(); c.translate(p[0], p[1]); c.rotate(map.th);
 		c.fillStyle = '#8b8b8b'; c.font = '9px Consolas,monospace'; c.textAlign = 'center';
 		c.fillText(txt, 0, 0); c.restore(); c.textAlign = 'left';
 	};
@@ -6821,7 +7274,7 @@ function drawRobotView(cv) {
 	/* --- the vectors, in screen space so they never shrink out of existence --- */
 	const bodyPx = Math.max(20, px(L));
 	/* a body direction (radians CCW from +X forward) as a canvas angle */
-	const scr = (a) => -(S.th + a);
+	const scr = (a) => -(map.th + a);
 	const arrow = (a, len, col, wide, dash) => {
 		const ca = scr(a), ex = rx + Math.cos(ca) * len, ey = ry + Math.sin(ca) * len;
 		c.strokeStyle = col; c.fillStyle = col; c.lineWidth = wide;
@@ -6892,8 +7345,10 @@ function drawRobotView(cv) {
 		 * how far the robot has to go to cross the screen, which is the whole point.
 		 * The sensor model is called out here because it is the honest explanation
 		 * of a count that will not sit still - unlabelled, that reads as a bug. */
-		[(Number(R.viewCm) > 0 ? 'view ' + (Number(R.viewCm) | 0) + ' cm' : 'view auto fit') +
-			'  grid ' + g + ' cm' +
+		[(map.edit
+			? (snapG ? 'grid ' + cmToMm(snapG) + ' mm' + (g > snapG ? ' (drawn every ' + Math.round(g / snapG) + ')' : '') +
+				(P.sim.robot.gridSnap ? '' : ', snap off') : 'no grid')
+			: (Number(R.viewCm) > 0 ? 'view ' + (Number(R.viewCm) | 0) + ' cm' : 'view auto fit') + '  grid ' + g + ' cm') +
 			(R.imuSource === 'robot' && (R.gyroNoise || R.accelNoise || R.gyroBias || R.accelBias) ? '  sensor error on' : ''), '#6a6a6a']
 	];
 	c.font = '10px Consolas,monospace';
@@ -7452,6 +7907,7 @@ function uiHelp() {
 		'<tr><td class="l">F</td><td class="l">frame all (bare F only, so Ctrl+F still opens the browser find)</td></tr>' +
 		'<tr><td class="l">L</td><td class="l">auto layout: left to right by rank, sinks in the last column, unconnected blocks in a trailing one. Positions are not semantics &mdash; the generated code is identical before and after, and one Ctrl+Z puts everything back</td></tr>' +
 		'<tr><td class="l">R</td><td class="l">show or hide the robot view. It floats over the graph, docks into the right column or into the Robot tab, and draws whatever tab is open</td></tr>' +
+		'<tr><td class="l">Shift+R</td><td class="l">the <b>layout editor</b>: the whole window for laying the machine out &mdash; drag the wheels, the chassis vertices, the markers and the IMU, with the geometry table beside them. Wheel zooms, right or middle drag pans, ctrl while dragging ignores the grid, Esc closes it. The grid is the machine\'s own, in mm, and is saved with the mix</td></tr>' +
 		'<tr><td class="l">arrows / shift+arrows</td><td class="l">nudge the selection by one grid step, or five</td></tr>' +
 		'<tr><td class="l">right / middle / space / alt drag</td><td class="l">pan &middot; wheel zooms &middot; ctrl-drag ignores the grid snap. A stationary right click does nothing: there is no context menu of our own, and the browser one is suppressed inside the canvas only</td></tr>' +
 		'<tr><td class="l">group field in the inspector</td><td class="l">name a group, then use the chips at the top left to collapse it behind one box. Purely visual: the graph, the analysis and the generated code are identical either way</td></tr></table>' +
@@ -7541,6 +7997,14 @@ function nudgeSelection(sx, sy) {
 function initKeys() {
 	window.addEventListener('keydown', e => {
 		const tag = (e.target.tagName || '').toLowerCase();
+		/* Escape closes the full screen layout editor, and it is read BEFORE the
+		 * input guard below: the editor is mostly fields, so the key that leaves it
+		 * has to work while one of them has the focus. */
+		if (e.key === 'Escape' && RBE.open) { closeRobotEditor(); e.preventDefault(); return; }
+		/* and while it is open it owns the keyboard. The graph is not on screen,
+		 * so a bare F, an L or a Delete there would act on something the user
+		 * cannot see - and the layout is not on the undo stack either. */
+		if (RBE.open) return;
 		if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
 		keyState.ctrl = e.ctrlKey || e.metaKey;
 		if (e.code === 'Space') { keyState.space = true; e.preventDefault(); }
@@ -7556,7 +8020,10 @@ function initKeys() {
 		const noMod = !e.ctrlKey && !e.metaKey && !e.altKey;
 		if (noMod && (e.key === 'f' || e.key === 'F')) frameAll();
 		if (noMod && (e.key === 'l' || e.key === 'L')) autoLayout();
-		if (noMod && (e.key === 'r' || e.key === 'R')) { UI.rbShow = !UI.rbShow; robotViewChanged(); }
+		/* R shows or hides the little view; SHIFT+R opens the screen you lay the
+		 * machine out on. Shift is free here - only the bare letters are taken. */
+		if (noMod && e.shiftKey && (e.key === 'r' || e.key === 'R')) { RBE.open ? closeRobotEditor() : openRobotEditor(); }
+		else if (noMod && (e.key === 'r' || e.key === 'R')) { UI.rbShow = !UI.rbShow; robotViewChanged(); }
 		const ARROW = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
 		if (ARROW[e.key] && noMod) {
 			const k = snapStep() * (e.shiftKey ? 5 : 1);
