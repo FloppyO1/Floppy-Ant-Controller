@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F.A.C. Orientation Viewer</title>
+<style>
+:root {
+	--bg: #121212; --panel: #1e1e1e; --panel2: #252525; --accent: #00adb5;
+	--text: #eee; --dim: #888; --line: #333;
+	--x: #ff5252; --y: #4caf50; --z: #448aff; --grav: #ffc107;
+	--ok: #4caf50; --warn: #ff9800; --bad: #f44336;
+}
+* { box-sizing: border-box; }
+body {
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	background: var(--bg); color: var(--text); margin: 0; padding: 10px;
+	display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+}
+
+/* ---- header ---- */
+.header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+.brand { font-weight: 800; color: var(--accent); font-size: 18px; letter-spacing: 1px; }
+.brand span { color: var(--dim); font-weight: 400; font-size: 12px; letter-spacing: 0; }
+.toolbar { display: flex; gap: 10px; align-items: center; background: #222; padding: 6px 14px;
+	border-radius: 20px; border: 1px solid #444; }
+button, select { border-radius: 20px; border: none; cursor: pointer; transition: .15s; font-family: inherit; }
+.btn { background: #444; color: #fff; padding: 7px 16px; font-size: 11px; font-weight: 800;
+	text-transform: uppercase; letter-spacing: .5px; }
+.btn:hover { background: #555; }
+.btn.primary { background: var(--accent); color: #002; }
+.btn.primary:hover { background: #00c8d2; }
+.btn.danger { background: var(--bad); }
+.btn:disabled { opacity: .35; cursor: not-allowed; }
+.btn-help { background: #444; color: #fff; width: 28px; height: 28px; border-radius: 50%;
+	font-weight: bold; font-size: 15px; padding: 0; }
+select { background: #000; color: var(--accent); border: 1px solid var(--accent);
+	padding: 6px 10px; font-size: 11px; font-weight: bold; }
+.status { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--dim); }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--bad); flex-shrink: 0; }
+.dot.on { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.dot.demo { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+
+/* ---- layout ---- */
+.main { flex: 1; display: flex; gap: 10px; min-height: 0; }
+.viewport { flex: 1; background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+	position: relative; overflow: hidden; min-width: 320px; }
+#scene { display: block; width: 100%; height: 100%; cursor: grab; }
+#scene:active { cursor: grabbing; }
+.vp-hint { position: absolute; left: 12px; bottom: 10px; font-size: 11px; color: #666; pointer-events: none; }
+.vp-legend { position: absolute; right: 12px; top: 10px; font-size: 11px; line-height: 1.7; pointer-events: none; }
+.vp-legend b { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
+.vp-warn { position: absolute; left: 12px; top: 10px; font-size: 11px; color: var(--warn);
+	background: rgba(0,0,0,.55); padding: 4px 9px; border-radius: 10px; pointer-events: none; }
+
+.side { width: 340px; flex-shrink: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 3px; }
+.side::-webkit-scrollbar { width: 8px; }
+.side::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 4px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; }
+.card h3 { margin: 0 0 9px; font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px;
+	color: var(--accent); font-weight: 800; }
+.row { display: flex; justify-content: space-between; align-items: center; font-size: 12px;
+	padding: 3px 0; gap: 8px; }
+.row .k { color: var(--dim); }
+.row .v { font-family: 'Consolas', monospace; font-weight: bold; }
+.big { font-size: 26px; font-family: 'Consolas', monospace; font-weight: bold; text-align: center;
+	padding: 4px 0 2px; }
+.sub { text-align: center; font-size: 11px; color: var(--dim); margin-bottom: 6px; }
+
+/* axis bars */
+.axis { display: grid; grid-template-columns: 16px 1fr 74px; align-items: center; gap: 8px;
+	font-size: 12px; margin: 5px 0; }
+.axis .lbl { font-weight: 800; font-family: 'Consolas', monospace; }
+.axis .val { text-align: right; font-family: 'Consolas', monospace; }
+.bar { height: 9px; background: var(--panel2); border-radius: 5px; position: relative; overflow: hidden; }
+.bar i { position: absolute; top: 0; bottom: 0; left: 50%; width: 0; border-radius: 5px; }
+.bar::after { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #555; }
+
+/* channels */
+.ch { display: grid; grid-template-columns: 26px 1fr 40px; align-items: center; gap: 7px;
+	font-size: 11px; margin: 3px 0; color: var(--dim); }
+.ch .cbar { height: 7px; background: var(--panel2); border-radius: 4px; overflow: hidden; }
+.ch .cbar i { display: block; height: 100%; background: var(--accent); width: 0; }
+.ch .cv { text-align: right; font-family: 'Consolas', monospace; color: var(--text); }
+
+.badge { display: inline-block; padding: 3px 11px; border-radius: 11px; font-size: 11px;
+	font-weight: 800; text-transform: uppercase; letter-spacing: .5px; }
+.badge.g { background: rgba(76,175,80,.2); color: var(--ok); border: 1px solid var(--ok); }
+.badge.w { background: rgba(255,152,0,.2); color: var(--warn); border: 1px solid var(--warn); }
+.badge.r { background: rgba(244,67,54,.2); color: var(--bad); border: 1px solid var(--bad); }
+.badge.n { background: #2a2a2a; color: var(--dim); border: 1px solid #444; }
+
+.note { font-size: 11px; color: var(--dim); line-height: 1.5; margin-top: 8px;
+	border-left: 2px solid var(--line); padding-left: 8px; }
+.note b { color: #bbb; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 12px; margin: 6px 0; }
+.btnrow { display: flex; gap: 7px; margin-top: 9px; }
+.btnrow .btn { flex: 1; padding: 7px 6px; font-size: 10px; }
+label.cb { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--dim);
+	cursor: pointer; margin: 4px 0; }
+input[type=checkbox] { accent-color: var(--accent); cursor: pointer; }
+
+/* ---- modal ---- */
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,.8); display: none;
+	align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+.modal.open { display: flex; }
+.modal-box { background: var(--panel); border: 1px solid var(--accent); border-radius: 14px;
+	max-width: 720px; max-height: 84vh; overflow-y: auto; padding: 22px 26px; }
+.modal-box h2 { margin: 0 0 6px; color: var(--accent); font-size: 17px; }
+.modal-box h4 { color: var(--accent); font-size: 12px; text-transform: uppercase;
+	letter-spacing: 1px; margin: 18px 0 5px; }
+.modal-box p, .modal-box li { font-size: 13px; line-height: 1.65; color: #ccc; }
+.modal-box code { background: #000; padding: 1px 5px; border-radius: 4px; color: var(--accent);
+	font-size: 12px; }
+.modal-box .warnbox { background: rgba(255,152,0,.1); border-left: 3px solid var(--warn);
+	padding: 9px 13px; border-radius: 0 8px 8px 0; margin: 12px 0; }
+.modal-box .warnbox p { margin: 4px 0; color: #e8c07a; }
+</style>
+</head>
+<body>
+
+<div class="header">
+	<div class="brand">F.A.C. ORIENTATION VIEWER <span>&nbsp;· V2 telemetry</span></div>
+	<div class="toolbar">
+		<button class="btn primary" id="btnConnect">Connect</button>
+		<button class="btn danger" id="btnDisconnect" disabled>Disconnect</button>
+		<select id="selRate">
+			<option value="33">30 Hz</option>
+			<option value="50" selected>20 Hz</option>
+			<option value="100">10 Hz</option>
+			<option value="200">5 Hz</option>
+		</select>
+	</div>
+	<div class="toolbar">
+		<button class="btn" id="btnDemo">Demo</button>
+		<div class="status"><span class="dot" id="dot"></span><span id="statusText">Not connected</span></div>
+	</div>
+	<button class="btn-help" id="btnHelp" title="Help">?</button>
+</div>
+
+<div class="main">
+	<div class="viewport">
+		<canvas id="scene"></canvas>
+		<div class="vp-warn" id="vpWarn" style="display:none"></div>
+		<div class="vp-legend">
+			<div><b style="background:var(--x)"></b>X body &mdash; front</div>
+			<div><b style="background:var(--y)"></b>Y body &mdash; left</div>
+			<div><b style="background:var(--z)"></b>Z body &mdash; up</div>
+			<div><b style="background:var(--grav)"></b>gravity</div>
+		</div>
+		<div class="vp-hint">drag to orbit &middot; wheel to zoom &middot; double click to reset view</div>
+	</div>
+
+	<div class="side">
+
+		<div class="card">
+			<h3>Attitude</h3>
+			<div class="big" id="tiltBig">--&deg;</div>
+			<div class="sub">tilt from vertical</div>
+			<div class="row"><span class="k">Roll (about X)</span><span class="v" id="vRoll">--</span></div>
+			<div class="row"><span class="k">Pitch (about Y)</span><span class="v" id="vPitch">--</span></div>
+			<div class="row"><span class="k">Yaw</span><span class="v" style="color:var(--dim)">not observable</span></div>
+			<div class="row"><span class="k">Attitude</span><span id="vFlip" class="badge n">--</span></div>
+			<div class="note"><b>Yaw cannot be measured here.</b> Gravity fixes only two of the three
+				degrees of freedom, and there is no magnetometer on this board. The model is drawn with
+				its heading frozen; only its tilt is real.</div>
+		</div>
+
+		<div class="card">
+			<h3>Accelerometer (body frame)</h3>
+			<div class="axis"><span class="lbl" style="color:var(--x)">X</span>
+				<div class="bar"><i id="bX" style="background:var(--x)"></i></div><span class="val" id="vX">-- mg</span></div>
+			<div class="axis"><span class="lbl" style="color:var(--y)">Y</span>
+				<div class="bar"><i id="bY" style="background:var(--y)"></i></div><span class="val" id="vY">-- mg</span></div>
+			<div class="axis"><span class="lbl" style="color:var(--z)">Z</span>
+				<div class="bar"><i id="bZ" style="background:var(--z)"></i></div><span class="val" id="vZ">-- mg</span></div>
+			<div class="row" style="margin-top:7px"><span class="k">Magnitude |a|</span><span class="v" id="vMag">-- mg</span></div>
+			<div class="row"><span class="k">Noise span (2 s)</span><span class="v" id="vSpan">-- mg</span></div>
+			<div class="note" id="signHint"><b>Sign check.</b> Put the board flat, components up:
+				<b>Z should read about +1000 mg</b>. If it reads &minus;1000, negate the vector in
+				<code>FAC_IMU_BUILD_frame()</code>. This does <b>not</b> affect tilt or
+				<code>is_upside_down</code> &mdash; it flips the sign of the <b>yaw rate and the
+				heading</b>. See Help.</div>
+		</div>
+
+		<div class="card">
+			<h3>Calibration preview</h3>
+			<div class="sub" style="text-align:left;margin-bottom:8px">What <code>FAC_IMU_calibrate()</code>
+				would decide right now, with the firmware's own thresholds.</div>
+			<div class="check"><span class="badge n" id="ckMag">--</span><span style="color:var(--dim)">gravity magnitude 800&hellip;1200 mg</span></div>
+			<div class="check"><span class="badge n" id="ckSpan">--</span><span style="color:var(--dim)">accel span below 49 mg</span></div>
+			<div class="check"><span class="badge n" id="ckLim">--</span><span style="color:var(--dim)">every axis below 4 g</span></div>
+			<div class="row" style="margin-top:8px"><span class="k">Verdict</span><span class="badge n" id="ckAll">--</span></div>
+			<div class="btnrow">
+				<button class="btn primary" id="btnCapture">Capture reference</button>
+				<button class="btn" id="btnClearRef" disabled>Clear</button>
+			</div>
+			<label class="cb"><input type="checkbox" id="cbShowRef" checked> show reference frame in 3D</label>
+			<div id="refBox" style="display:none">
+				<div class="row"><span class="k">up (body, &times;1000)</span><span class="v" id="rUp">--</span></div>
+				<div class="row"><span class="k">forward (body)</span><span class="v" id="rFwd">--</span></div>
+				<div class="row"><span class="k">left (body)</span><span class="v" id="rLeft">--</span></div>
+				<div class="row"><span class="k">Reference used</span><span class="v" id="rRef">--</span></div>
+				<div class="row"><span class="k">Levelled a (F,L,U)</span><span class="v" id="rLevel">--</span></div>
+				<div class="row"><span class="k">Tilt vs reference</span><span class="v" id="rTilt">--</span></div>
+				<div class="row"><span class="k">is_upside_down</span><span class="badge n" id="rFlip">--</span></div>
+			</div>
+			<div class="note">The reference reproduces the firmware's integer math exactly
+				(truncating division, <code>FAC_math_sqrt</code>, scale 1000), so these numbers are what
+				the MCU computes &mdash; not a floating point approximation of it.</div>
+		</div>
+
+		<div class="card">
+			<h3>Board</h3>
+			<div class="row"><span class="k">State</span><span class="badge n" id="vState">--</span></div>
+			<div class="row"><span class="k">Battery</span><span class="v" id="vBat">-- V</span></div>
+			<div class="row"><span class="k">Pack</span><span class="v" id="vPack">--</span></div>
+			<div class="row"><span class="k">Packets</span><span class="v" id="vPkt">0</span></div>
+		</div>
+
+		<div class="card">
+			<h3>Receiver channels</h3>
+			<div id="chList"></div>
+		</div>
+
+	</div>
+</div>
+
+<div class="modal" id="modal">
+	<div class="modal-box">
+		<h2>F.A.C. Orientation Viewer</h2>
+		<p>Reads the 27-byte telemetry packet of a F.A.C. V2 board over USB and draws its
+			orientation in 3D. It is a diagnostic tool: nothing is ever written to the board except
+			the telemetry request byte.</p>
+
+		<h4>Connecting</h4>
+		<p>Needs the <b>Web Serial API</b> &mdash; Chrome, Edge or Opera on desktop. Firefox and Safari
+			do not implement it. Click <b>Connect</b> and pick the F.A.C. virtual COM port. The tool then
+			sends command byte <code>4</code> (<code>FAC_USB_COMMAND_TELEMETRY_REQUEST</code>) at the
+			selected rate and decodes the reply. <b>Demo</b> runs the whole interface off a synthetic
+			tumbling board, with no hardware attached.</p>
+
+		<h4>What is real and what is not</h4>
+		<div class="warnbox">
+			<p><b>Only roll and pitch are measured.</b> The telemetry packet carries the accelerometer
+			and nothing else &mdash; no gyroscope. A stationary accelerometer reads the direction of
+			gravity, which fixes two attitude degrees of freedom out of three. <b>Yaw is unobservable
+			from gravity</b> (rotating about the vertical does not change the reading by one count) and
+			this board has no magnetometer.</p>
+			<p>So the model's heading is a convention, not a measurement: the tool freezes it exactly the
+			way the firmware does, by projecting body +X onto the horizontal plane. Rotate the real
+			board flat on a table and the model will not turn. That is correct behaviour, not a bug.</p>
+		</div>
+		<p>A second consequence worth remembering: the accelerometer measures <i>specific force</i>, not
+			gravity. While the robot is being shaken, thrown or hit, the vector it reports is not vertical
+			and the orientation shown is meaningless. Read it on a robot standing still.</p>
+
+		<h4>The sign check &mdash; and what it really costs</h4>
+		<p>The firmware takes <code>up = normalize(accel_mean)</code> without negating it, on the
+			standard MEMS convention that the axis pointing upwards reads <b>+1 g</b> at rest. Put the
+			board flat with the components facing up: <b>Z should read about +1000 mg</b>. If it reads
+			&minus;1000, negate the vector in <code>FAC_IMU_BUILD_frame()</code> in
+			<code>fac_imu.c</code>.</p>
+		<p>Most of what you would expect to break, does not &mdash; and it is worth knowing why before
+			going hunting for a bug that is not there. If the sensor reported <code>&minus;s</code>
+			instead of <code>s</code>, the calibration would store <code>up = &minus;u</code>, and the
+			projection afterwards would give <code>(&minus;u)&middot;(&minus;s) = u&middot;s</code>. The
+			sign appears twice on the accelerometer path and <b>cancels</b>. <code>forward</code> is
+			invariant too, because the projection term <code>(X&middot;up)&middot;up</code> contains
+			<code>up</code> twice. Only <code>up</code> and <code>left</code> come out negated, which is
+			the same frame rotated 180&deg; about <code>forward</code>: a world with X forward,
+			Y <i>right</i> and Z <i>down</i>.</p>
+		<div class="warnbox">
+			<p><b>Unaffected:</b> tilt angle, <code>is_upside_down</code>, levelled accel Y and Z,
+			levelled gyro X (pitch rate).</p>
+			<p><b>Inverted:</b> levelled accel X (forward), levelled gyro Y (roll rate), and
+			&mdash; the one that matters &mdash; <b>levelled gyro Z, so
+			<code>FAC_IMU_GET_yaw_rate_mdps()</code> and the integrated heading run backwards.</b></p>
+		</div>
+		<p>The reason the gyroscope is the one that suffers: an accelerometer sign convention does not
+			negate the gyroscope, so there is no second sign to cancel against, and the flipped axes go
+			straight through. It is also why this cannot be detected automatically &mdash; a board at rest
+			reading <code>(0, 0, +1000)</code> is indistinguishable from an upside-down board under the
+			opposite convention. The answer comes from the datasheet, not from the data.</p>
+
+		<h4>Calibration preview</h4>
+		<p>The firmware calibrates the IMU <b>when the robot is armed</b>, not at boot, and refuses the
+			measurement unless the robot is genuinely still. This panel runs the same three checks live so
+			you can see whether a calibration would pass before you try to arm:</p>
+		<ul>
+			<li><b>Magnitude</b> between 800 and 1200 mg &mdash; the board is standing on a floor and not
+				being accelerated. In the firmware this is <code>IMU_CALIBRATION_ACCEL_MIN/MAX</code>,
+				expressed there in raw counts (1639&hellip;2459).</li>
+			<li><b>Span</b> under 49 mg &mdash; <code>IMU_CALIBRATION_MAX_ACCEL_SPAN</code>, 100 counts.
+				<b>Indicative only:</b> the firmware measures it over 128 samples at 416 Hz inside a 400 ms
+				window, while this tool can only see the polling rate you selected. Treat it as a rough
+				"is it moving" indicator, not as the firmware's own verdict.</li>
+			<li><b>Per axis limit</b> under 4 g &mdash; <code>IMU_CALIBRATION_ACCEL_LIMIT</code>. This one
+				is not a taste threshold, it is the overflow guard of the sum of the squares.</li>
+		</ul>
+		<p>The gyroscope span check the firmware also runs cannot be previewed here: the gyro is not in
+			the telemetry packet.</p>
+		<p><b>Capture reference</b> freezes the current attitude as the calibrated frame, exactly as
+			arming would, and then shows the levelled vector, the tilt relative to that pose and the
+			<code>is_upside_down</code> flag. It is the way to check on the bench what a mix will actually
+			read once the robot is armed in that position.</p>
+
+		<h4>Packet layout</h4>
+		<p><code>[0]</code> code 5 &middot; <code>[1..16]</code> 8 channels &middot;
+			<code>[17..18]</code> Vbat mV &middot; <code>[19]</code> battery type &middot;
+			<code>[20]</code> state &middot; <code>[21..26]</code> accel X/Y/Z in mg.
+			All multi-byte values are <b>big-endian</b>, the accelerometer ones signed.</p>
+
+		<div class="btnrow"><button class="btn primary" id="btnCloseHelp">Close</button></div>
+	</div>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================================================
+ * PROTOCOL
+ * ==========================================================================================*/
+const CMD_TELEMETRY_REQUEST  = 4;
+const CMD_TELEMETRY_RESPONSE = 5;
+const PACKET_LEN = 27;
+const BATTERY_NAMES = ['USB', '1S', '2S', '3S', '4S', 'UNKNOWN'];
+const STATE_NAMES   = ['DISARMED', 'NORMAL', 'CUTOFF'];
+
+/* Firmware thresholds, converted from raw counts to mg (488 ug per count).
+ * The frame math itself is scale invariant because it normalizes, so working in mg gives the
+ * same unit vectors the MCU computes in counts. */
+const CAL_ACCEL_MIN_MG   = 800;   /* IMU_CALIBRATION_ACCEL_MIN   1639 counts */
+const CAL_ACCEL_MAX_MG   = 1200;  /* IMU_CALIBRATION_ACCEL_MAX   2459 counts */
+const CAL_MAX_SPAN_MG    = 49;    /* IMU_CALIBRATION_MAX_ACCEL_SPAN 100 counts */
+const CAL_ACCEL_LIMIT_MG = 4000;  /* IMU_CALIBRATION_ACCEL_LIMIT 8192 counts */
+const UNIT_SCALE         = 1000;  /* FAC_IMU_UNIT_SCALE */
+const VERTICAL_LIMIT     = 900;   /* IMU_CALIBRATION_VERTICAL_LIMIT */
+const ANGLE_TURN         = 4096;  /* FAC_ANGLE_TURN */
+
+/* ============================================================================================
+ * INTEGER MATH - a faithful replica of fac_math.h / fac_imu.c
+ * Every division truncates TOWARD ZERO, like C, so Math.trunc and never Math.floor.
+ * ==========================================================================================*/
+function idiv(a, b) { return b === 0 ? 0 : Math.trunc(a / b); }
+
+/* FAC_math_sqrt: exact, binary restoring method, no division */
+function isqrt(v) {
+	if (v <= 0) return 0;
+	let rest = v >>> 0, root = 0, bit = 1 << 30;
+	while (bit > rest) bit >>>= 2;
+	while (bit !== 0) {
+		if (rest >= root + bit) { rest -= root + bit; root = (root >>> 1) + bit; }
+		else root >>>= 1;
+		bit >>>= 2;
+	}
+	return root;
+}
+
+function vnorm(v) { return isqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]); }
+
+function vnormalize(v) {
+	const len = vnorm(v);
+	if (len === 0) return null;
+	return [idiv(v[0] * UNIT_SCALE, len), idiv(v[1] * UNIT_SCALE, len), idiv(v[2] * UNIT_SCALE, len)];
+}
+
+/* FAC_IMU_BUILD_frame() */
+function buildFrame(accel) {
+	const up = vnormalize(accel);
+	if (!up) return null;
+
+	const ref = [0, 0, 0];
+	const sideways = (up[0] > VERTICAL_LIMIT || up[0] < -VERTICAL_LIMIT);
+	ref[sideways ? 1 : 0] = UNIT_SCALE;   /* body +X too close to vertical -> use body +Y */
+
+	const dot = idiv(ref[0] * up[0] + ref[1] * up[1] + ref[2] * up[2], UNIT_SCALE);
+	let fwd = [0, 1, 2].map(i => ref[i] - idiv(dot * up[i], UNIT_SCALE));
+	fwd = vnormalize(fwd);
+	if (!fwd) return null;
+
+	const left = [
+		idiv(up[1] * fwd[2] - up[2] * fwd[1], UNIT_SCALE),
+		idiv(up[2] * fwd[0] - up[0] * fwd[2], UNIT_SCALE),
+		idiv(up[0] * fwd[1] - up[1] * fwd[0], UNIT_SCALE)
+	];
+	return { up, forward: fwd, left, sideways };
+}
+
+/* FAC_IMU_project(): one component of a body vector on the frame */
+function project(axis, body) {
+	return idiv(axis[0] * body[0] + axis[1] * body[1] + axis[2] * body[2], UNIT_SCALE);
+}
+
+/* FAC_math_atan2(), the polynomial approximation - kept so the tilt matches the MCU */
+const FINE = 10000;
+function atanRatio(r) {
+	const a = idiv(r * (r - FINE), FINE);
+	const c = 1590 + idiv(430 * r, FINE);
+	return idiv(idiv((ANGLE_TURN / 8) * r, 100) - idiv(a * c, 1000), 100);
+}
+function facAtan2(y, x) {
+	const ax = Math.abs(x), ay = Math.abs(y);
+	if (ax === 0 && ay === 0) return 0;
+	let angle;
+	if (ax >= ay) angle = atanRatio(idiv(ay * FINE, ax));
+	else angle = ANGLE_TURN / 4 - atanRatio(idiv(ax * FINE, ay));
+	if (x < 0) angle = ANGLE_TURN / 2 - angle;
+	if (y < 0) angle = -angle;
+	return angle & (ANGLE_TURN - 1);
+}
+const angleToDeg = a => a * 360 / ANGLE_TURN;
+
+/* ============================================================================================
+ * STATE
+ * ==========================================================================================*/
+const S = {
+	connected: false, demo: false,
+	packets: 0,
+	accel: [0, 0, 0],           /* mg, body frame */
+	channels: new Array(8).fill(0),
+	vbat: 0, batteryType: 5, boardState: 0,
+	history: [],                /* recent accel samples, for the span */
+	reference: null,            /* the captured frame, or null */
+	live: null,                 /* the frame derived from the current sample */
+	lastPacketTime: 0
+};
+
+/* ============================================================================================
+ * 3D VIEW
+ * World is Z-up. A body point p is placed in the world with the same projection the firmware
+ * uses: (forward . p, left . p, up . p). With no tilt that is the identity.
+ * ==========================================================================================*/
+const canvas = document.getElementById('scene');
+const ctx = canvas.getContext('2d');
+const cam = { az: -2.25, el: 0.42, dist: 7.4 };
+const CAM_HOME = { az: -2.25, el: 0.42, dist: 7.4 };
+
+function resizeCanvas() {
+	const dpr = window.devicePixelRatio || 1;
+	const r = canvas.parentElement.getBoundingClientRect();
+	canvas.width = Math.max(1, Math.round(r.width * dpr));
+	canvas.height = Math.max(1, Math.round(r.height * dpr));
+	ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', () => { resizeCanvas(); drawScene(); });
+
+function viewBasis() {
+	const ce = Math.cos(cam.el), se = Math.sin(cam.el);
+	const eye = [cam.dist * ce * Math.cos(cam.az), cam.dist * ce * Math.sin(cam.az), cam.dist * se];
+	const f = [-eye[0], -eye[1], -eye[2]];
+	const fl = Math.hypot(f[0], f[1], f[2]);
+	const fwd = [f[0] / fl, f[1] / fl, f[2] / fl];
+	let r = [fwd[1], -fwd[0], 0];                    /* fwd x worldUp(0,0,1) */
+	const rl = Math.hypot(r[0], r[1], r[2]) || 1;
+	r = [r[0] / rl, r[1] / rl, r[2] / rl];
+	const u = [                                                            /* right x fwd */
+		r[1] * fwd[2] - r[2] * fwd[1],
+		r[2] * fwd[0] - r[0] * fwd[2],
+		r[0] * fwd[1] - r[1] * fwd[0]
+	];
+	return { eye, fwd, right: r, up: u };
+}
+
+let VB = viewBasis();
+
+function toScreen(p) {
+	const w = canvas.clientWidth, h = canvas.clientHeight;
+	const d = [p[0] - VB.eye[0], p[1] - VB.eye[1], p[2] - VB.eye[2]];
+	const depth = d[0] * VB.fwd[0] + d[1] * VB.fwd[1] + d[2] * VB.fwd[2];
+	if (depth <= 0.05) return null;
+	const vx = d[0] * VB.right[0] + d[1] * VB.right[1] + d[2] * VB.right[2];
+	const vy = d[0] * VB.up[0] + d[1] * VB.up[1] + d[2] * VB.up[2];
+	const focal = Math.min(w, h) * 0.95;
+	return { x: w / 2 + focal * vx / depth, y: h / 2 - focal * vy / depth, depth };
+}
+
+/* --- the board model, in BODY coordinates. +X is the front edge, +Z is the component side. --- */
+const HW = 1.15, HD = 1.15, HT = 0.07;   /* half width (X), half depth (Y), half thickness (Z) */
+
+function boardFaces() {
+	const v = [
+		[ HW,  HD,  HT], [ HW, -HD,  HT], [-HW, -HD,  HT], [-HW,  HD,  HT],
+		[ HW,  HD, -HT], [ HW, -HD, -HT], [-HW, -HD, -HT], [-HW,  HD, -HT]
+	];
+	const pcbTop = '#1f6b46', pcbBot = '#155234', pcbEdge = '#0e3a24';
+	return [
+		{ pts: [v[0], v[1], v[2], v[3]], fill: pcbTop, stroke: '#2d8f60' },   /* +Z component side */
+		{ pts: [v[7], v[6], v[5], v[4]], fill: pcbBot, stroke: '#1b6b44' },   /* -Z solder side */
+		{ pts: [v[0], v[4], v[5], v[1]], fill: pcbEdge, stroke: '#2d8f60' },  /* +X front */
+		{ pts: [v[3], v[2], v[6], v[7]], fill: pcbEdge, stroke: '#2d8f60' },  /* -X back */
+		{ pts: [v[0], v[3], v[7], v[4]], fill: pcbEdge, stroke: '#2d8f60' },  /* +Y left */
+		{ pts: [v[1], v[5], v[6], v[2]], fill: pcbEdge, stroke: '#2d8f60' }   /* -Y right */
+	];
+}
+
+function boxAt(cx, cy, cz, sx, sy, sz, fill, stroke) {
+	const x0 = cx - sx, x1 = cx + sx, y0 = cy - sy, y1 = cy + sy, z0 = cz - sz, z1 = cz + sz;
+	const v = [[x1,y1,z1],[x1,y0,z1],[x0,y0,z1],[x0,y1,z1],[x1,y1,z0],[x1,y0,z0],[x0,y0,z0],[x0,y1,z0]];
+	return [
+		{ pts: [v[0], v[1], v[2], v[3]], fill, stroke },
+		{ pts: [v[7], v[6], v[5], v[4]], fill, stroke },
+		{ pts: [v[0], v[4], v[5], v[1]], fill, stroke },
+		{ pts: [v[3], v[2], v[6], v[7]], fill, stroke },
+		{ pts: [v[0], v[3], v[7], v[4]], fill, stroke },
+		{ pts: [v[1], v[5], v[6], v[2]], fill, stroke }
+	];
+}
+
+/* the whole board: pcb + a few parts, so which way is up and which way is front stays readable */
+function boardModel() {
+	let f = boardFaces();
+	f = f.concat(boxAt(0.25, 0, HT + 0.06, 0.24, 0.24, 0.06, '#141414', '#333'));      /* IMU / mcu */
+	f = f.concat(boxAt(-HW + 0.16, 0, HT + 0.09, 0.16, 0.30, 0.09, '#9aa0a6', '#c8ccd0')); /* USB, back edge */
+	f = f.concat(boxAt(HW - 0.14, 0.55, HT + 0.08, 0.13, 0.22, 0.08, '#1b1b1b', '#3a3a3a'));
+	f = f.concat(boxAt(HW - 0.14, -0.55, HT + 0.08, 0.13, 0.22, 0.08, '#1b1b1b', '#3a3a3a'));
+	return f;
+}
+
+/* body -> world, using the same projection the firmware applies to sensor data */
+function bodyToWorld(p, frame) {
+	if (!frame) return p;
+	const f = frame.forward, l = frame.left, u = frame.up;
+	return [
+		(f[0] * p[0] + f[1] * p[1] + f[2] * p[2]) / UNIT_SCALE,
+		(l[0] * p[0] + l[1] * p[1] + l[2] * p[2]) / UNIT_SCALE,
+		(u[0] * p[0] + u[1] * p[1] + u[2] * p[2]) / UNIT_SCALE
+	];
+}
+
+function drawScene() {
+	VB = viewBasis();
+	const w = canvas.clientWidth, h = canvas.clientHeight;
+	ctx.clearRect(0, 0, w, h);
+
+	/* background gradient */
+	const g = ctx.createLinearGradient(0, 0, 0, h);
+	g.addColorStop(0, '#191c20'); g.addColorStop(1, '#101214');
+	ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+
+	const prims = [];
+
+	/* --- ground grid, at a fixed world plane so the tilt is readable against it --- */
+	const GZ = -1.6, GS = 3.2, GN = 8;
+	for (let i = 0; i <= GN; i++) {
+		const t = -GS + (2 * GS * i) / GN;
+		prims.push({ type: 'line', a: [t, -GS, GZ], b: [t, GS, GZ], color: '#2a2f34', width: 1 });
+		prims.push({ type: 'line', a: [-GS, t, GZ], b: [GS, t, GZ], color: '#2a2f34', width: 1 });
+	}
+
+	/* --- the board --- */
+	const frame = S.live;
+	for (const face of boardModel()) {
+		const pts = face.pts.map(p => bodyToWorld(p, frame));
+		prims.push({ type: 'poly', pts, fill: face.fill, stroke: face.stroke });
+	}
+
+	/* front marker: an arrow on the component side pointing at body +X */
+	const arrow = [[0.62, 0, HT + 0.01], [0.20, 0.26, HT + 0.01], [0.20, 0.10, HT + 0.01],
+		[-0.55, 0.10, HT + 0.01], [-0.55, -0.10, HT + 0.01], [0.20, -0.10, HT + 0.01],
+		[0.20, -0.26, HT + 0.01]];
+	prims.push({ type: 'poly', pts: arrow.map(p => bodyToWorld(p, frame)),
+		fill: 'rgba(240,240,240,.85)', stroke: 'rgba(255,255,255,.9)' });
+
+	/* --- body axes, rigidly attached to the board --- */
+	const AX = 2.15;
+	const axes = [
+		{ v: [AX, 0, 0], color: '#ff5252', label: 'X' },
+		{ v: [0, AX, 0], color: '#4caf50', label: 'Y' },
+		{ v: [0, 0, AX], color: '#448aff', label: 'Z' }
+	];
+	for (const a of axes) {
+		const tip = bodyToWorld(a.v, frame);
+		const tail = bodyToWorld([0, 0, 0], frame);
+		prims.push({ type: 'arrow', a: tail, b: tip, color: a.color, width: 3.2, label: a.label });
+	}
+
+	/* --- gravity, always straight down in the world --- */
+	prims.push({ type: 'arrow', a: [0, 0, 0], b: [0, 0, -1.85], color: '#ffc107',
+		width: 2.4, label: 'g', dashed: true });
+
+	/* --- the captured reference frame, drawn in body space so it moves with nothing --- */
+	if (S.reference && document.getElementById('cbShowRef').checked) {
+		/* the reference frame's own axes, expressed in the world of the CURRENT attitude:
+		 * they show how far the board has rotated away from the pose that was captured */
+		const refAxes = [
+			{ v: S.reference.forward, color: 'rgba(255,82,82,.55)', label: "X'" },
+			{ v: S.reference.left,    color: 'rgba(76,175,80,.55)', label: "Y'" },
+			{ v: S.reference.up,      color: 'rgba(68,138,255,.55)', label: "Z'" }
+		];
+		for (const a of refAxes) {
+			const bodyDir = [a.v[0] * 1.75, a.v[1] * 1.75, a.v[2] * 1.75];
+			const tip = bodyToWorld(bodyDir, frame);
+			prims.push({ type: 'arrow', a: bodyToWorld([0, 0, 0], frame), b: tip,
+				color: a.color, width: 2, label: a.label, dashed: true });
+		}
+	}
+
+	/* --- painter's algorithm over everything at once --- */
+	for (const p of prims) {
+		if (p.type === 'poly') {
+			let d = 0; for (const q of p.pts) { const s = toScreen(q); d += s ? s.depth : 1e6; }
+			p.depth = d / p.pts.length;
+		} else {
+			const sa = toScreen(p.a), sb = toScreen(p.b);
+			p.depth = ((sa ? sa.depth : 1e6) + (sb ? sb.depth : 1e6)) / 2;
+		}
+	}
+	prims.sort((a, b) => b.depth - a.depth);
+
+	for (const p of prims) {
+		if (p.type === 'poly') drawPoly(p);
+		else if (p.type === 'line') drawLine(p);
+		else drawArrow(p);
+	}
+}
+
+function drawPoly(p) {
+	const s = p.pts.map(toScreen);
+	if (s.some(v => v === null)) return;
+	ctx.beginPath();
+	ctx.moveTo(s[0].x, s[0].y);
+	for (let i = 1; i < s.length; i++) ctx.lineTo(s[i].x, s[i].y);
+	ctx.closePath();
+	ctx.fillStyle = p.fill; ctx.fill();
+	ctx.strokeStyle = p.stroke; ctx.lineWidth = 1; ctx.stroke();
+}
+
+function drawLine(p) {
+	const a = toScreen(p.a), b = toScreen(p.b);
+	if (!a || !b) return;
+	ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+	ctx.strokeStyle = p.color; ctx.lineWidth = p.width; ctx.stroke();
+}
+
+function drawArrow(p) {
+	const a = toScreen(p.a), b = toScreen(p.b);
+	if (!a || !b) return;
+	ctx.save();
+	if (p.dashed) ctx.setLineDash([7, 5]);
+	ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+	ctx.strokeStyle = p.color; ctx.lineWidth = p.width; ctx.lineCap = 'round'; ctx.stroke();
+	ctx.restore();
+
+	/* head, built in screen space along the projected direction */
+	const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy);
+	if (len > 6) {
+		const ux = dx / len, uy = dy / len, hs = 11, hw = 5.2;
+		ctx.beginPath();
+		ctx.moveTo(b.x, b.y);
+		ctx.lineTo(b.x - ux * hs - uy * hw, b.y - uy * hs + ux * hw);
+		ctx.lineTo(b.x - ux * hs + uy * hw, b.y - uy * hs - ux * hw);
+		ctx.closePath();
+		ctx.fillStyle = p.color; ctx.fill();
+	}
+	if (p.label && len > 1) {
+		ctx.font = 'bold 13px Consolas, monospace';
+		ctx.fillStyle = p.color;
+		ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+		ctx.fillText(p.label, b.x + (dx / len) * 15, b.y + (dy / len) * 15);
+	}
+}
+
+/* --- orbit controls --- */
+let dragging = false, lastX = 0, lastY = 0;
+canvas.addEventListener('pointerdown', e => {
+	dragging = true; lastX = e.clientX; lastY = e.clientY; canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', e => {
+	if (!dragging) return;
+	cam.az -= (e.clientX - lastX) * 0.008;
+	cam.el += (e.clientY - lastY) * 0.008;
+	cam.el = Math.max(-1.45, Math.min(1.45, cam.el));
+	lastX = e.clientX; lastY = e.clientY;
+	drawScene();
+});
+canvas.addEventListener('pointerup', e => { dragging = false; });
+canvas.addEventListener('wheel', e => {
+	e.preventDefault();
+	cam.dist = Math.max(3.2, Math.min(16, cam.dist * (1 + Math.sign(e.deltaY) * 0.1)));
+	drawScene();
+}, { passive: false });
+canvas.addEventListener('dblclick', () => { Object.assign(cam, CAM_HOME); drawScene(); });
+
+/* ============================================================================================
+ * TELEMETRY DECODING
+ * ==========================================================================================*/
+function be16(hi, lo) { return (hi << 8) | lo; }
+function be16s(hi, lo) { const v = be16(hi, lo); return v & 0x8000 ? v - 0x10000 : v; }
+
+function decodePacket(d) {
+	const ch = [];
+	for (let i = 0; i < 8; i++) ch.push(be16(d[1 + i * 2], d[2 + i * 2]));
+	return {
+		channels: ch,
+		vbat: be16(d[17], d[18]),
+		batteryType: d[19],
+		boardState: d[20],
+		accel: [be16s(d[21], d[22]), be16s(d[23], d[24]), be16s(d[25], d[26])]
+	};
+}
+
+function onPacket(p) {
+	S.packets++;
+	S.channels = p.channels;
+	S.vbat = p.vbat;
+	S.batteryType = p.batteryType;
+	S.boardState = p.boardState;
+	S.accel = p.accel;
+	S.lastPacketTime = performance.now();
+
+	S.history.push({ t: S.lastPacketTime, a: p.accel });
+	const cutoff = S.lastPacketTime - 2000;
+	while (S.history.length && S.history[0].t < cutoff) S.history.shift();
+
+	S.live = buildFrame(S.accel);
+	refreshUI();
+	drawScene();
+}
+
+/* ============================================================================================
+ * SERIAL
+ * ==========================================================================================*/
+let port = null, reader = null, writer = null, pollTimer = null;
+let rxBuffer = [];
+
+async function connect() {
+	if (!('serial' in navigator)) {
+		alert('This browser has no Web Serial API.\n\nUse Chrome, Edge or Opera on desktop, or press Demo to try the interface without hardware.');
+		return;
+	}
+	if (S.demo) { S.demo = false; stopPolling(); }   /* the two sources must not both feed the view */
+	try {
+		port = await navigator.serial.requestPort();
+		await port.open({ baudRate: 9600 });
+		writer = port.writable.getWriter();
+		reader = port.readable.getReader();
+		S.connected = true; S.demo = false;
+		setStatus(true, 'Connected');
+		readLoop();
+		startPolling();
+	} catch (err) {
+		if (err && err.name === 'NotFoundError') return;   /* the user closed the port picker */
+		setStatus(false, 'Error: ' + (err && err.message ? err.message : err));
+		await disconnect();
+	}
+}
+
+async function readLoop() {
+	try {
+		while (port && port.readable && reader) {
+			const { value, done } = await reader.read();
+			if (done) break;
+			if (value) feed(value);
+		}
+	} catch (err) {
+		if (S.connected) setStatus(false, 'Link lost');
+	}
+}
+
+/* Resynchronising parser: the board only answers our requests, but a hot-plug or a partial read
+ * can still leave the stream misaligned, so drop bytes until one looks like a response code. */
+function feed(bytes) {
+	for (const b of bytes) rxBuffer.push(b);
+	while (rxBuffer.length >= PACKET_LEN) {
+		if (rxBuffer[0] !== CMD_TELEMETRY_RESPONSE) { rxBuffer.shift(); continue; }
+		onPacket(decodePacket(rxBuffer.splice(0, PACKET_LEN)));
+	}
+	if (rxBuffer.length > 4 * PACKET_LEN) rxBuffer = rxBuffer.slice(-PACKET_LEN);
+}
+
+async function requestTelemetry() {
+	if (!writer) return;
+	try { await writer.write(new Uint8Array([CMD_TELEMETRY_REQUEST])); }
+	catch (err) { setStatus(false, 'Write failed'); await disconnect(); }
+}
+
+function startPolling() {
+	stopPolling();
+	const period = parseInt(document.getElementById('selRate').value, 10);
+	pollTimer = setInterval(() => {
+		if (S.demo) stepDemo();
+		else requestTelemetry();
+	}, period);
+}
+function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+
+async function disconnect() {
+	stopPolling();
+	S.connected = false; S.demo = false;
+	try { if (reader) { await reader.cancel(); reader.releaseLock(); } } catch (e) {}
+	try { if (writer) writer.releaseLock(); } catch (e) {}
+	try { if (port) await port.close(); } catch (e) {}
+	reader = writer = port = null;
+	rxBuffer = [];
+	setStatus(false, 'Not connected');
+}
+
+/* ============================================================================================
+ * DEMO SOURCE - a synthetic board so the whole interface can be exercised with no hardware
+ * ==========================================================================================*/
+let demoT = 0;
+function stepDemo() {
+	demoT += 0.02;
+	const roll  = 0.55 * Math.sin(demoT * 0.7);
+	const pitch = 0.45 * Math.sin(demoT * 0.43 + 1.1);
+	/* world up expressed in body coordinates, for that roll and pitch */
+	const ax = -Math.sin(pitch);
+	const ay =  Math.sin(roll) * Math.cos(pitch);
+	const az =  Math.cos(roll) * Math.cos(pitch);
+	const noise = () => (Math.random() - 0.5) * 8;
+	onPacket({
+		channels: [0, 1, 2, 3, 4, 5, 6, 7].map(i =>
+			Math.round(500 + 480 * Math.sin(demoT * (0.5 + i * 0.13) + i))),
+		vbat: 8050 + Math.round(40 * Math.sin(demoT * 0.3)),
+		batteryType: 2,
+		boardState: 1,
+		accel: [Math.round(ax * 1000 + noise()), Math.round(ay * 1000 + noise()),
+			Math.round(az * 1000 + noise())]
+	});
+}
+
+function toggleDemo() {
+	if (S.demo) { S.demo = false; stopPolling(); setStatus(false, 'Not connected'); return; }
+	if (S.connected) return;
+	S.demo = true;
+	setStatus('demo', 'Demo - synthetic data, no board attached');
+	startPolling();
+}
+
+/* ============================================================================================
+ * UI
+ * ==========================================================================================*/
+const $ = id => document.getElementById(id);
+
+function setStatus(state, text) {
+	const dot = $('dot');
+	dot.className = 'dot' + (state === true ? ' on' : state === 'demo' ? ' demo' : '');
+	$('statusText').textContent = text;
+	$('btnConnect').disabled = (state === true);
+	$('btnDisconnect').disabled = (state !== true);
+	$('btnDemo').textContent = S.demo ? 'Stop demo' : 'Demo';
+	const warn = $('vpWarn');
+	if (S.demo) { warn.style.display = 'block'; warn.textContent = 'DEMO DATA'; }
+	else warn.style.display = 'none';
+}
+
+function badge(el, text, cls) { el.textContent = text; el.className = 'badge ' + cls; }
+
+function accelSpan() {
+	if (S.history.length < 2) return null;
+	const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
+	for (const h of S.history)
+		for (let i = 0; i < 3; i++) { mn[i] = Math.min(mn[i], h.a[i]); mx[i] = Math.max(mx[i], h.a[i]); }
+	return Math.max(mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2]);
+}
+
+function buildChannelRows() {
+	const host = $('chList');
+	host.innerHTML = '';
+	for (let i = 0; i < 8; i++) {
+		const d = document.createElement('div');
+		d.className = 'ch';
+		d.innerHTML = `<span>CH${i + 1}</span><div class="cbar"><i id="cb${i}"></i></div><span class="cv" id="cv${i}">0</span>`;
+		host.appendChild(d);
+	}
+}
+
+function refreshUI() {
+	const a = S.accel;
+	const mag = Math.round(Math.hypot(a[0], a[1], a[2]));
+
+	/* accelerometer bars, +-2000 mg of visible range */
+	const ids = ['X', 'Y', 'Z'];
+	for (let i = 0; i < 3; i++) {
+		$('v' + ids[i]).textContent = a[i] + ' mg';
+		const frac = Math.max(-1, Math.min(1, a[i] / 2000));
+		const bar = $('b' + ids[i]);
+		bar.style.width = Math.abs(frac) * 50 + '%';
+		bar.style.left = frac >= 0 ? '50%' : (50 - Math.abs(frac) * 50) + '%';
+	}
+	$('vMag').textContent = mag + ' mg';
+
+	/* roll and pitch, from the direction of gravity in body coordinates */
+	if (mag > 50) {
+		const roll  = Math.atan2(a[1], a[2]) * 180 / Math.PI;
+		const pitch = Math.atan2(-a[0], Math.hypot(a[1], a[2])) * 180 / Math.PI;
+		const tilt  = Math.acos(Math.max(-1, Math.min(1, a[2] / mag))) * 180 / Math.PI;
+		$('vRoll').textContent = roll.toFixed(1) + '°';
+		$('vPitch').textContent = pitch.toFixed(1) + '°';
+		$('tiltBig').textContent = tilt.toFixed(1) + '°';
+		if (a[2] < 0) badge($('vFlip'), 'upside down', 'r');
+		else if (tilt > 45) badge($('vFlip'), 'on its side', 'w');
+		else badge($('vFlip'), 'upright', 'g');
+	} else {
+		$('vRoll').textContent = $('vPitch').textContent = '--';
+		$('tiltBig').textContent = '--°';
+		badge($('vFlip'), 'free fall?', 'w');
+	}
+
+	/* the span, and the three calibration checks */
+	const span = accelSpan();
+	$('vSpan').textContent = span === null ? '-- mg' : span + ' mg';
+
+	const okMag = mag >= CAL_ACCEL_MIN_MG && mag <= CAL_ACCEL_MAX_MG;
+	const okSpan = span !== null && span <= CAL_MAX_SPAN_MG;
+	const okLim = Math.max(Math.abs(a[0]), Math.abs(a[1]), Math.abs(a[2])) <= CAL_ACCEL_LIMIT_MG;
+	const have = S.packets > 0;
+
+	badge($('ckMag'), have ? (okMag ? 'PASS' : 'FAIL') : '--', have ? (okMag ? 'g' : 'r') : 'n');
+	badge($('ckSpan'), span === null ? '--' : (okSpan ? 'PASS' : 'FAIL'),
+		span === null ? 'n' : (okSpan ? 'g' : 'w'));
+	badge($('ckLim'), have ? (okLim ? 'PASS' : 'FAIL') : '--', have ? (okLim ? 'g' : 'r') : 'n');
+	if (!have) badge($('ckAll'), '--', 'n');
+	else if (okMag && okSpan && okLim) badge($('ckAll'), 'would calibrate', 'g');
+	else badge($('ckAll'), 'would be rejected', 'r');
+
+	/* the captured reference */
+	if (S.reference) {
+		const r = S.reference;
+		const fmt = v => '(' + v[0] + ', ' + v[1] + ', ' + v[2] + ')';
+		$('rUp').textContent = fmt(r.up);
+		$('rFwd').textContent = fmt(r.forward);
+		$('rLeft').textContent = fmt(r.left);
+		$('rRef').textContent = r.sideways ? 'body +Y (on its side)' : 'body +X';
+
+		const lv = [project(r.forward, a), project(r.left, a), project(r.up, a)];
+		$('rLevel').textContent = fmt(lv);
+
+		const CL = 30000;
+		const cl = v => Math.max(-CL, Math.min(CL, v));
+		const horiz = isqrt(cl(lv[0]) * cl(lv[0]) + cl(lv[1]) * cl(lv[1]));
+		const tiltAngle = facAtan2(horiz, cl(lv[2]));
+		$('rTilt').textContent = tiltAngle + ' u  (' + angleToDeg(tiltAngle).toFixed(1) + '°)';
+		const flipped = lv[2] < 0;
+		badge($('rFlip'), flipped ? 'TRUE' : 'FALSE', flipped ? 'r' : 'g');
+	}
+
+	/* board */
+	badge($('vState'), STATE_NAMES[S.boardState] || '?',
+		S.boardState === 1 ? 'g' : S.boardState === 2 ? 'r' : 'w');
+	$('vBat').textContent = (S.vbat / 1000).toFixed(2) + ' V';
+	$('vPack').textContent = BATTERY_NAMES[S.batteryType] || '?';
+	$('vPkt').textContent = S.packets;
+
+	/* channels */
+	for (let i = 0; i < 8; i++) {
+		const v = S.channels[i] || 0;
+		$('cb' + i).style.width = Math.max(0, Math.min(100, v / 10)) + '%';
+		$('cv' + i).textContent = v;
+	}
+}
+
+/* ---- buttons ---- */
+$('btnConnect').addEventListener('click', connect);
+$('btnDisconnect').addEventListener('click', disconnect);
+$('btnDemo').addEventListener('click', toggleDemo);
+$('selRate').addEventListener('change', () => { if (pollTimer) startPolling(); });
+$('btnHelp').addEventListener('click', () => $('modal').classList.add('open'));
+$('btnCloseHelp').addEventListener('click', () => $('modal').classList.remove('open'));
+$('modal').addEventListener('click', e => { if (e.target === $('modal')) $('modal').classList.remove('open'); });
+
+$('btnCapture').addEventListener('click', () => {
+	if (!S.packets) { alert('No telemetry yet. Connect the board, or press Demo.'); return; }
+	const f = buildFrame(S.accel);
+	if (!f) { alert('The accelerometer reads zero on every axis: there is no direction to capture.'); return; }
+	S.reference = f;
+	$('refBox').style.display = 'block';
+	$('btnClearRef').disabled = false;
+	refreshUI(); drawScene();
+});
+$('btnClearRef').addEventListener('click', () => {
+	S.reference = null;
+	$('refBox').style.display = 'none';
+	$('btnClearRef').disabled = true;
+	drawScene();
+});
+$('cbShowRef').addEventListener('change', drawScene);
+
+window.addEventListener('beforeunload', () => { stopPolling(); });
+
+/* ---- boot ---- */
+buildChannelRows();
+S.live = buildFrame([0, 0, 1000]);   /* flat and level until the first packet lands */
+refreshUI();
+resizeCanvas();
+drawScene();
+/* the flex layout is not settled on the first synchronous pass, so size it again once it is */
+requestAnimationFrame(() => { resizeCanvas(); drawScene(); });
+if (!('serial' in navigator)) setStatus(false, 'Web Serial not available - use Demo');
+</script>
+</body>
+</html>
