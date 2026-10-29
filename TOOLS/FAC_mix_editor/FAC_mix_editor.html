@@ -289,7 +289,7 @@ canvas{display:block;background:#0b0b0b;border:1px solid var(--line2);border-rad
 	<div id="brand">F.A.C. MIX EDITOR<small>V2 &mdash; graph &rarr; simulate &rarr; C</small></div>
 	<div class="sep"></div>
 	<label>Mode</label>
-	<select id="uiMode"><option value="mix">Mix (8 in / 10 out)</option><option value="function">Special function (1/1)</option></select>
+	<select id="uiMode"><option value="mix">Mix (6 in / 4 par / 10 out)</option><option value="function">Special function (1/1)</option></select>
 	<label>Title</label><input type="text" id="uiTitle" value="my mix" style="width:130px">
 	<label>Author</label><input type="text" id="uiAuthor" value="" placeholder="F.A.C. mix editor" style="width:110px">
 	<label id="lblInst" class="hidden">Instances</label>
@@ -483,7 +483,8 @@ const MAPPER_KEYS = ['M1', 'M2', 'M3', 'S1', 'S2'];
 const GYRO_MDPS_PER_COUNT = 70;                /* LSM6DS3.h:130 - +-2000 dps full scale */
 const ACCEL_UG_PER_COUNT = 488;                /* LSM6DS3.h:129 - +-16 g full scale, 0.488 mg/LSB */
 const I16_MIN = -32768, I16_MAX = 32767;       /* LSM6DS3.h:137-138 - the driver hands over int16_t */
-const MIXES_MAX_INPUTS_NUMBER = 8;             /* fac_mixes.h */
+const MIXES_MAX_INPUTS_NUMBER = 6;             /* fac_mixes.h - 8 before firmware 2.2.0 */
+const MIXES_MAX_PARAMS_NUMBER = 4;             /* fac_mixes.h - int16_t numbers set from the FAC Tool, firmware 2.2.0 */
 const MIXES_MAX_OUTPUTS_NUMBER = 10;           /* fac_mixes.h */
 const SPECIAL_FUNCITONS_NUMBER = 20;           /* fac_functions.h - spelling is API, do not fix */
 /* THE HIGHEST SPECIAL FUNCTION INDEX A MAPPER ROW CAN NAME (fac_settings.c:103-107,
@@ -493,6 +494,13 @@ const SPECIAL_FUNCITONS_NUMBER = 20;           /* fac_functions.h - spelling is 
  * so the two limits are now ONE limit and the guide says so with one number.
  * If a firmware ever lowers it again this constant is the only place to change. */
 const MAPPER_FN_LINK_MAX = SPECIAL_FUNCITONS_NUMBER - 1;
+/* a mix parameter as the firmware holds it: an int16_t. Whatever the UI or a
+ * saved file hands over is truncated, and clamped to the type instead of being
+ * wrapped, so the simulated value is one the FAC Tool could really have written. */
+function clampParam(v) {
+	v = Math.trunc(Number(v));
+	return isFinite(v) ? Math.max(I16_MIN, Math.min(I16_MAX, v)) : 0;
+}
 /* HOW FULL THE TWO ENUMS ALREADY ARE on the firmware this tool was written
  * against - the number of entries BEFORE the `_LAST` marker, which is also the
  * next free index. They are only the pre-filled value of the two registration
@@ -800,10 +808,10 @@ function def(d) { NODES[d.id] = d; return d; }
 /* ------------------------------------------------------------------ SOURCES */
 def({
 	id: 'mix_input', label: 'Mix input', cat: 'source', modes: ['mix'], ins: [], out: 'NORM', divs: 0, noGroup: true,
-	params: [{ n: 'idx', label: 'index', t: 'int', min: 0, max: 7, def: 0 },
+	params: [{ n: 'idx', label: 'index', t: 'int', min: 0, max: MIXES_MAX_INPUTS_NUMBER - 1, def: 0 },
 	{ n: 'name', label: 'name', t: 'text', def: 'THROTTLE' }],
 	help: 'inputs[INPUT_<NAME>] - a receiver channel already normalized to [-1000,+1000] by the framework. 0 div. The INDEX IS POSITIONAL and must never be renumbered.',
-	sim: (c, a, p) => c.inputs[p.idx],
+	sim: (c, a, p) => c.inputs[p.idx] | 0,   /* a stale idx >= 6 is a validation error, never a NaN */
 	emit: (c, a, p) => ({ expr: 'inputs[INPUT_' + cName(p.name).toUpperCase() + ']' }),
 	range: () => IV_INPUT,
 	usage: {
@@ -811,6 +819,21 @@ def({
 		example: 'index 0 named THROTTLE wired straight into a Mix output is already a valid mix - a passthrough. Everything else is what you put between the two.',
 		inputs: [],
 		note: 'the index is a position in **this mix\'s** input list, not a receiver channel. Which channel feeds it is the pilot\'s setting and can be changed from the configurator; renumbering the index in the mix silently moves every stick at once.'
+	}
+});
+def({
+	id: 'mix_param', label: 'Mix param', cat: 'source', modes: ['mix'], ins: [], out: 'RAW', divs: 0, noGroup: true,
+	params: [{ n: 'idx', label: 'index', t: 'int', min: 0, max: MIXES_MAX_PARAMS_NUMBER - 1, def: 0 },
+	{ n: 'name', label: 'name', t: 'text', def: 'KP' }],
+	help: 'FAC_mixes_GET_param(PARAM_<NAME>). A number (int16_t, -32768..+32767) set from the FAC Tool, NOT normalized: its meaning is up to the mix, e.g. the gains of a PID (x1000 into the kp/ki/kd ports). 0 div, free field read, cached by FAC_mixes_init() so it changes on apply settings. The INDEX IS POSITIONAL and must never be renumbered.',
+	sim: (c, a, p) => c.params(p.idx),
+	emit: (c, a, p) => ({ expr: 'FAC_mixes_GET_param(PARAM_' + cName(p.name).toUpperCase() + ')' }),
+	range: () => IV.mk(I16_MIN, I16_MAX),
+	usage: {
+		what: 'a number the pilot sets from the FAC Tool and the mix reads, with no rebuild.',
+		example: 'param 0 named KP into the `kp?` port of `PID`: the loop is tuned from the configurator, and the gain is 1000 for unity (the port is x1000).',
+		inputs: [],
+		note: 'it is a **raw integer**, not a stick: nothing normalizes it, so it can feed a gain port or a `raw` block directly and it needs `from range` before it can drive a NORM port. The index is a position in the four-parameter list (codes `FAC_SETTINGS_CODE_MIX_PARAM1..4`), so renumbering it moves every setting at once. Like the input channels it is cached when settings are applied, not when the value is written.'
 	}
 });
 def({
@@ -1895,10 +1918,10 @@ def({
 	range: (r, p) => IV.mk(Math.min(p.olo, p.ohi), Math.max(p.olo, p.ohi)),
 	usage: {
 		what: 'the whole controller in one block: proportional, integral and derivative on the error between where you want to be and where you are.',
-		example: 'setpoint = the steering stick through `from range`, measurement = the levelled `Yaw rate` through the same `from range`. Now the stick asks for a turn RATE and the machine delivers it, instead of asking for a duty and hoping the two wheels agree. Wire a spare channel into the `kp?` port through `raw x k` and you can tune the loop from the transmitter without a rebuild.',
+		example: 'setpoint = the steering stick through `from range`, measurement = the levelled `Yaw rate` through the same `from range`. Now the stick asks for a turn RATE and the machine delivers it, instead of asking for a duty and hoping the two wheels agree. Wire a `Mix param` into the `kp?` port and you can tune the loop from the FAC Tool without a rebuild.',
 		seq: [[500, 0, 0], [500, 100, 0], [500, 250, 0], [500, 400, 0], [500, 480, 0], [500, 500, 0]],
 		params: { kp: 500, ki: 10, kd: 100 }, dt: 10,
-		note: 'the gains are **x1000** - 1000 is a gain of one - and the derivative is on the ERROR, so a step in the setpoint gives it a kick. Each gain is a parameter **and** an optional port: wire the port and the parameter beside it stops being used, which the inspector greys out rather than leaving you to guess. An `RX channel` reads 0..1000, so a raw channel on `kp?` sweeps the gain from 0 to exactly 1 - put `raw x k` in between for anything wider. Tune it on the real robot: the simulator here has no mass, no motor curve and no traction limit, so a gain that looks perfect in this window can be violently wrong on the floor.'
+		note: 'the gains are **x1000** - 1000 is a gain of one - and the derivative is on the ERROR, so a step in the setpoint gives it a kick. Each gain is a parameter **and** an optional port: wire the port and the parameter beside it stops being used, which the inspector greys out rather than leaving you to guess. A `Mix param` is already a raw integer, so its number *is* the gain x1000 (1000 = unity, up to 32.767); an `RX channel` reads 0..1000, so a raw channel on `kp?` sweeps the gain only from 0 to exactly 1. Tune it on the real robot: the simulator here has no mass, no motor curve and no traction limit, so a gain that looks perfect in this window can be violently wrong on the floor.'
 	}
 });
 def({
@@ -2014,8 +2037,10 @@ function blankProject(mode) {
 		reg: { mixCount: FW_MIX_COUNT, fnCount: FW_FN_COUNT },
 		sim: {
 			deadzonePerc: 2,
-			chAssign: [2, 1, 0, 0, 0, 0, 0, 0],   /* fac_settings.c defaults: IN1<-ch2, IN2<-ch1 */
-			reverse: [0, 0, 0, 0, 0, 0, 0, 0],
+			chAssign: [2, 1, 0, 0, 0, 0],         /* fac_settings.c defaults: IN1<-ch2, IN2<-ch1. 6 entries since firmware 2.2.0 */
+			reverse: [0, 0, 0, 0, 0, 0],
+			/* the mix parameters the FAC Tool would set (FAC_SETTINGS_CODE_MIX_PARAM1..4), int16, firmware 2.2.0 */
+			params: [0, 0, 0, 0],
 			fnChannels: [3, 0, 0, 0, 0, 0, 0, 0, 0],
 			stage0: [500, 500, 0, 500, 500, 500, 500, 500],
 			mapper: { M1: 100, M2: 101, M3: 0, S1: 200, S2: 0 },
@@ -2094,11 +2119,11 @@ function addNode(type, x, y) {
 	const d = NODES[type];
 	const n = { id: newId(), t: type, x: Math.round(x), y: Math.round(y), p: {}, name: '', note: '', bind: 'auto', grp: '' };
 	(d.params || []).forEach(pd => { n.p[pd.n] = pd.def; });
-	if (type === 'mix_input' || type === 'mix_output') {
+	if (type === 'mix_input' || type === 'mix_param' || type === 'mix_output') {
 		const used = P.nodes.filter(o => o.t === type).map(o => o.p.idx);
-		const lim = type === 'mix_input' ? MIXES_MAX_INPUTS_NUMBER : MIXES_MAX_OUTPUTS_NUMBER;
+		const lim = type === 'mix_input' ? MIXES_MAX_INPUTS_NUMBER : type === 'mix_param' ? MIXES_MAX_PARAMS_NUMBER : MIXES_MAX_OUTPUTS_NUMBER;
 		for (let i = 0; i < lim; i++) if (used.indexOf(i) < 0) { n.p.idx = i; break; }
-		n.p.name = (type === 'mix_input' ? 'INPUT_' : 'OUT_') + n.p.idx;
+		n.p.name = (type === 'mix_input' ? 'INPUT_' : type === 'mix_param' ? 'VALUE_' : 'OUT_') + n.p.idx;
 	}
 	P.nodes.push(n);
 	return n;
@@ -2191,20 +2216,32 @@ function analyse() {
 		add('error', 'cycle with no stateful break (' + t.cycle.length + ' nodes). Only a "previous value" block can close a loop.', t.cycle[0]);
 
 	/* mode sanity + duplicated indices + parameter limits */
-	const outIdx = {}, inIdx = {}, rxCh = {};
+	const outIdx = {}, inIdx = {}, parIdx = {}, rxCh = {};
 	P.nodes.forEach(n => {
 		const d = NODES[n.t];
 		if (!d) { add('error', 'unknown block type "' + n.t + '"', n.id); return; }
 		if (d.modes && d.modes.indexOf(P.mode) < 0)
 			add('error', d.label + ' does not exist in ' + P.mode + ' mode', n.id);
 		if (n.t === 'mix_output') { (outIdx[n.p.idx] = outIdx[n.p.idx] || []).push(n.id); }
-		if (n.t === 'mix_input') { (inIdx[n.p.idx] = inIdx[n.p.idx] || []).push(n.id); }
+		if (n.t === 'mix_input') {
+			(inIdx[n.p.idx] = inIdx[n.p.idx] || []).push(n.id);
+			/* a project saved before firmware 2.2.0 may still use input 6 or 7 */
+			if (!(n.p.idx >= 0 && n.p.idx < MIXES_MAX_INPUTS_NUMBER))
+				add('error', 'input index ' + n.p.idx + ' does not exist: firmware 2.2.0 has ' + MIXES_MAX_INPUTS_NUMBER + ' mix inputs (0..' + (MIXES_MAX_INPUTS_NUMBER - 1) + ')', n.id);
+		}
+		if (n.t === 'mix_param') {
+			(parIdx[n.p.idx] = parIdx[n.p.idx] || []).push(n.id);
+			if (!(n.p.idx >= 0 && n.p.idx < MIXES_MAX_PARAMS_NUMBER))
+				add('error', 'param index ' + n.p.idx + ' does not exist: a mix has ' + MIXES_MAX_PARAMS_NUMBER + ' parameters (0..' + (MIXES_MAX_PARAMS_NUMBER - 1) + ')', n.id);
+		}
 		if (n.t === 'rx_channel') { (rxCh[n.p.ch] = rxCh[n.p.ch] || []).push(n.id); }
 		if (n.t === 'fn_output' && P.nodes.filter(o => o.t === 'fn_output').length > 1)
 			add('error', 'a special function has exactly one output', n.id);
 	});
 	Object.keys(outIdx).forEach(k => { if (outIdx[k].length > 1) add('error', 'output index ' + k + ' is written by ' + outIdx[k].length + ' blocks', outIdx[k][1]); });
 	Object.keys(inIdx).forEach(k => { if (inIdx[k].length > 1) add('warn', 'input index ' + k + ' is read by ' + inIdx[k].length + ' blocks - harmless, but one block is enough', inIdx[k][1]); });
+	/* a parameter index shared by two blocks would emit one number under two names */
+	Object.keys(parIdx).forEach(k => { if (parIdx[k].length > 1) add('error', 'param index ' + k + ' is read by ' + parIdx[k].length + ' blocks - one block per parameter', parIdx[k][1]); });
 	Object.keys(rxCh).forEach(k => { if (rxCh[k].length > 1) add('warn', 'channel ' + k + ' is read by ' + rxCh[k].length + ' direct RX blocks - the generator emits one local, but one block is clearer', rxCh[k][1]); });
 
 	/* unconnected required ports. A port marked `opt` is not one: leaving it
@@ -2310,7 +2347,7 @@ function analyse() {
 		if (n.t === 'div_scaled' && args[1] && args[1].lo <= 0 && args[1].hi >= 0)
 			add('warn', 'b can be 0 here - the primitive guards it and returns 0, make sure that is the behaviour you want', n.id);
 		if (n.t === 'sqrt' && ranges.get(n.id) && args[0].lo < 0) add('warn', 'sqrt of a possibly negative value returns 0', n.id);
-		if (n.t === 'rx_channel') add('warn', 'direct RX channel read bypasses the user-configurable mix input channel setting', n.id);
+		if (n.t === 'rx_channel') add('warn', 'direct RX channel read bypasses the user-configurable mix input channel setting (a tunable number belongs in a Mix param)', n.id);
 		if (n.t === 'rx_connected') add('warn', 'RX connected latches TRUE on the first frame and NEVER returns to FALSE - it is not a failsafe', n.id);
 		if (n.t === 'setting') add('warn', 'reading a setting ties the graph to a code that is FAC Tool ABI - bake tuning constants in as literals instead', n.id);
 		if (d.stateful && !n.p.onResume)
@@ -2543,6 +2580,7 @@ function genBody(ctx) {
 }
 function defaultLocalName(n) {
 	if (n.t === 'mix_input') return 'in ' + n.p.name;
+	if (n.t === 'mix_param') return 'param ' + n.p.name;
 	if (n.t === 'const') return 'k' + n.p.v;
 	return NODES[n.t].label;
 }
@@ -2674,6 +2712,14 @@ function inputDefines() {
 	}
 	return L.join('\n');
 }
+function paramDefines() {
+	const L = [];
+	for (let i = 0; i < MIXES_MAX_PARAMS_NUMBER; i++) {
+		const n = P.nodes.find(o => o.t === 'mix_param' && o.p.idx === i);
+		L.push(n ? '#define PARAM_' + cName(n.p.name).toUpperCase() + ' ' + i : '//#define PARAM_NOT_USED ' + i);
+	}
+	return L.join('\n');
+}
 function outputDefines() {
 	const L = [];
 	for (let i = 0; i < MIXES_MAX_OUTPUTS_NUMBER; i++) {
@@ -2749,6 +2795,13 @@ function buildMixC(ctx, region) {
 		' * Use the INPUT_<NAME> to know the position of where to get the input value in the inputs array\n' +
 		' */\n' +
 		inputDefines() + '\n\n' +
+		'/* PARAMs DESCRIPTION:\n' +
+		' * Numbers (int16_t, -32768 to +32767) set from the FAC Tool, ex: the gains of a PID.\n' +
+		' * Uncomment the parameter you want to use and rename it (ex: #define PARAM_KP 0)\n' +
+		' * !! DONT\'T CHANGE THE NUMBER ASIGNED !!\n' +
+		' * Read it with FAC_mixes_GET_param(PARAM_<NAME>): the value changes on the next apply settings\n' +
+		' */\n' +
+		paramDefines() + '\n\n' +
 		'/* OUTPUTs DESCRIPTION:\n' +
 		' * Uncomment the output you want to use and rename it\n' +
 		' * (ex: #define OUTPUT_MOTOR_LEFT 0, or #define OUTPUT_MOTOR_RIGHT 1)\n' +
@@ -3002,6 +3055,16 @@ function registrationGuide() {
 		L.push('`FAC_SETTINGS_CODE_ACTIVE_MIX` has `max = FAC_MIX_LAST-1` in `settings[]`, so its');
 		L.push('range follows the enum by itself.');
 		L.push('');
+		const parNodes = P.nodes.filter(n => n.t === 'mix_param').sort((x, y) => x.p.idx - y.p.idx);
+		if (parNodes.length) {
+			L.push('The parameters this mix reads are **numbers the user sets from the FAC Tool**, not');
+			L.push('settings you add: `FAC_SETTINGS_CODE_MIX_PARAM1 .. 4` (codes 33..36, `int16_t`, default 0,');
+			L.push('cached by `FAC_mixes_init()` so a change takes effect on *apply settings*). Their meaning');
+			L.push('is only what this mix gives them:');
+			L.push('');
+			parNodes.forEach(n => L.push('- `PARAM_' + cName(n.p.name).toUpperCase() + '` = ' + n.p.idx + ' -> `FAC_SETTINGS_CODE_MIX_PARAM' + (n.p.idx + 1) + '`'));
+			L.push('');
+		}
 	} else {
 		const firstIdx = fnCount, lastIdx = fnCount + N - 1, newLast = fnCount + N;
 		L.push('## 1. Drop the two files in');
@@ -3249,6 +3312,15 @@ function mergeSim(base, inc) {
 		migrateRobotGeometry(out.robot, legacy, out.mapper);
 	LEGACY_ROBOT_KEYS.forEach(k => { delete out.robot[k]; });
 	delete out.robot.noise;
+	/* Firmware 2.2.0: a mix has 6 inputs (it had 8) and 4 parameters. A file saved
+	 * before it carries 8-entry `chAssign` / `reverse` and no `params`: trim the
+	 * first two to the firmware's count (inputs 6 and 7 no longer exist) and give
+	 * the third its default. A SHORT list is completed from the defaults instead.
+	 * No schema bump: nothing that existed changed meaning, same as gridMm. */
+	const fit = (a, d, f) => d.map((v, i) => (Array.isArray(a) && a[i] !== undefined) ? f(a[i]) : v);
+	out.chAssign = fit(out.chAssign, base.chAssign, v => Number(v) | 0);
+	out.reverse = fit(out.reverse, base.reverse, v => v ? 1 : 0);
+	out.params = fit(out.params, base.params, clampParam);
 	return out;
 }
 /* A saved project of ANY schema -> a complete project at SCHEMA_VERSION.
@@ -3729,7 +3801,7 @@ const SIM = {
 	tick: 0, running: true, stepOnce: false, acc: 0, lastFrameMs: 0,
 	stage0: [500, 500, 0, 500, 500, 500, 500, 500],
 	stage1: [0, 0, 0, 0, 0, 0, 0, 0],
-	mixIn: [0, 0, 0, 0, 0, 0, 0, 0],
+	mixIn: [0, 0, 0, 0, 0, 0],
 	outputs: new Array(MIXES_MAX_OUTPUTS_NUMBER).fill(0),
 	fnOut: new Array(SPECIAL_FUNCITONS_NUMBER).fill(0),
 	values: {},                 /* nodeId -> last value, for the live wire labels */
@@ -3872,6 +3944,8 @@ const SIM = {
 		const s = P.sim, self = this;
 		return {
 			inputs: this.mixIn, fnInput: this.fnInputOf(slot), fnOutput: 0,
+			/* FAC_mixes_GET_param(): out of range is 0, like the firmware accessor */
+			params: (i) => (i >= 0 && i < MIXES_MAX_PARAMS_NUMBER) ? clampParam(s.params[i]) : 0,
 			outputs: this.outputs, tick: this.tick, slot: slot,
 			/* the sensor as fac_imu.h hands it over: the raw axes, and the levelled
 			 * ones through the calibrated frame. The heading is a FUNCTION and not a
@@ -4354,7 +4428,7 @@ function tankReference(inThrottle, inSteering) {
 }
 
 /* run a mix project once, headless, on a given input vector */
-function headlessMix(proj, inputs) {
+function headlessMix(proj, inputs, params) {
 	const save = P;
 	P = proj;
 	let out;
@@ -4363,6 +4437,7 @@ function headlessMix(proj, inputs) {
 		out = new Array(MIXES_MAX_OUTPUTS_NUMBER).fill(0);
 		const c = {
 			inputs: inputs, outputs: out, tick: 0, fnInput: 0, fnOutput: 0, slot: 0,
+			params: (i) => (i >= 0 && i < MIXES_MAX_PARAMS_NUMBER) ? clampParam((params || [])[i]) : 0,
 			/* a still, flat, calibrated board: the identity frame, so a levelled
 			 * accessor gives the raw axis back - which is what the firmware does
 			 * too, and keeps this stub one line rather than a second simulator */
@@ -4822,17 +4897,124 @@ function runSelfTest() {
 				const pLine = () => (src.match(/int32_t \w+ = FAC_math_mul_scaled\([^;]*\);/g) || []).join(' / ');
 				Tok('an unwired kp port emits the Kp parameter as a literal',
 					/FAC_math_mul_scaled\(\w+, 1000, 1000\)/.test(src), pLine());
-				const kpc = b.n('rx_channel', 0, 200, { ch: 5 });
+				/* the gain source is a Mix param: the pattern a tunable number is meant to follow */
+				const kpc = b.n('mix_param', 0, 200, { idx: 0, name: 'KP' });
 				P.wires.push({ from: kpc, to: pidN, port: 3 });
 				analyse();
 				src = generate().c;
 				Tok('a wired kp port emits the wired expression instead of the literal',
 					!/FAC_math_mul_scaled\(\w+, 1000, 1000\)/.test(src) &&
-					/int32_t \w+ = FAC_math_mul_scaled\(\w+, [A-Za-z_]\w*, 1000\);/.test(src), pLine());
+					/int32_t \w+ = FAC_math_mul_scaled\(\w+, \(FAC_mixes_GET_param\(PARAM_KP\)\), 1000\);/.test(src), pLine());
 				Tok('and the Ki left unwired still emits its own literal',
 					/FAC_math_mul_scaled\(\w+, 500, 1000\)/.test(src), pLine());
 			} finally { P = save; }
 		})();
+	})();
+
+	/* --- firmware 2.2.0: six inputs and four parameters --- */
+	(function () {
+		const save = P;
+		try {
+			/* the constants are the firmware's, and the old input count must be gone */
+			T('a mix has 6 inputs', MIXES_MAX_INPUTS_NUMBER, 6);
+			T('a mix has 4 parameters', MIXES_MAX_PARAMS_NUMBER, 4);
+			T('a new project has 6 channel assignments, 6 reversals and 4 parameters',
+				[blankProject('mix').sim.chAssign.length, blankProject('mix').sim.reverse.length, blankProject('mix').sim.params.length].join(','), '6,6,4');
+			T('SIM.mixIn is as long as the firmware input list', SIM.mixIn.length, MIXES_MAX_INPUTS_NUMBER);
+
+			/* the block's own sim: the context the simulator hands out reads P.sim.params,
+			 * truncates and clamps to int16_t, and answers 0 out of range like the accessor */
+			P = blankProject('mix');
+			P.sim.params = [10, -32768, 40000, -77777, 99];   /* a stray 5th entry must stay unreachable */
+			const mp = NODES.mix_param, sc = SIM.simContext(0);
+			T('mix_param sim reads the simulated parameter', mp.sim(sc, [], { idx: 0, name: 'A' }, {}), 10);
+			T('mix_param sim reads int16 minimum untouched', mp.sim(sc, [], { idx: 1, name: 'A' }, {}), -32768);
+			T('mix_param sim clamps a value above int16 to 32767', mp.sim(sc, [], { idx: 2, name: 'A' }, {}), 32767);
+			T('mix_param sim clamps a value below int16 to -32768', mp.sim(sc, [], { idx: 3, name: 'A' }, {}), -32768);
+			T('a parameter index past the end reads 0, as the firmware accessor does', sc.params(4) + '/' + sc.params(-1), '0/0');
+			T('mix_param proven range is the whole int16', IV.str(mp.range([], {}, null)), IV.str(IV.mk(-32768, 32767)));
+			T('mix_param is a plain integer (RAW) so it can feed a gain port', nodeOutKind({ t: 'mix_param', p: {} }), 'RAW');
+			T('clampParam truncates a fraction toward zero and refuses a non-number', clampParam(-2.9) + '/' + clampParam('x'), '-2/0');
+
+			/* the block's own emit, on a throwaway context: a named define, no local, no include */
+			const ec = makeCtx(), er = mp.emit(ec, [], { idx: 2, name: 'kd gain' }, {});
+			T('mix_param emits the accessor with a named define', er.expr, 'FAC_mixes_GET_param(PARAM_KD_GAIN)');
+			Tok('and nothing else: no line, no static, no include', !er.lines && !ec.statics.length && !ec.incOther.size && !ec.incAdc && !ec.incImu, JSON.stringify(er));
+
+			/* a headless run takes the parameters as an argument */
+			const hb = PB('mix', 'param probe', 'x');
+			const hp = hb.n('mix_param', 0, 0, { idx: 1, name: 'LEVEL' }), ho = hb.n('mix_output', 200, 0, { idx: 0, name: 'OUT' });
+			hb.w(hp, ho, 0);
+			T('a mix passing a parameter to an output runs on it', headlessMix(hb.done(), [0, 0, 0, 0, 0, 0], [0, 123])[0], 123);
+			T('and clamps it like any output', headlessMix(hb.done(), [0, 0, 0, 0, 0, 0], [0, 5000])[0], 1000);
+
+			/* the generated template: the PARAMs block is the firmware's, byte for byte, the
+			 * defines follow the used indices and the inputs stop at 5 */
+			P = hb.done(); P.embedJson = false; P.imuFallback = 'zero';
+			analyse();
+			const gc = generate().c;
+			const want = '//#define INPUT_NOT_USED 5\n\n' +
+				'/* PARAMs DESCRIPTION:\n' +
+				' * Numbers (int16_t, -32768 to +32767) set from the FAC Tool, ex: the gains of a PID.\n' +
+				' * Uncomment the parameter you want to use and rename it (ex: #define PARAM_KP 0)\n' +
+				' * !! DONT\'T CHANGE THE NUMBER ASIGNED !!\n' +
+				' * Read it with FAC_mixes_GET_param(PARAM_<NAME>): the value changes on the next apply settings\n' +
+				' */\n' +
+				'//#define PARAM_NOT_USED 0\n#define PARAM_LEVEL 1\n//#define PARAM_NOT_USED 2\n//#define PARAM_NOT_USED 3\n\n' +
+				'/* OUTPUTs DESCRIPTION:';
+			Tok('the generated .c carries the template PARAMs block and the used define', gc.indexOf(want) > 0, gc.slice(gc.indexOf('INPUT_NOT_USED 4'), gc.indexOf('INPUT_NOT_USED 4') + 700));
+			Tok('the body reads the parameter through its define', gc.indexOf('outputs[OUTPUT_OUT] = FAC_mixes_GET_param(PARAM_LEVEL);') > 0, gc);
+			Tok('no input 6 or 7 is offered any more', !/INPUT_NOT_USED [67]/.test(gc) && (gc.match(/INPUT_NOT_USED/g) || []).length === 6, gc);
+			T('a parameter adds no include: only the three default ones are live', (gc.match(/^#include/gm) || []).length, 3);
+			/* the guide names the settings the parameters are set through, only when one is used */
+			const gd = registrationGuide();
+			Tok('the guide maps a used parameter to its settings code', /`PARAM_LEVEL` = 1 -> `FAC_SETTINGS_CODE_MIX_PARAM2`/.test(gd) && /codes 33\.\.36/.test(gd), gd.slice(gd.indexOf('## 6.'), gd.indexOf('## 6.') + 400));
+			/* an unused parameter is the commented define, as an unused input is */
+			P = blankProject('mix'); P.embedJson = false; P.imuFallback = 'zero'; analyse();
+			Tok('a graph with no parameter emits all four commented', (generate().c.match(/^\/\/#define PARAM_NOT_USED [0-3]$/gm) || []).length === 4, 'count');
+
+			/* inserting one: first free index, and its own default name */
+			P = blankProject('mix');
+			const a1 = addNode('mix_param', 0, 0), a2 = addNode('mix_param', 0, 0);
+			T('a new Mix param takes the first free index', a1.p.idx + ',' + a2.p.idx, '0,1');
+			T('and a name that does not repeat the PARAM_ prefix', a1.p.name, 'VALUE_0');
+
+			/* validation */
+			const errs = (b) => { P = b.done(); return analyse().findings.filter(f => f.sev === 'error').map(f => f.msg); };
+			const eb = PB('mix', 'e', 'x'), ei = eb.n('mix_input', 0, 0, { idx: 6, name: 'OLD' }), eo = eb.n('mix_output', 200, 0, { idx: 0, name: 'O' });
+			eb.w(ei, eo, 0);
+			Tok('a mix input past the sixth is an error naming firmware 2.2.0', errs(eb).some(m => /input index 6/.test(m) && /2\.2\.0/.test(m)), errs(eb).join(' | '));
+			const ok = PB('mix', 'e', 'x'), oi = ok.n('mix_input', 0, 0, { idx: 5, name: 'LAST' }), oo = ok.n('mix_output', 200, 0, { idx: 0, name: 'O' });
+			ok.w(oi, oo, 0);
+			T('input 5 is the last valid one and raises no error', errs(ok).length, 0);
+			const pe = PB('mix', 'e', 'x'), pa = pe.n('mix_param', 0, 0, { idx: 4, name: 'A' }), po = pe.n('mix_output', 200, 0, { idx: 0, name: 'O' });
+			pe.w(pa, po, 0);
+			Tok('a param index of 4 is an error', errs(pe).some(m => /param index 4/.test(m)), errs(pe).join(' | '));
+			const pd = PB('mix', 'e', 'x'), pd1 = pd.n('mix_param', 0, 0, { idx: 2, name: 'A' }), pd2 = pd.n('mix_param', 0, 80, { idx: 2, name: 'B' });
+			const pdo = pd.n('mix_output', 200, 0, { idx: 0, name: 'O' }), pdo2 = pd.n('mix_output', 200, 80, { idx: 1, name: 'P' });
+			pd.w(pd1, pdo, 0).w(pd2, pdo2, 0);
+			Tok('two blocks on one param index is an error', errs(pd).some(m => /param index 2 is read by 2 blocks/.test(m)), errs(pd).join(' | '));
+			const pg = PB('mix', 'e', 'x'), pg1 = pg.n('mix_param', 0, 0, { idx: 0, name: 'A' }), pg2 = pg.n('mix_param', 0, 80, { idx: 3, name: 'B' });
+			const pgo = pg.n('mix_output', 200, 0, { idx: 0, name: 'O' }), pgo2 = pg.n('mix_output', 200, 80, { idx: 1, name: 'P' });
+			pg.w(pg1, pgo, 0).w(pg2, pgo2, 0);
+			T('params 0 and 3 are both valid', errs(pg).length, 0);
+			P = blankProject('function');
+			P.nodes.push({ id: 'z1', t: 'mix_param', x: 0, y: 0, p: { idx: 0, name: 'A' }, name: '', note: '', bind: 'auto', grp: '' });
+			Tok('a Mix param in a special function is an error: functions have none', analyse().findings.some(f => f.sev === 'error' && /does not exist in function mode/.test(f.msg)), 'no finding');
+
+			/* an older project: 8 entries trimmed to 6, params defaulted, schema left alone */
+			const d = blankProject('mix').sim;
+			const old = migrateProject({ schemaVersion: 3, mode: 'mix', nodes: [], wires: [],
+				sim: { chAssign: [1, 2, 3, 4, 5, 6, 7, 8], reverse: [1, 0, 1, 0, 1, 0, 1, 1] } });
+			T('chAssign of 8 entries is trimmed to the firmware 6', String(old.sim.chAssign), '1,2,3,4,5,6');
+			T('reverse of 8 entries is trimmed to the firmware 6', String(old.sim.reverse), '1,0,1,0,1,0');
+			T('a project with no params gets the default four', String(old.sim.params), String(d.params));
+			Tok('and the default is four zeros', old.sim.params.length === 4 && old.sim.params.every(v => v === 0), String(old.sim.params));
+			T('a project saved with params keeps them, clamped to int16', String(migrateProject({ mode: 'mix', nodes: [], wires: [], sim: { params: [5, -7, 99999, 'x', 9] } }).sim.params), '5,-7,32767,0');
+			T('a short chAssign is completed from the defaults', String(migrateProject({ mode: 'mix', nodes: [], wires: [], sim: { chAssign: [3] } }).sim.chAssign), '3,1,0,0,0,0');
+			T('the receiver still has 8 channels: stage0 is not trimmed', migrateProject({ mode: 'mix', nodes: [], wires: [], sim: {} }).sim.stage0.length, 8);
+			T('migrating does not write into the file it was given', String(((o) => { migrateProject(o); return o.sim.chAssign; })({ mode: 'mix', nodes: [], wires: [], sim: { chAssign: [1, 2, 3, 4, 5, 6, 7, 8] } })), '1,2,3,4,5,6,7,8');
+		} finally { P = save; }
 	})();
 
 	/* --- nothing forbidden ever reaches a generated file --- */
@@ -8272,6 +8454,19 @@ function uiSim() {
 	}
 	h += '</div>';
 
+	/* --- mix parameters: the four int16 numbers the FAC Tool sets (firmware 2.2.0) --- */
+	if (!isFn) {
+		h += '<div class="card"><h4>Mix parameters (settings)</h4>';
+		for (let i = 0; i < MIXES_MAX_PARAMS_NUMBER; i++) {
+			const n = P.nodes.find(o => o.t === 'mix_param' && o.p.idx === i);
+			h += '<div style="' + GRID('86px 96px 1fr') + '">' +
+				'<span' + (n ? '' : ' class="muted"') + '>' + (n ? esc(n.p.name) : 'param ' + i) + '</span>' +
+				'<input type="number" class="mipar" data-i="' + i + '" min="' + I16_MIN + '" max="' + I16_MAX + '" step="1" value="' + clampParam(s.params[i]) + '">' +
+				'<span class="muted" style="font-size:10px">' + (i === 0 ? 'int16, -32768 .. 32767' : '') + '</span></div>';
+		}
+		h += '</div>';
+	}
+
 	/* --- outputs --- */
 	h += '<div class="card"><h4>' + (isFn ? 'Function outputs' : 'Mix outputs') + '</h4>';
 	if (isFn) {
@@ -8301,6 +8496,7 @@ function uiSim() {
 	$$('.s0').forEach(i => i.oninput = e => { SIM.stage0[+e.target.dataset.i] = Number(e.target.value) | 0; });
 	$$('.mich').forEach(i => i.onchange = e => { s.chAssign[+e.target.dataset.i] = Number(e.target.value) | 0; uiSim(); });
 	$$('.mirev').forEach(i => i.onchange = e => { s.reverse[+e.target.dataset.i] = e.target.checked ? 1 : 0; });
+	$$('.mipar').forEach(i => i.onchange = e => { s.params[+e.target.dataset.i] = clampParam(e.target.value); e.target.value = s.params[+e.target.dataset.i]; });
 	$$('.fnch').forEach(i => i.onchange = e => { s.fnChannels[+e.target.dataset.i] = Number(e.target.value) | 0; });
 }
 function uiSimLive() {
@@ -9888,7 +10084,7 @@ function showBlockDoc(id) {
 
 function uiHelp() {
 	modal('<h3>F.A.C. V2 mix &amp; special function editor</h3>' +
-		'<p>Assemble a mix (8 inputs / 10 outputs) or a special function (1 in / 1 out) out of the closed set of integer blocks ' +
+		'<p>Assemble a mix (6 inputs, 4 parameters, 10 outputs) or a special function (1 in / 1 out) out of the closed set of integer blocks ' +
 		'<span class="mono">fac_math.h</span> offers, simulate it here bit-identically to the MCU, and export the ' +
 		'<span class="mono">.c</span> / <span class="mono">.h</span> pair plus a registration guide.</p>' +
 		'<h4>Why this can be exact</h4>' +
@@ -9963,8 +10159,8 @@ function pasteSel() {
 	});
 	/* indices are positional: a pasted input/output must not silently collide */
 	fresh.forEach(c => {
-		if (c.t === 'mix_input' || c.t === 'mix_output') {
-			const lim = c.t === 'mix_input' ? MIXES_MAX_INPUTS_NUMBER : MIXES_MAX_OUTPUTS_NUMBER;
+		if (c.t === 'mix_input' || c.t === 'mix_param' || c.t === 'mix_output') {
+			const lim = c.t === 'mix_input' ? MIXES_MAX_INPUTS_NUMBER : c.t === 'mix_param' ? MIXES_MAX_PARAMS_NUMBER : MIXES_MAX_OUTPUTS_NUMBER;
 			const used = P.nodes.concat(fresh).filter(o => o.t === c.t && o.id !== c.id).map(o => o.p.idx);
 			for (let i = 0; i < lim; i++) if (used.indexOf(i) < 0) { c.p.idx = i; break; }
 		}
