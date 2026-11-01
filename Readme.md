@@ -2,7 +2,7 @@
 
 <img title="FAC V2 front" src="/images/real 4.jpg" width="400"> <img title="FAC V2 rear" src="/images/real 2.jpg" width="400">
 
-**F.A.C. V2** is an advanced control board specifically designed for combat robots (such as the Antweight category). Created by **Floppy Lab™**, it serves as a high-performance, highly customizable alternative to the Malenki-nano, offering professional features at a competitive price point.
+**F.A.C. V2** is an advanced control board specifically designed for combat robots (such as the Antweight category). Created by **Floppy Lab**, it serves as a high-performance, highly customizable alternative to the Malenki-nano, offering professional features at a competitive price point.
 
 ## 🚀 Key Features
 
